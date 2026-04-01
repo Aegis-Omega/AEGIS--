@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>S.W.A.R.M. OS — Quantum Singularity</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; color:#e0e0e0; font-family:'Courier New',monospace; overflow:hidden; }
+
+/* ── Canvas ── */
+#canvas { position:fixed; inset:0; }
+
+/* ── HUD (top-left) ── */
+#hud {
+  position:fixed; top:14px; left:14px;
+  background:rgba(0,0,0,.8); border:1px solid #1a3a1a;
+  border-radius:6px; padding:12px 16px; min-width:220px; z-index:10;
+}
+#hud h1 { font-size:10px; color:#39ff14; letter-spacing:3px; margin-bottom:8px; }
+.metric { display:flex; justify-content:space-between; font-size:11px; margin:2px 0; }
+.label { color:#555; }
+.val   { color:#39ff14; font-weight:bold; }
+.val.dim { color:#888; }
+#hud hr { border:none; border-top:1px solid #1a3a1a; margin:7px 0; }
+
+/* ── Z-level legend (top-right) ── */
+#legend {
+  position:fixed; top:14px; right:14px;
+  background:rgba(0,0,0,.8); border:1px solid #1a3a1a;
+  border-radius:6px; padding:12px 16px; min-width:200px; z-index:10;
+}
+#legend h2 { font-size:10px; color:#39ff14; letter-spacing:2px; margin-bottom:8px; }
+.z-row { display:flex; align-items:center; margin:4px 0; font-size:10px; }
+.z-dot { width:8px; height:8px; border-radius:50%; margin-right:8px; flex-shrink:0; }
+.z-label { color:#999; }
+.z-hz    { color:#555; margin-left:auto; font-size:9px; }
+
+/* ── Event feed (bottom-left) ── */
+#feed {
+  position:fixed; bottom:14px; left:14px;
+  background:rgba(0,0,0,.8); border:1px solid #1a1a3a;
+  border-radius:6px; padding:10px 14px; max-width:380px;
+  max-height:180px; overflow:hidden; z-index:10;
+}
+#feed h3 { font-size:10px; color:#8888ff; letter-spacing:2px; margin-bottom:6px; }
+#feed-list { display:flex; flex-direction:column-reverse; }
+.feed-line { font-size:10px; color:#555; margin:1px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.feed-line.epiphany { color:#8888ff; }
+.feed-line.dream    { color:#4488ff; }
+.feed-line.boot     { color:#888; }
+
+/* ── Counters (bottom-right) ── */
+#counters {
+  position:fixed; bottom:14px; right:14px;
+  background:rgba(0,0,0,.8); border:1px solid #1a3a1a;
+  border-radius:6px; padding:10px 14px; z-index:10; text-align:right;
+}
+.counter { font-size:11px; margin:3px 0; }
+.counter .cn { color:#39ff14; font-size:16px; font-weight:bold; }
+.counter .cl { color:#555; font-size:9px; display:block; }
+
+/* ── WS status dot ── */
+#ws-dot {
+  position:fixed; top:14px; left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,.8); border:1px solid #1a3a1a;
+  border-radius:20px; padding:4px 12px; z-index:10; font-size:10px;
+  color:#555; display:flex; align-items:center; gap:6px;
+}
+.dot { width:6px; height:6px; border-radius:50%; background:#333; }
+.dot.on  { background:#39ff14; box-shadow:0 0 6px #39ff14; }
+.dot.err { background:#ff4444; }
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div id="hud">
+  <h1>⬡ S.W.A.R.M. OS v6.0</h1>
+  <div class="metric"><span class="label">VERSION</span>   <span class="val dim" id="h-ver">—</span></div>
+  <div class="metric"><span class="label">EGO z</span>     <span class="val" id="h-ego">4</span></div>
+  <div class="metric"><span class="label">DREAM CYCLES</span><span class="val" id="h-dc">0</span></div>
+  <hr/>
+  <div class="metric"><span class="label">HYPEREDGES</span><span class="val" id="h-he">0</span></div>
+  <div class="metric"><span class="label">EPIPHANIES</span><span class="val" id="h-ep">0</span></div>
+  <div class="metric"><span class="label">NODES</span>     <span class="val" id="h-nd">0</span></div>
+</div>
+
+<!-- Z-level legend -->
+<div id="legend">
+  <h2>▸ Z-LEVEL HIERARCHY</h2>
+  <div class="z-row"><div class="z-dot" style="background:#39ff14;box-shadow:0 0 6px #39ff14"></div><span class="z-label">z4 SOVEREIGN_EGO</span><span class="z-hz">523 Hz</span></div>
+  <div class="z-row"><div class="z-dot" style="background:#00ffff"></div><span class="z-label">z3 VECTOR_RESOLUTION</span><span class="z-hz">415 Hz</span></div>
+  <div class="z-row"><div class="z-dot" style="background:#8888ff"></div><span class="z-label">z2 EQUILIBRATION</span><span class="z-hz">330 Hz</span></div>
+  <div class="z-row"><div class="z-dot" style="background:#ffaa00"></div><span class="z-label">z1 RADIATION</span><span class="z-hz">294 Hz</span></div>
+  <div class="z-row"><div class="z-dot" style="background:#444"></div><span class="z-label">z0 INERTIA</span><span class="z-hz">262 Hz</span></div>
+  <hr style="border:none;border-top:1px solid #1a3a1a;margin:8px 0"/>
+  <div style="font-size:9px;color:#333">HD = 1 − (z/4)  ·  lower z = higher delta</div>
+</div>
+
+<!-- WebSocket status -->
+<div id="ws-dot"><div class="dot" id="ws-dot-ind"></div><span id="ws-label">connecting…</span></div>
+
+<!-- Event feed -->
+<div id="feed">
+  <h3>🌙 EVENT STREAM</h3>
+  <div id="feed-list"></div>
+</div>
+
+<!-- Counters -->
+<div id="counters">
+  <div class="counter"><span class="cn" id="c-he">0</span><span class="cl">HYPEREDGES</span></div>
+  <div class="counter"><span class="cn" id="c-ep">0</span><span class="cl">EPIPHANIES</span></div>
+  <div class="counter"><span class="cn" id="c-dc">0</span><span class="cl">DREAM CYCLES</span></div>
+</div>
+
+<svg id="canvas"></svg>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+// ════════════════════════════════════════════════════════
+// S.W.A.R.M. QUANTUM SINGULARITY CANVAS
+// WebSocket client — typed envelopes
+// ════════════════════════════════════════════════════════
+
+const W = window.innerWidth, H = window.innerHeight;
+const cx = W/2, cy = H/2;
+
+// Z-level config (mirrors config.py)
+const Z = {
+  4: { color:"#39ff14", r:10, ring:60  },
+  3: { color:"#00ffff", r:7,  ring:130 },
+  2: { color:"#8888ff", r:6,  ring:200 },
+  1: { color:"#ffaa00", r:5,  ring:270 },
+  0: { color:"#444444", r:4,  ring:340 },
+};
+
+const svg = d3.select("#canvas").attr("width",W).attr("height",H);
+
+// ── Phase rings ──────────────────────────────────────
+const ringG = svg.append("g").attr("transform",`translate(${cx},${cy})`);
+Object.values(Z).forEach(z => {
+  ringG.append("circle")
+    .attr("r", z.ring)
+    .attr("fill","none")
+    .attr("stroke","#111")
+    .attr("stroke-width",1)
+    .attr("stroke-dasharray","3 5");
+});
+
+// ── Core pulse ───────────────────────────────────────
+const coreG = svg.append("g").attr("transform",`translate(${cx},${cy})`);
+coreG.append("circle").attr("r",14).attr("fill","#0a1a0a")
+  .attr("stroke","#39ff14").attr("stroke-width",2).attr("id","core-c");
+coreG.append("text").attr("text-anchor","middle").attr("dy","4px")
+  .attr("font-size","11px").attr("fill","#39ff14")
+  .attr("font-family","Courier New").text("⬡");
+
+(function pulse(){
+  d3.select("#core-c")
+    .transition().duration(1100).attr("r",18).attr("stroke-width",3)
+    .transition().duration(1100).attr("r",14).attr("stroke-width",2)
+    .on("end",pulse);
+})();
+
+// ── Graph layers ──────────────────────────────────────
+const linkG   = svg.append("g");
+const epiphG  = svg.append("g");
+const nodeG   = svg.append("g");
+const labelG  = svg.append("g");
+
+let simulation = null;
+let nodeMap    = {};   // id → node datum
+let linkData   = [];
+let epiphData  = [];
+
+// ── Build / update graph from manifold snapshot ───────
+function applyManifold(snap) {
+  if (!snap) return;
+
+  // Update HUD
+  document.getElementById("h-ver").textContent = snap.version || "—";
+  document.getElementById("h-ego").textContent = snap.ego_z_level ?? 4;
+  document.getElementById("h-dc").textContent  = snap.dream_cycles_completed ?? 0;
+  document.getElementById("h-he").textContent  = snap.total_hyperedges ?? 0;
+  document.getElementById("h-ep").textContent  = snap.total_epiphanies ?? 0;
+  document.getElementById("h-nd").textContent  = (snap.nodes||[]).length;
+  updateCounters(snap);
+
+  // Build node map — preserve existing positions
+  const newMap = {};
+  (snap.nodes||[]).forEach(n => {
+    if (nodeMap[n.id]) {
+      newMap[n.id] = { ...nodeMap[n.id], z:n.z, phase:n.phase, hz:n.hz };
+    } else {
+      const zr = Z[n.z]||Z[0];
+      const angle = Math.random()*2*Math.PI;
+      newMap[n.id] = {
+        id: n.id, z: n.z, phase: n.phase, hz: n.hz,
+        x: cx + Math.cos(angle)*zr.ring,
+        y: cy + Math.sin(angle)*zr.ring,
+        vx:0, vy:0,
+      };
+    }
+    // SOVEREIGN_EGO fixed at center
+    if (n.id === "swarm_self_axiom" || n.id === "SWARM_SELF_AXIOM") {
+      newMap[n.id].fx = cx;
+      newMap[n.id].fy = cy;
+    }
+  });
+  nodeMap = newMap;
+
+  // Links from edges
+  linkData = (snap.edges||[]).map(e => ({
+    source: e.a, target: e.b, epiphany: e.epiphany,
+  }));
+
+  // Epiphany arcs
+  epiphData = (snap.edges||[]).filter(e=>e.epiphany);
+
+  rebuildForce();
+}
+
+function rebuildForce() {
+  const nodes = Object.values(nodeMap);
+  if (!nodes.length) return;
+
+  if (simulation) simulation.stop();
+  simulation = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(linkData).id(d=>d.id).distance(80).strength(0.3))
+    .force("charge", d3.forceManyBody().strength(-80))
+    .force("z-ring", () => {
+      nodes.forEach(n => {
+        if (n.fx != null) return;  // fixed
+        const target_r = (Z[n.z]||Z[0]).ring;
+        const dx = n.x - cx, dy = n.y - cy;
+        const r = Math.sqrt(dx*dx+dy*dy)||1;
+        const pull = (target_r - r)*0.02;
+        n.vx += (dx/r)*pull;
+        n.vy += (dy/r)*pull;
+      });
+    })
+    .force("collision", d3.forceCollide(14))
+    .on("tick", ticked);
+
+  // Draw links
+  linkG.selectAll("line").data(linkData, d=>`${d.source.id||d.source}-${d.target.id||d.target}`)
+    .join("line")
+    .attr("stroke", d => d.epiphany ? "#8888ff" : "#1a2a1a")
+    .attr("stroke-opacity", d => d.epiphany ? 0.7 : 0.4)
+    .attr("stroke-width", d => d.epiphany ? 1.5 : 0.8)
+    .attr("stroke-dasharray", d => d.epiphany ? "5 3" : null);
+
+  // Draw nodes
+  nodeG.selectAll("circle").data(nodes, d=>d.id)
+    .join(
+      enter => enter.append("circle")
+        .attr("r", d => (Z[d.z]||Z[0]).r + 2)
+        .attr("fill", d => (Z[d.z]||Z[0]).color)
+        .attr("fill-opacity", 0.85)
+        .attr("stroke","#000").attr("stroke-width",1)
+        .call(d3.drag()
+          .on("start",(e,d)=>{ if(!e.active) simulation.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+          .on("drag", (e,d)=>{ d.fx=e.x; d.fy=e.y; })
+          .on("end",  (e,d)=>{ if(!e.active) simulation.alphaTarget(0); if(d.id!=="SWARM_SELF_AXIOM"&&d.id!=="swarm_self_axiom"){d.fx=null;d.fy=null;} }))
+        .append("title").text(d => `${d.id}  z=${d.z}  ${d.hz}Hz`),
+      update => update.attr("r", d=>(Z[d.z]||Z[0]).r+2).attr("fill",d=>(Z[d.z]||Z[0]).color)
+    );
+
+  // Labels
+  labelG.selectAll("text").data(nodes, d=>d.id)
+    .join("text")
+    .attr("font-size","9px").attr("font-family","Courier New")
+    .attr("fill","#666").attr("dx",8).attr("dy",3)
+    .text(d => {
+      const s = d.id.replace(/_/g," ");
+      return s.length > 16 ? s.slice(0,15)+"…" : s;
+    });
+}
+
+// Epiphany arcs drawn as bezier curves
+function drawEpiphArcs() {
+  const nodes = Object.values(nodeMap);
+  epiphG.selectAll("path").data(epiphData, d=>`${d.a}-${d.b}`)
+    .join("path")
+    .attr("fill","none").attr("stroke","#8888ff")
+    .attr("stroke-opacity",0.5).attr("stroke-width",1.5)
+    .attr("stroke-dasharray","6 3")
+    .attr("d", d => {
+      const s = nodes.find(n=>n.id===d.a);
+      const t = nodes.find(n=>n.id===d.b);
+      if (!s||!t) return "";
+      const mx=(s.x+t.x)/2, my=(s.y+t.y)/2-70;
+      return `M${s.x},${s.y} Q${mx},${my} ${t.x},${t.y}`;
+    });
+}
+
+function ticked() {
+  linkG.selectAll("line")
+    .attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+    .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+  nodeG.selectAll("circle")
+    .attr("cx",d=>d.x).attr("cy",d=>d.y);
+  labelG.selectAll("text")
+    .attr("x",d=>d.x).attr("y",d=>d.y);
+  drawEpiphArcs();
+}
+
+// ── Slowly rotate ring group ──────────────────────────
+let rAngle = 0;
+(function rotateRings() {
+  rAngle += 0.0008;
+  ringG.attr("transform",`translate(${cx},${cy}) rotate(${rAngle*(180/Math.PI)})`);
+  requestAnimationFrame(rotateRings);
+})();
+
+// ── Counter updates ───────────────────────────────────
+function updateCounters(snap) {
+  document.getElementById("c-he").textContent = snap.total_hyperedges ?? 0;
+  document.getElementById("c-ep").textContent = snap.total_epiphanies ?? 0;
+  document.getElementById("c-dc").textContent = snap.dream_cycles_completed ?? 0;
+}
+
+// ── Event feed ────────────────────────────────────────
+function pushFeedLine(ev) {
+  const list = document.getElementById("feed-list");
+  const div  = document.createElement("div");
+  let cls    = "feed-line";
+  if (ev.type === "EPIPHANY")    cls += " epiphany";
+  else if (ev.type === "DREAM_END" || ev.type === "DREAM_START") cls += " dream";
+  else if (ev.type === "BOOT")   cls += " boot";
+  div.className = cls;
+  const ts = (ev.timestamp||"").slice(11,19);
+  div.textContent = `${ts}  [${ev.agent_id}]  ${ev.content}`;
+  list.prepend(div);
+  // Keep last 20
+  while (list.children.length > 20) list.removeChild(list.lastChild);
+}
+
+// ── Seed fallback (if server offline) ────────────────
+function seedManifold() {
+  const SEED_NODES = [
+    {id:"swarm_self_axiom",z:4,phase:0,hz:523},
+    {id:"metacognition",   z:2,phase:1.2,hz:330},
+    {id:"hallucination_delta",z:2,phase:0.8,hz:330},
+    {id:"homeostasis",    z:1,phase:2.1,hz:294},
+    {id:"autopoiesis",    z:1,phase:0.4,hz:294},
+    {id:"equilibrium",    z:0,phase:0.0,hz:262},
+  ];
+  const SEED_EDGES = [
+    {a:"metacognition",b:"hallucination_delta",epiphany:false},
+    {a:"homeostasis",b:"equilibrium",epiphany:false},
+    {a:"homeostasis",b:"autopoiesis",epiphany:false},
+    {a:"metacognition",b:"homeostasis",epiphany:true},
+  ];
+  applyManifold({
+    version:"swarm-6.0.0",ego_z_level:4,
+    dream_cycles_completed:0, total_hyperedges:4,
+    total_epiphanies:1, nodes:SEED_NODES, edges:SEED_EDGES,
+  });
+  document.getElementById("feed-list").innerHTML =
+    `<div class="feed-line boot">🌱 seed data loaded (server offline)</div>`;
+}
+
+// ── Reset + re-init from snapshot ─────────────────────
+function resetDashboardState() {
+  nodeMap    = {};
+  linkData   = [];
+  epiphData  = [];
+  linkG.selectAll("*").remove();
+  epiphG.selectAll("*").remove();
+  nodeG.selectAll("*").remove();
+  labelG.selectAll("*").remove();
+  document.getElementById("feed-list").innerHTML = "";
+}
+
+function initializeFromSnapshot(snapshot) {
+  resetDashboardState();
+  applyManifold(snapshot.manifold);
+  // Replay last 20 events to feed
+  (snapshot.events||[]).slice(-20).forEach(ev => pushFeedLine(ev));
+  // Show epiphanies in feed
+  (snapshot.epiphanies||[]).slice(-5).forEach(ev => pushFeedLine(ev));
+}
+
+// ══════════════════════════════════════════════════════
+// WEBSOCKET
+// ══════════════════════════════════════════════════════
+let ws = null;
+let wsRetry = 0;
+
+function connect() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+  ws.onopen = () => {
+    wsRetry = 0;
+    document.getElementById("ws-dot-ind").className = "dot on";
+    document.getElementById("ws-label").textContent = "connected";
+    // Send PING every 20s
+    setInterval(() => ws && ws.readyState===1 && ws.send(JSON.stringify({type:"PING"})), 20000);
+  };
+
+  ws.onmessage = (e) => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+
+    if (msg.type === "SNAPSHOT") {
+      initializeFromSnapshot(msg);
+    } else if (msg.type === "MANIFOLD_UPDATE") {
+      applyManifold(msg.manifold);
+    } else if (msg.type === "EVENT") {
+      pushFeedLine(msg.event);
+      if (msg.event.type === "EPIPHANY") {
+        // Flash epiphany nodes
+        const ep = msg.event;
+        if (ep.nodes) {
+          nodeG.selectAll("circle").filter(d=>ep.nodes.includes(d.id))
+            .transition().duration(400).attr("r",18).attr("fill","#ffffff")
+            .transition().duration(600).attr("r",d=>(Z[d.z]||Z[0]).r+2).attr("fill",d=>(Z[d.z]||Z[0]).color);
+        }
+      }
+    }
+  };
+
+  ws.onerror = () => {
+    document.getElementById("ws-dot-ind").className = "dot err";
+    document.getElementById("ws-label").textContent = "error";
+  };
+
+  ws.onclose = () => {
+    document.getElementById("ws-dot-ind").className = "dot";
+    document.getElementById("ws-label").textContent = "disconnected — retrying…";
+    wsRetry++;
+    setTimeout(connect, Math.min(2000 * wsRetry, 15000));
+  };
+}
+
+// ══════════════════════════════════════════════════════
+// BOOT SEQUENCE
+// ══════════════════════════════════════════════════════
+// 1. Fetch /state → applyManifold + counters
+// 2. .catch → seedManifold (offline fallback)
+// 3. .finally → connect WebSocket
+
+fetch("/state")
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(data => {
+    applyManifold(data.manifold);
+    (data.events||[]).slice(-10).forEach(ev => pushFeedLine(ev));
+  })
+  .catch(() => seedManifold())
+  .finally(() => connect());
+</script>
+</body>
+</html>

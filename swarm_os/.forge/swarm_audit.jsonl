@@ -1,0 +1,30 @@
+{"ts": "2026-04-01T13:03:56.824448+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:03:56.828996+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:03:56.844111+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:03:56.847261+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:04:34.841990+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:04:34.842993+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:07:28.443941+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:07:28.457478+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:08:36.514388+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:08:36.526126+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:11:00.900261+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:11:00.900773+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:12:28.402669+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:12:28.403671+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:13:19.483668+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:13:19.485337+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:14:33.108532+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:14:33.109556+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:16:05.262010+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:16:05.264546+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:16:31.410699+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:16:31.412734+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:17:33.610794+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:17:33.611796+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:17:52.451939+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:17:52.453476+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}
+{"ts": "2026-04-01T13:18:18.689654+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:19:31.312581+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:21:17.256798+00:00", "event": "MANIFOLD_BOOT", "version": "swarm-6.0.0"}
+{"ts": "2026-04-01T13:21:17.257811+00:00", "event": "EVENT", "agent_id": "SWARM_OS", "type": "BOOT", "content": "SWARM OS swarm-6.0.0 initialized"}

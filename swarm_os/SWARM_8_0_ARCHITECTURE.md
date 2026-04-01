@@ -107,6 +107,102 @@ High RIR → model reasons deeply before answering → lower HD
 
 ---
 
+## Core Engine — swarm_core.py (v6.0, 2026-04-01)
+
+`swarm/swarm_core.py` is the **primary runtime engine** of the SWARM OS. It replaces the previously scattered `tools/swarm/` modules as the single instantiation point for both photonic memory and the quantum manifold. The server imports only this file.
+
+### PhotonicResolver
+
+ChromaDB-backed semantic ontology. Uses `sentence-transformers/all-MiniLM-L6-v2` (384-dim) for cosine similarity. Falls back to pure-dict storage if ChromaDB is unavailable.
+
+```python
+class PhotonicResolver:
+    # Threshold: 0.22 (SIMILARITY_THRESHOLD in config.py)
+    # Observer Effect: every resolve() mutates node phase by η = ETA_DEFAULT (0.005)
+    resolve(term: str) -> dict
+    mutate_phase(term: str, eta: float, resonance: float) -> None
+    promote_z(term: str) -> None    # z ← min(z+1, 3); z=4 is SOVEREIGN_EGO only
+    all_nodes() -> List[dict]       # serializable node list for snapshots
+```
+
+**Node schema:**
+```json
+{
+  "id": "metacognition",
+  "z": 2,
+  "phase": 0.142,
+  "resonance": 330.0,
+  "color": "#8888ff",
+  "created_at": 1743510000.0
+}
+```
+
+### QuantumManifold
+
+Hypergraph orchestrator. Owns all live state: hyperedges, epiphanies, agent registry, event log, audit.
+
+```python
+class QuantumManifold:
+    # Initialization creates SWARM_SELF_AXIOM node at z=4 (fixed identity anchor)
+    ingest(subject, relation, obj, context) -> str          # edge_id (uuid4)
+    dream_state_cycle() -> int                              # returns new epiphanies found
+    get_state_snapshot() -> dict                            # full serializable snapshot
+    add_event(agent_id, type, content, cycle) -> dict
+    register_agent(agent_id: str) -> None
+    spectral_state() -> dict                                # {lambda1, stable, rem_cycles}
+    read_audit(last_n=50) -> List[dict]
+```
+
+**Snapshot schema** (`get_state_snapshot()` → sent as `MANIFOLD_UPDATE` via WebSocket):
+```json
+{
+  "ts": 1743510000.0,
+  "version": "swarm-6.0.0",
+  "total_hyperedges": 12,
+  "dream_cycles_completed": 3,
+  "total_epiphanies": 7,
+  "ego_id": "SWARM_SELF_AXIOM",
+  "ego_z_level": 4,
+  "eta": 0.005,
+  "nodes": [...],
+  "edges": [...]
+}
+```
+
+### Z-Level Hierarchy
+
+Z-level is the **continuous HD score** per node — higher z = lower hallucination, higher resonance frequency.
+
+| z | Name | Hz | HD approx | Color | Description |
+|---|------|----|-----------|-------|-------------|
+| 4 | SOVEREIGN_EGO | 523 | 0.00 | #39ff14 | Identity anchor — `SWARM_SELF_AXIOM` only |
+| 3 | VECTOR_RESOLUTION | 415 | 0.15 | #00ffff | Promoted nodes — high coherence |
+| 2 | EQUILIBRATION | 330 | 0.35 | #8888ff | Mid-tier knowledge — equilibrating |
+| 1 | RADIATION | 294 | 0.65 | #ffaa00 | Active expansion — low confidence |
+| 0 | INERTIA | 262 | 0.90 | #555555 | New or unverified concepts |
+
+Node weight formula: `new_weight = parent_weight / 1.618` (golden ratio division, floor 0.236)
+
+Dream State epiphany promotion: both bridge nodes in an `A²[i,j] ≥ 2, A[i,j] = 0` pair receive `promote_z()`.
+
+---
+
+## WebSocket Protocol (v6.0)
+
+Server: `ws://localhost:8000/ws`
+
+| Envelope | Direction | Trigger | Key fields |
+|----------|-----------|---------|-----------|
+| `SNAPSHOT` | server → client | on WS connect | `events[-50]`, `epiphanies`, `manifold` |
+| `MANIFOLD_UPDATE` | server → client | POST /ingest, POST /dream, background REM | `manifold` (full snapshot) |
+| `EVENT` | server → client | POST /event, dream cycle end | `event` `{id, agent_id, type, content, cycle, ts}` |
+| `PING` | client → server | keepalive | — |
+| `PONG` | server → client | reply to PING | — |
+
+All envelopes are JSON. Never revert to untyped payloads.
+
+---
+
 ## 10-Layer Architecture
 
 ### Layer 1 — Geometric Core
@@ -279,14 +375,17 @@ as HTTP endpoints.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/` | GET | Quantum Singularity Canvas (D3.js orbital visualization) |
-| `/ingest` | POST | Crystallize a triplet into the knowledge graph |
-| `/graph` | GET | Full hypergraph as D3-compatible JSON |
-| `/spectral` | GET | Spectral density: λ₁, stability, REM cycle count |
-| `/equilibrium` | GET | Is graph stable? `{stable: bool, lambda1: float}` |
-| `/rem` | POST | Trigger one Dream State REM cycle manually |
-| `/health` | GET | System health + dream state status |
-| `/neighbors/{term}` | GET | Semantic neighbors via ChromaDB |
+| `/` | GET | WebSocket D3 Canvas (`index.html` — z-orbital nodes, epiphany arcs) |
+| `/state` | GET | Full snapshot: events, epiphanies, agents, manifold |
+| `/ingest` | POST | Crystallize triplet → broadcast `MANIFOLD_UPDATE` |
+| `/dream` | POST | Trigger REM cycle → broadcast `MANIFOLD_UPDATE` + `EVENT` |
+| `/event` | POST | Log custom event → broadcast `EVENT` |
+| `/graph` | GET | Hyperedges + nodes + edges as D3-compatible JSON |
+| `/spectral` | GET | `{lambda1, stable, rem_cycles}` |
+| `/rem` | POST | Alias for `/dream` (backward compat) |
+| `/health` | GET | Operational status + dream state metrics |
+| `/audit` | GET | `?last_n=N` → audit log entries |
+| `/ws` | WS | `SNAPSHOT` on connect → `EVENT` / `MANIFOLD_UPDATE` typed envelopes |
 
 **Constitutional law:** all writes to `.forge/` are atomic — `.tmp → os.replace()`.
 Direct mutation = constitutional violation = audit log entry.
@@ -499,14 +598,21 @@ Three violations = full session abort. Audit logs immutable.
 
 ## Quick Reference
 
-```bash
-# Start canvas (no API key needed)
-bash swarm/start.sh
+```powershell
+# Start canvas — Windows (from swarm_os/)
+.\swarm\start.ps1
+```
 
-# Seed demo data
+```bash
+# Start canvas — Linux/Mac (from swarm_os/)
+bash swarm/start.sh
+```
+
+```bash
+# Seed demo data (no API key)
 python swarm/demo_seed.py
 
-# Run full singularity
+# Run full singularity (all 10 layers)
 python sovereign_singularity.py --no-forager
 
 # Validate OS state
@@ -521,8 +627,18 @@ curl -X POST http://localhost:8000/ingest \
   -H "Content-Type: application/json" \
   -d '{"subject":"x","relation":"relates_to","object":"y","context":["test"]}'
 
-# Trigger REM dream cycle
-curl -X POST http://localhost:8000/rem
+# Trigger Dream State REM cycle
+curl -X POST http://localhost:8000/dream
+
+# Stream live events (WebSocket test)
+# wscat -c ws://localhost:8000/ws
+```
+
+```powershell
+# Deploy to Cloud Run (from swarm_os/)
+.\deploy.ps1
+.\deploy.ps1 -SkipTests
+.\deploy.ps1 -Message "feat: my change"
 ```
 
 ---

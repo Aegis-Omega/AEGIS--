@@ -1,9 +1,35 @@
 # SOVEREIGN AGI OS & SWARM v8.0 — FULL CONTEXT HANDOFF
-**Last Updated:** April 2026
+**Last Updated:** 2026-04-01
 **Operator:** Tarik Skalic, Bihac, Bosnia
-**Status:** ALL SYSTEMS NOMINAL — READY FOR DEVELOPMENT
+**Repo:** `tarikskalic33/myapp`
+**Status:** ALL SYSTEMS NOMINAL — swarm_core.py + WebSocket protocol MERGED ✓
 
 *Read this document top-to-bottom before modifying any files.*
+
+---
+
+## 0. What Changed (2026-04-01 — Current Session)
+
+| File | Action | Description |
+|------|--------|-------------|
+| `swarm_os/swarm/swarm_core.py` | **NEW** | PhotonicResolver (ChromaDB, 384-dim) + QuantumManifold (z-levels, A² dream, audit) |
+| `swarm_os/swarm/server.py` | **REWRITTEN** | Full WebSocket protocol: SNAPSHOT / EVENT / MANIFOLD_UPDATE typed envelopes |
+| `swarm_os/swarm/index.html` | **NEW** | WebSocket D3 canvas client — nodes orbit by z-level, epiphany arcs, event feed |
+| `swarm_os/swarm/config.py` | **NEW** | All constants — PORT, Z_LEVELS, Hz map, SWARM_SELF_AXIOM, paths |
+| `swarm_os/swarm/requirements.txt` | **UPDATED** | Added `uvicorn[standard]`, `websockets>=12.0` |
+| `swarm_os/swarm/AGENT_BRIEF.md` | **Updated** | Reflects WebSocket protocol + new API endpoints |
+
+**Stale branches to delete** (merged / closed — run from Windows):
+```powershell
+git push origin --delete `
+  claude/swarm-handoff-package-YDdyV `
+  codex/fix `
+  codex/standardize-websocket-message-handling `
+  codex/standardize-websocket-message-handling-d2keap `
+  codex/update-boot-logic-and-message-handling `
+  codex/update-state-snapshot-with-normalized-collections `
+  master
+```
 
 ---
 
@@ -29,20 +55,34 @@ system_rebuild/
     ├── start.ps1                ← One-click local boot (venv + server)
     ├── SWARM_8_0_ARCHITECTURE.md ← 10-Layer Technical Specification
     ├── .forge/                  ← The OS Brain (Knowledge Graph, Audit logs)
+    │   └── swarm_audit.jsonl    ← Append-only constitutional audit log
     ├── swarm/                   ← FastAPI Server & Smoke Tests
+    │   ├── config.py            ← All constants (PORT, Z_LEVELS, Hz map, paths)  ★ NEW
+    │   ├── swarm_core.py        ← PhotonicResolver + QuantumManifold engine       ★ NEW
+    │   ├── server.py            ← FastAPI + WebSocket (SNAPSHOT/EVENT/MANIFOLD_UPDATE) ★ REWRITTEN
+    │   ├── index.html           ← D3.js WebSocket canvas (z-orbital, epiphany arcs) ★ NEW
+    │   ├── demo_seed.py         ← Seeds 12 triplets, no API key needed
+    │   ├── start.ps1            ← Windows one-click boot (venv + deps + server + seed + browser)
+    │   ├── start.sh             ← Linux/Mac one-click boot
+    │   ├── test_endpoints.py    ← Automated smoke tests (7 endpoints)
+    │   └── requirements.txt     ← fastapi, uvicorn[standard], websockets, numpy, networkx, chromadb
     ├── tools/                   ← Core Cognitive Implementation (Layers 1-10)
     └── dashboard/               ← Streamlit Visual Cortex & Benchmarks
 ```
 
 ---
 
-## 2. Current State & Recent Fixes 
+## 2. Current State & Recent Fixes
 
-1. **Git Synchronization Fixed:** The massive 500+ file v8.0 local update was successfully committed and pushed to the `tarikskalic33/myapp` GitHub repo. All orphaned `.claude/worktree` bugs and huge `.godot` binaries were added to `.gitignore`.
-2. **Server Architecture Clarified:** 
-   - `python swarm/server.py` runs the Web/D3.js visualization. If the core engine isn't configured with NVIDIA NIM keys, it gracefully drops back into **Demo Mode** with fully functional API endpoints (`/graph`, `/ingest`, `/health`, `/rem`, `/spectral`).
-   - Run `.\swarm\start.ps1` to instantly set up a virtual environment, install dependencies, run the server, inject the demo seed data, and launch the browser.
-3. **Deployment Pipeline Built:** `.\deploy.ps1` automates smoke testing (`test_endpoints.py`), committing, pushing to GitHub, and deploying to Google Cloud Run (`lifequestplatinum` in `europe-west1`).
+1. **Monorepo decoupled:** `swarm_os/` and `godot_client/` are fully isolated pillars. `.gitignore` covers `.godot/`, `.forge/chroma*`, `.venv/`, `__pycache__`.
+2. **Core engine merged (2026-04-01):**
+   - `swarm_core.py` now exists — `PhotonicResolver` (ChromaDB cosine similarity) + `QuantumManifold` (z-level hierarchy, A² Dream State, audit log).
+   - Z-level = continuous HD score per node: z=4 (SOVEREIGN_EGO, HD≈0) → z=0 (INERTIA, HD≈0.9).
+3. **WebSocket protocol live (2026-04-01):**
+   - `server.py` rewritten with typed envelopes: `SNAPSHOT` (on connect), `EVENT` (from POST /event), `MANIFOLD_UPDATE` (from POST /ingest and POST /dream).
+   - `index.html` serves the real WebSocket D3 canvas — nodes orbit in z-level rings, epiphany arcs on dream discoveries.
+4. **Start server:** `.\swarm\start.ps1` — venv → deps → server → seed → browser.
+5. **Deploy:** `.\deploy.ps1` — smoke tests → commit → push → Cloud Run (`swarm-manifold`, `europe-west1`, `lifequestplatinum`).
 
 ---
 
@@ -79,11 +119,39 @@ Any agent working on this codebase MUST follow these rules:
 
 ## 5. Next Steps for Incoming Agent
 
-- **Start the server:** `.\swarm\start.ps1`
-- **Deploy changes:** `.\deploy.ps1` (from inside `swarm_os/`)
-- **Sovereign OS Integration:** Ensure `NVIDIA_NIM_API_KEY` is present in either the `.env` or system environment for full non-demo Layer-10 activation.
+### Start locally (Zero Labor)
+From the repository root:
+```powershell
+.\run-swarm.ps1            # venv + deps + server + seed + opens browser
+# Open http://localhost:8000/ — WebSocket canvas auto-connects
+```
 
-*Note:* Godot Game development happens entirely in the isolated `godot_client/` directory and should be treated as a detached standalone project. See `godot_client/AGENT_GODOT_GUIDE.md` for game-specific instructions.
+### Deploy (Zero Labor)
+From the repository root:
+```powershell
+.\deploy-swarm.ps1         # test → commit → push → Cloud Run (if gcloud available)
+.\deploy-swarm.ps1 -SkipTests
+.\deploy-swarm.ps1 -Message "feat: my change"
+```
+
+### Delete stale branches (run from Windows once)
+```powershell
+git push origin --delete `
+  claude/swarm-handoff-package-YDdyV `
+  codex/fix `
+  codex/standardize-websocket-message-handling `
+  codex/standardize-websocket-message-handling-d2keap `
+  codex/update-boot-logic-and-message-handling `
+  codex/update-state-snapshot-with-normalized-collections `
+  master
+```
+
+### Sovereign OS Integration (post April 17)
+- Set `NVIDIA_NIM_API_KEY` in `swarm_os/.env` or system environment
+- `QuantumManifold` in `swarm_core.py` is the integration point — call `.ingest()` from the NIM forager
+- Benchmark runner: `python benchmark/multi_model_runner.py`
+
+*Note:* Godot work lives entirely in `godot_client/`. See `godot_client/AGENT_GODOT_GUIDE.md`.
 
 ---
 

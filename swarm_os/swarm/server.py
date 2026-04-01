@@ -2,581 +2,362 @@
 """
 © 2026 Tarik Skalic — Sovereign AGI OS. All rights reserved.
 
-S.W.A.R.M. Standalone Server
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Serves the Quantum Singularity Canvas at http://localhost:8000/
+S.W.A.R.M. OS v6.0 — Equilibrium Server
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FastAPI server with real-time WebSocket protocol.
 
-This is the swarm/ entry point — it wraps the core equilibrium_server,
-adds the D3.js visualization at /, and works as a self-contained demo.
+WebSocket envelopes (typed — never revert to untyped payloads):
+  SNAPSHOT        → sent once on WS connect
+  EVENT           → broadcast from POST /event
+  MANIFOLD_UPDATE → broadcast from POST /ingest and POST /dream
+
+API:
+  GET  /          → index.html canvas dashboard
+  GET  /state     → full snapshot (events, epiphanies, agents, manifold)
+  POST /ingest    → {subject, relation, object, context[]} → {ok, edge_id, total_hyperedges}
+  POST /dream     → trigger dream cycle → {ok, dream_cycle, new_epiphanies, ...}
+  POST /event     → {agent_id, type, content, cycle} → {ok, id}
+  GET  /graph     → hypergraph as D3-compatible JSON
+  GET  /spectral  → spectral density (λ₁, stability)
+  GET  /health    → system health
+  GET  /audit     → ?last_n=N → audit log entries
+  WS   /ws        → real-time typed envelopes
 
 Run:
-    python swarm/server.py
-    python swarm/server.py --port 8001
+  python swarm/server.py
+  python swarm/server.py --port 8001
 """
 
-import sys
-import os
+import argparse
+import asyncio
 import json
+import os
+import sys
+import threading
 import time
 from pathlib import Path
-
-# ── path setup ────────────────────────────────────────────────────────────────
-ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(ROOT))
+from typing import List, Optional, Set
 
 import uvicorn
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
+from pydantic import BaseModel
 
-# ── import core equilibrium engine ────────────────────────────────────────────
-try:
-    from tools.swarm.equilibrium_server import (
-        app as _core_app,
-        router as _core_router,
-        librarian,
-        dream_thread,
-    )
-    CORE_AVAILABLE = True
-except Exception as _e:
-    print(f"[SWARM SERVER] Core engine not available: {_e}")
-    print("[SWARM SERVER] Running in canvas-only demo mode.")
-    CORE_AVAILABLE = False
-    librarian     = None
-    dream_thread  = None
+# ── Path setup (run from swarm_os/ root) ─────────────────────────────────────
+_HERE = Path(__file__).parent
+_ROOT = _HERE.parent
+sys.path.insert(0, str(_HERE))
 
-# ── canvas HTML ───────────────────────────────────────────────────────────────
-CANVAS_HTML = """<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<title>Sovereign AGI OS — Quantum Singularity</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #000;
-    color: #e0e0e0;
-    font-family: 'Courier New', monospace;
-    overflow: hidden;
-  }
-  #canvas { width: 100vw; height: 100vh; }
+from config import PORT, HOST, VERSION, REM_INTERVAL, FORGE_DIR
+from swarm_core import QuantumManifold
+print("[BOOT] Local imports done.")
 
-  #hud {
-    position: fixed; top: 16px; left: 16px;
-    background: rgba(0,0,0,0.75);
-    border: 1px solid #1a3a1a;
-    border-radius: 6px;
-    padding: 14px 18px;
-    min-width: 240px;
-    z-index: 10;
-  }
-  #hud h1 { font-size: 11px; color: #39ff14; letter-spacing: 3px; margin-bottom: 8px; }
-  #hud .metric { display: flex; justify-content: space-between; margin: 3px 0; font-size: 11px; }
-  #hud .label { color: #777; }
-  #hud .value { color: #39ff14; font-weight: bold; }
-  #hud .value.warn { color: #ffaa00; }
-  #hud .value.dim  { color: #aaa; }
-  #hud hr { border: none; border-top: 1px solid #1a3a1a; margin: 8px 0; }
 
-  #layer-list {
-    position: fixed; top: 16px; right: 16px;
-    background: rgba(0,0,0,0.75);
-    border: 1px solid #1a3a1a;
-    border-radius: 6px;
-    padding: 14px 18px;
-    min-width: 220px;
-    z-index: 10;
-    font-size: 11px;
-  }
-  #layer-list h2 { color: #39ff14; letter-spacing: 2px; margin-bottom: 8px; font-size: 11px; }
-  .layer-row { display: flex; align-items: center; margin: 4px 0; }
-  .layer-dot { width: 7px; height: 7px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; }
-  .layer-dot.on  { background: #39ff14; box-shadow: 0 0 6px #39ff14; }
-  .layer-dot.dim { background: #334; }
-  .layer-name { color: #bbb; }
+# ══════════════════════════════════════════════════════════════════════════════
+# GLOBAL STATE
+# ══════════════════════════════════════════════════════════════════════════════
+forge_path  = _ROOT / ".forge"
+manifold    = QuantumManifold(forge_path=forge_path)
+_ws_clients: Set[WebSocket] = set()
+_ws_lock    = asyncio.Lock()
 
-  #epiphany-feed {
-    position: fixed; bottom: 16px; left: 16px;
-    background: rgba(0,0,0,0.75);
-    border: 1px solid #1a1a3a;
-    border-radius: 6px;
-    padding: 10px 14px;
-    max-width: 420px;
-    z-index: 10;
-    font-size: 10px;
-  }
-  #epiphany-feed h3 { color: #8888ff; letter-spacing: 2px; margin-bottom: 6px; font-size: 10px; }
-  .ep-line { color: #6666cc; margin: 2px 0; }
-  .ep-line span { color: #aaaaff; }
+# Boot the identity anchor event
+manifold.add_event("SWARM_OS", "BOOT", f"SWARM OS {VERSION} initialized", cycle=0)
 
-  #status-bar {
-    position: fixed; bottom: 16px; right: 16px;
-    background: rgba(0,0,0,0.75);
-    border: 1px solid #1a3a1a;
-    border-radius: 6px;
-    padding: 8px 14px;
-    font-size: 10px;
-    color: #555;
-    z-index: 10;
-  }
-  #status-bar span { color: #39ff14; }
-</style>
-</head>
-<body>
 
-<!-- HUD: OS metrics -->
-<div id="hud">
-  <h1>⬡ SOVEREIGN AGI OS v3.2.0</h1>
-  <div class="metric"><span class="label">PHASE</span>      <span class="value" id="h-phase">ACTIVE</span></div>
-  <div class="metric"><span class="label">ATP</span>        <span class="value" id="h-atp">2100</span></div>
-  <div class="metric"><span class="label">STRESS</span>     <span class="value" id="h-stress">0.30</span></div>
-  <div class="metric"><span class="label">HD (ELECTED)</span><span class="value" id="h-hd">0.0991</span></div>
-  <div class="metric"><span class="label">MODEL</span>      <span class="value dim" id="h-model">kimi-k2</span></div>
-  <hr/>
-  <div class="metric"><span class="label">NODES</span>      <span class="value" id="h-nodes">—</span></div>
-  <div class="metric"><span class="label">EDGES</span>      <span class="value" id="h-edges">—</span></div>
-  <div class="metric"><span class="label">λ₁ (spectral)</span><span class="value warn" id="h-lambda">—</span></div>
-  <div class="metric"><span class="label">REM CYCLES</span> <span class="value" id="h-rem">0</span></div>
-</div>
+# ══════════════════════════════════════════════════════════════════════════════
+# WEBSOCKET BROADCAST
+# ══════════════════════════════════════════════════════════════════════════════
+async def _broadcast(envelope: dict):
+    """Send a typed envelope to all connected WebSocket clients."""
+    msg = json.dumps(envelope)
+    dead: Set[WebSocket] = set()
+    async with _ws_lock:
+        clients = list(_ws_clients)
+    for ws in clients:
+        try:
+            await ws.send_text(msg)
+        except Exception:
+            dead.add(ws)
+    if dead:
+        async with _ws_lock:
+            _ws_clients.difference_update(dead)
 
-<!-- Layer status panel -->
-<div id="layer-list">
-  <h2>▸ SWARM LAYERS</h2>
-  <div class="layer-row"><div class="layer-dot on"></div><div class="layer-name">L1 Geometric Core</div></div>
-  <div class="layer-row"><div class="layer-dot on"></div><div class="layer-name">L2 Photonic Memory</div></div>
-  <div class="layer-row"><div class="layer-dot on"></div><div class="layer-name">L3 Quantum Manifold</div></div>
-  <div class="layer-row"><div class="layer-dot on"></div><div class="layer-name">L4 Mirror Core / Ego</div></div>
-  <div class="layer-row"><div class="layer-dot on"></div><div class="layer-name">L5 Russell Cosmology</div></div>
-  <div class="layer-row"><div class="layer-dot on"></div><div class="layer-name">L6 Sovereign Framework</div></div>
-  <div class="layer-row"><div class="layer-dot on"></div><div class="layer-name">L7 Dream State</div></div>
-  <div class="layer-row"><div class="layer-dot dim"></div><div class="layer-name">L8 Forager (paused)</div></div>
-  <div class="layer-row"><div class="layer-dot on"></div><div class="layer-name">L9 Equilibrium Server</div></div>
-  <div class="layer-row"><div class="layer-dot on"></div><div class="layer-name">L10 Consciousness Probe</div></div>
-</div>
 
-<!-- Epiphany feed -->
-<div id="epiphany-feed">
-  <h3>🌙 DREAM STATE — EPIPHANIES</h3>
-  <div id="ep-container">
-    <div class="ep-line">waiting for dream cycle…</div>
-  </div>
-</div>
+def _broadcast_sync(envelope: dict):
+    """Thread-safe fire-and-forget broadcast from sync context."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.run_coroutine_threadsafe(_broadcast(envelope), loop)
+    except RuntimeError:
+        pass
 
-<!-- Status bar -->
-<div id="status-bar">
-  Sovereign Singularity v8.0 · <span id="live-time">—</span>
-</div>
 
-<svg id="canvas"></svg>
+# ══════════════════════════════════════════════════════════════════════════════
+# BACKGROUND DREAM THREAD
+# ══════════════════════════════════════════════════════════════════════════════
+class _DreamThread(threading.Thread):
+    def __init__(self):
+        super().__init__(daemon=True, name="SWARM-DreamState")
+        self._stop = False
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
-<script>
-// ════════════════════════════════════════════════════════
-// QUANTUM SINGULARITY CANVAS — D3.js orbital visualization
-// ════════════════════════════════════════════════════════
+    def run(self):
+        time.sleep(5)  # let server boot first
+        while not self._stop:
+            time.sleep(REM_INTERVAL)
+            if len(manifold.hyperedges) < 3:
+                continue
+            try:
+                n_ep = manifold.dream_state_cycle()
+                snap = manifold.get_state_snapshot()
+                _broadcast_sync({
+                    "type":     "MANIFOLD_UPDATE",
+                    "manifold": snap,
+                })
+                _broadcast_sync({
+                    "type":  "EVENT",
+                    "event": manifold.add_event(
+                        "DREAM_STATE", "DREAM_END",
+                        f"REM cycle {manifold.dream_cycles} — {n_ep} epiphany/epiphanies",
+                        cycle=manifold.dream_cycles,
+                    ),
+                })
+            except Exception as e:
+                print(f"[DreamThread] Error: {e}")
 
-const W = window.innerWidth;
-const H = window.innerHeight;
-const cx = W / 2;
-const cy = H / 2;
+    def stop(self):
+        self._stop = True
 
-const svg = d3.select("#canvas")
-  .attr("width", W)
-  .attr("height", H);
 
-// ── Phase rings (orbital shells) ──────────────────────
-const RINGS = [
-  { r: 90,  color: "#1a4a1a", label: "L1-L2" },
-  { r: 160, color: "#1a3a4a", label: "L3-L4" },
-  { r: 230, color: "#2a1a4a", label: "L5-L6" },
-  { r: 300, color: "#4a2a1a", label: "L7-L8" },
-  { r: 370, color: "#1a4a3a", label: "L9-L10" },
-];
+_dream_thread = _DreamThread()
 
-const ringGroup = svg.append("g").attr("transform", `translate(${cx},${cy})`);
 
-RINGS.forEach(ring => {
-  ringGroup.append("circle")
-    .attr("r", ring.r)
-    .attr("fill", "none")
-    .attr("stroke", ring.color)
-    .attr("stroke-width", 1)
-    .attr("stroke-dasharray", "4 4");
+# ══════════════════════════════════════════════════════════════════════════════
+# APP
+# ══════════════════════════════════════════════════════════════════════════════
+app = FastAPI(title="S.W.A.R.M. OS v6.0", version=VERSION)
+app.add_middleware(CORSMiddleware, allow_origins=["*"],
+                   allow_methods=["*"], allow_headers=["*"])
 
-  ringGroup.append("text")
-    .attr("x", ring.r + 4)
-    .attr("y", -4)
-    .attr("fill", ring.color)
-    .attr("font-size", "9px")
-    .attr("font-family", "Courier New")
-    .text(ring.label);
-});
 
-// ── Central singularity core ──────────────────────────
-const coreGroup = svg.append("g").attr("transform", `translate(${cx},${cy})`);
+@app.on_event("startup")
+async def _startup():
+    _dream_thread.start()
+    print(f"[SWARM OS] {VERSION} — Dream State thread started.")
 
-// Pulsing core
-coreGroup.append("circle")
-  .attr("r", 18)
-  .attr("fill", "#060")
-  .attr("stroke", "#39ff14")
-  .attr("stroke-width", 2)
-  .attr("id", "core-circle");
 
-coreGroup.append("text")
-  .attr("text-anchor", "middle")
-  .attr("dy", "4px")
-  .attr("font-size", "12px")
-  .attr("fill", "#39ff14")
-  .attr("font-family", "Courier New")
-  .text("⬡");
+@app.on_event("shutdown")
+async def _shutdown():
+    _dream_thread.stop()
 
-// Core pulse animation
-(function pulse() {
-  d3.select("#core-circle")
-    .transition().duration(1200)
-    .attr("r", 22).attr("stroke-width", 3)
-    .transition().duration(1200)
-    .attr("r", 18).attr("stroke-width", 2)
-    .on("end", pulse);
-})();
 
-// ── Force simulation for graph nodes ─────────────────
-const linkGroup  = svg.append("g").attr("class", "links");
-const epiphGroup = svg.append("g").attr("class", "epiphanies");
-const nodeGroup  = svg.append("g").attr("class", "nodes");
-const labelGroup = svg.append("g").attr("class", "labels");
+# ══════════════════════════════════════════════════════════════════════════════
+# PYDANTIC MODELS
+# ══════════════════════════════════════════════════════════════════════════════
+class IngestBody(BaseModel):
+    subject:  str
+    relation: str
+    object:   str
+    context:  Optional[List[str]] = []
 
-let simulation = null;
-let currentNodes = [];
-let currentLinks = [];
-let epiphanyLinks = [];
 
-// Color scale by layer/context
-const PALETTE = [
-  "#39ff14", "#00ffff", "#ff6600", "#ff00ff",
-  "#ffff00", "#00ff88", "#ff4488", "#88aaff",
-  "#ffaa44", "#44ffaa", "#ff8844", "#44aaff",
-];
+class EventBody(BaseModel):
+    agent_id: str
+    type:     str
+    content:  str
+    cycle:    Optional[int] = 0
 
-function contextColor(ctx) {
-  if (!ctx || !ctx.length) return "#555";
-  const key = ctx[0] || "";
-  const idx  = Math.abs([...key].reduce((a, c) => a + c.charCodeAt(0), 0)) % PALETTE.length;
-  return PALETTE[idx];
-}
 
-function buildGraph(data) {
-  const nodesMap = {};
-  const links    = [];
-  const elinks   = [];
+# ══════════════════════════════════════════════════════════════════════════════
+# HTTP ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
 
-  // Build nodes from hyperedges
-  (data.hyperedges || []).forEach(he => {
-    (he.nodes || []).forEach(n => {
-      if (!nodesMap[n]) {
-        nodesMap[n] = {
-          id:      n,
-          color:   contextColor(he.context),
-          context: he.context || [],
-          degree:  0,
-          ring:    Math.floor(Math.random() * RINGS.length),
-        };
-      }
-      nodesMap[n].degree += 1;
-    });
-    // create links
-    const ns = he.nodes || [];
-    for (let i = 0; i < ns.length; i++) {
-      for (let j = i + 1; j < ns.length; j++) {
-        links.push({ source: ns[i], target: ns[j], ctx: he.context });
-      }
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    """Serve the WebSocket canvas dashboard."""
+    html_path = _HERE / "index.html"
+    if html_path.exists():
+        return HTMLResponse(html_path.read_text(encoding="utf-8"))
+    # Minimal fallback if index.html not found
+    return HTMLResponse(f"""<!DOCTYPE html><html><head>
+    <title>SWARM OS {VERSION}</title>
+    <style>body{{background:#000;color:#39ff14;font-family:monospace;padding:40px}}</style>
+    </head><body>
+    <h1>S.W.A.R.M. OS {VERSION}</h1>
+    <p>index.html not found. Place it at swarm/index.html.</p>
+    <p>API: <a href="/state" style="color:#00ffff">/state</a> &nbsp;
+           <a href="/graph" style="color:#00ffff">/graph</a> &nbsp;
+           <a href="/health" style="color:#00ffff">/health</a></p>
+    </body></html>""")
+
+
+@app.get("/state")
+async def state():
+    """Full snapshot: events, epiphanies, agents, manifold."""
+    snap = manifold.get_state_snapshot()
+    return {
+        "events":     manifold.events[-50:],
+        "epiphanies": manifold.epiphanies,
+        "agents":     list(manifold.agents.values()),
+        "manifold":   snap,
     }
-  });
 
-  // Epiphany links
-  (data.epiphanies || []).forEach(ep => {
-    elinks.push({ source: ep[0], target: ep[1] });
-  });
 
-  const nodes = Object.values(nodesMap);
-  currentNodes = nodes;
-  currentLinks = links;
-  epiphanyLinks = elinks;
+@app.post("/ingest")
+async def ingest(body: IngestBody):
+    edge_id = manifold.ingest(body.subject, body.relation, body.object, body.context)
+    snap    = manifold.get_state_snapshot()
+    await _broadcast({"type": "MANIFOLD_UPDATE", "manifold": snap})
+    return {
+        "ok":               True,
+        "edge_id":          edge_id,
+        "total_hyperedges": len(manifold.hyperedges),
+    }
 
-  // D3 force layout
-  if (simulation) simulation.stop();
 
-  simulation = d3.forceSimulation(nodes)
-    .force("link", d3.forceLink(links).id(d => d.id).distance(60).strength(0.4))
-    .force("charge", d3.forceManyBody().strength(-120))
-    .force("center", d3.forceCenter(cx, cy))
-    .force("collision", d3.forceCollide(18))
-    .on("tick", ticked);
+@app.post("/dream")
+async def dream():
+    """Trigger one Dream State REM cycle immediately."""
+    n_ep  = manifold.dream_state_cycle()
+    snap  = manifold.get_state_snapshot()
+    event = manifold.add_event(
+        "DREAM_STATE", "DREAM_END",
+        f"REM cycle {manifold.dream_cycles} — {n_ep} epiphany/epiphanies",
+        cycle=manifold.dream_cycles,
+    )
+    await _broadcast({"type": "MANIFOLD_UPDATE", "manifold": snap})
+    await _broadcast({"type": "EVENT",           "event":    event})
+    return {
+        "ok":               True,
+        "dream_cycle":      manifold.dream_cycles,
+        "new_epiphanies":   n_ep,
+        "total_epiphanies": len(manifold.epiphanies),
+        "total_hyperedges": len(manifold.hyperedges),
+        "manifold":         snap,
+    }
 
-  // Draw links
-  linkGroup.selectAll("line").data(links).join("line")
-    .attr("stroke", d => contextColor(d.ctx))
-    .attr("stroke-opacity", 0.35)
-    .attr("stroke-width", 1);
 
-  // Draw epiphany arcs
-  epiphGroup.selectAll("path").data(elinks).join("path")
-    .attr("fill", "none")
-    .attr("stroke", "#8888ff")
-    .attr("stroke-opacity", 0.6)
-    .attr("stroke-width", 1.5)
-    .attr("stroke-dasharray", "6 3");
+@app.post("/event")
+async def post_event(body: EventBody):
+    """Log a custom event and broadcast to all WS clients."""
+    manifold.register_agent(body.agent_id)
+    event = manifold.add_event(body.agent_id, body.type, body.content, body.cycle)
+    await _broadcast({"type": "EVENT", "event": event})
+    return {"ok": True, "id": event["id"]}
 
-  // Draw nodes
-  nodeGroup.selectAll("circle").data(nodes).join("circle")
-    .attr("r", d => 5 + Math.min(d.degree * 1.5, 10))
-    .attr("fill", d => d.color)
-    .attr("fill-opacity", 0.9)
-    .attr("stroke", "#000")
-    .attr("stroke-width", 1)
-    .call(d3.drag()
-      .on("start", dragStart)
-      .on("drag",  dragged)
-      .on("end",   dragEnd))
-    .append("title").text(d => d.id);
 
-  // Labels
-  labelGroup.selectAll("text").data(nodes).join("text")
-    .attr("font-size", "9px")
-    .attr("font-family", "Courier New")
-    .attr("fill", "#aaa")
-    .attr("dx", 8)
-    .attr("dy", 3)
-    .text(d => d.id.length > 18 ? d.id.slice(0, 18) + "…" : d.id);
-}
+@app.get("/graph")
+async def graph():
+    """Hypergraph as D3-compatible JSON (hyperedges + epiphanies)."""
+    snap = manifold.get_state_snapshot()
+    return {
+        "hyperedges": [
+            {"nodes": he["nodes"], "relation": he["relation"],
+             "context": he["context"]}
+            for he in manifold.hyperedges.values()
+        ],
+        "epiphanies": [[ep["nodes"][0], ep["nodes"][1]]
+                       for ep in manifold.epiphanies if len(ep.get("nodes", [])) >= 2],
+        "node_count": len(snap["nodes"]),
+        "nodes":      snap["nodes"],
+        "edges":      snap["edges"],
+    }
 
-function ticked() {
-  linkGroup.selectAll("line")
-    .attr("x1", d => d.source.x)
-    .attr("y1", d => d.source.y)
-    .attr("x2", d => d.target.x)
-    .attr("y2", d => d.target.y);
 
-  // Epiphany arcs (quadratic bezier curves)
-  epiphGroup.selectAll("path").each(function(d) {
-    const src = currentNodes.find(n => n.id === (d.source.id || d.source));
-    const tgt = currentNodes.find(n => n.id === (d.target.id || d.target));
-    if (!src || !tgt) return;
-    const mx = (src.x + tgt.x) / 2;
-    const my = (src.y + tgt.y) / 2 - 60;
-    d3.select(this).attr("d", `M${src.x},${src.y} Q${mx},${my} ${tgt.x},${tgt.y}`);
-  });
+@app.get("/spectral")
+async def spectral():
+    return manifold.spectral_state()
 
-  nodeGroup.selectAll("circle")
-    .attr("cx", d => d.x)
-    .attr("cy", d => d.y);
 
-  labelGroup.selectAll("text")
-    .attr("x", d => d.x)
-    .attr("y", d => d.y);
-}
+@app.post("/rem")
+async def rem():
+    """Alias for /dream — kept for backward compat with test_endpoints.py."""
+    return await dream()
 
-function dragStart(event, d) {
-  if (!event.active) simulation.alphaTarget(0.3).restart();
-  d.fx = d.x; d.fy = d.y;
-}
-function dragged(event, d) {
-  d.fx = event.x; d.fy = event.y;
-}
-function dragEnd(event, d) {
-  if (!event.active) simulation.alphaTarget(0);
-  d.fx = null; d.fy = null;
-}
 
-// ── Rotating phase rings ─────────────────────────────
-let ringAngle = 0;
-function rotateRings() {
-  ringAngle += 0.002;
-  ringGroup.attr("transform", `translate(${cx},${cy}) rotate(${ringAngle * (180/Math.PI)})`);
-  requestAnimationFrame(rotateRings);
-}
-rotateRings();
+@app.get("/health")
+async def health():
+    return {
+        "status":            "OPERATIONAL",
+        "version":           VERSION,
+        "dream_cycles":      manifold.dream_cycles,
+        "total_hyperedges":  len(manifold.hyperedges),
+        "total_epiphanies":  len(manifold.epiphanies),
+        "ws_clients":        len(_ws_clients),
+        "dream_state": {
+            "cycles":    manifold.dream_cycles,
+            "lambda1":   manifold.spectral_state().get("lambda1", 0.0),
+        },
+        "recent_epiphanies": [[ep["nodes"][0], ep["nodes"][1]]
+                               for ep in manifold.epiphanies[-6:]
+                               if len(ep.get("nodes", [])) >= 2],
+    }
 
-// ── Live time ────────────────────────────────────────
-function updateTime() {
-  document.getElementById("live-time").textContent = new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC";
-}
-setInterval(updateTime, 1000);
-updateTime();
 
-// ── Poll /graph API ─────────────────────────────────
-function pollGraph() {
-  fetch("/graph")
-    .then(r => r.json())
-    .then(data => {
-      buildGraph(data);
-      document.getElementById("h-nodes").textContent = currentNodes.length;
-      document.getElementById("h-edges").textContent = currentLinks.length;
-    })
-    .catch(() => {});
-}
-
-function pollSpectral() {
-  fetch("/spectral")
-    .then(r => r.json())
-    .then(d => {
-      document.getElementById("h-lambda").textContent =
-        (d.lambda1 !== undefined) ? d.lambda1.toFixed(4) : "—";
-      document.getElementById("h-rem").textContent = d.rem_cycles || 0;
-    })
-    .catch(() => {});
-}
-
-function pollHealth() {
-  fetch("/health")
-    .then(r => r.json())
-    .then(d => {
-      // Update epiphany feed
-      const epiphanies = d.recent_epiphanies || [];
-      if (epiphanies.length > 0) {
-        const container = document.getElementById("ep-container");
-        container.innerHTML = epiphanies.slice(-6).map(ep =>
-          `<div class="ep-line">✦ <span>${ep[0]}</span> ↔ <span>${ep[1]}</span></div>`
-        ).join("");
-      }
-      const ds = d.dream_state || {};
-      document.getElementById("h-rem").textContent = ds.cycles || 0;
-    })
-    .catch(() => {});
-}
-
-// Initial load + polling
-pollGraph();
-pollSpectral();
-pollHealth();
-setInterval(pollGraph,    5000);
-setInterval(pollSpectral, 3000);
-setInterval(pollHealth,   4000);
-
-// ── Seed demo data if graph is empty ─────────────────
-setTimeout(() => {
-  if (currentNodes.length === 0) {
-    const DEMO = [
-      {subject:"metacognition", relation:"measures",  object:"hallucination_delta", context:["cognition"]},
-      {subject:"hallucination_delta", relation:"quantifies", object:"accuracy_gap", context:["cognition"]},
-      {subject:"homeostasis", relation:"maintains",   object:"equilibrium",         context:["biology"]},
-      {subject:"equilibrium", relation:"requires",    object:"feedback_loop",       context:["biology"]},
-      {subject:"autopoiesis", relation:"produces",    object:"self_organization",   context:["systems"]},
-      {subject:"self_organization", relation:"emerges_from", object:"complexity",   context:["systems"]},
-      {subject:"consciousness", relation:"depends_on", object:"metacognition",      context:["cognition"]},
-      {subject:"hallucination_delta", relation:"scores", object:"model_honesty",    context:["cognition"]},
-      {subject:"homeostasis", relation:"enables",     object:"autopoiesis",         context:["biology"]},
-      {subject:"complexity", relation:"generates",    object:"consciousness",       context:["systems"]},
-      {subject:"feedback_loop", relation:"regulates", object:"stress_level",        context:["cognition"]},
-      {subject:"stress_level", relation:"affects",    object:"accuracy_gap",        context:["cognition"]},
-    ];
-    DEMO.forEach(t => {
-      fetch("/ingest", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(t)
-      }).catch(() => {});
-    });
-    setTimeout(pollGraph, 800);
-  }
-}, 2000);
-</script>
-</body>
-</html>"""
+@app.get("/audit")
+async def audit(last_n: int = 50):
+    entries = manifold.read_audit(last_n=last_n)
+    return {"entries": entries, "count": len(entries)}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# STANDALONE APP
+# WEBSOCKET
 # ══════════════════════════════════════════════════════════════════════════════
-if CORE_AVAILABLE:
-    # Mount the canvas at / on top of the core app
-    app = _core_app
+@app.websocket("/ws")
+async def ws_endpoint(ws: WebSocket):
+    await ws.accept()
+    async with _ws_lock:
+        _ws_clients.add(ws)
 
-    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-    async def canvas():
-        return CANVAS_HTML
+    # Send SNAPSHOT on connect
+    snap = manifold.get_state_snapshot()
+    await ws.send_text(json.dumps({
+        "type":       "SNAPSHOT",
+        "events":     manifold.events[-50:],
+        "epiphanies": manifold.epiphanies,
+        "manifold":   snap,
+    }))
 
-else:
-    # Fallback: minimal demo server (no NVIDIA NIM needed)
-    app = FastAPI(title="Sovereign AGI OS — Quantum Singularity Canvas")
-    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-
-    _demo_graph = {"hyperedges": [], "epiphanies": [], "node_count": 0}
-    _spectral   = {"lambda1": 0.0, "rem_cycles": 0, "stable": False}
-
-    from pydantic import BaseModel
-    from typing import List, Optional
-
-    class Triplet(BaseModel):
-        subject: str
-        relation: str
-        object: str
-        context: Optional[List[str]] = []
-
-    @app.get("/", response_class=HTMLResponse)
-    async def canvas():
-        return CANVAS_HTML
-
-    @app.post("/ingest")
-    async def ingest(t: Triplet):
-        nodes = [t.subject, t.object]
-        _demo_graph["hyperedges"].append({
-            "nodes": nodes,
-            "relation": t.relation,
-            "context": t.context,
-        })
-        _demo_graph["node_count"] = len(
-            {n for he in _demo_graph["hyperedges"] for n in he["nodes"]}
-        )
-        return {"status": "crystallized", "nodes": nodes}
-
-    @app.get("/graph")
-    async def graph():
-        return _demo_graph
-
-    @app.get("/spectral")
-    async def spectral():
-        return _spectral
-
-    @app.get("/health")
-    async def health():
-        return {
-            "status": "OPERATIONAL",
-            "mode": "demo",
-            "dream_state": {"cycles": 0},
-            "recent_epiphanies": [],
-        }
-
-    @app.post("/rem")
-    async def rem():
-        _spectral["rem_cycles"] += 1
-        # Naive epiphany: connect first and last node if ≥ 3 hyperedges
-        nodes_all = list({n for he in _demo_graph["hyperedges"] for n in he["nodes"]})
-        if len(nodes_all) >= 3:
-            ep = [nodes_all[0], nodes_all[-1]]
-            if ep not in _demo_graph["epiphanies"]:
-                _demo_graph["epiphanies"].append(ep)
-        return {"status": "rem_complete", "epiphanies": len(_demo_graph["epiphanies"])}
+    try:
+        while True:
+            # Keep alive — echo PING
+            data = await ws.receive_text()
+            try:
+                msg = json.loads(data)
+                if msg.get("type") == "PING":
+                    await ws.send_text(json.dumps({"type": "PONG"}))
+            except Exception:
+                pass
+    except WebSocketDisconnect:
+        pass
+    finally:
+        async with _ws_lock:
+            _ws_clients.discard(ws)
 
 
-# ── entry point ───────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# ENTRY POINT
+# ══════════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="Sovereign Singularity Canvas Server")
-    parser.add_argument("--port", type=int, default=8000)
+    parser = argparse.ArgumentParser(description=f"S.W.A.R.M. OS {VERSION}")
+    parser.add_argument("--port", type=int, default=PORT)
+    parser.add_argument("--host", type=str, default=HOST)
     args = parser.parse_args()
 
     print(f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║   S.W.A.R.M.  QUANTUM SINGULARITY CANVAS                                    ║
-║   Sovereign AGI OS v3.2.0 — Tarik Skalic, Bihac, Bosnia                     ║
+║   S.W.A.R.M. OS {VERSION:<20}                                   ║
+║   Operator: Tarik Skalic — Bihac, Bosnia — 2026                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-  Canvas:   http://localhost:{args.port}/
-  Ingest:   POST http://localhost:{args.port}/ingest
-  Graph:    GET  http://localhost:{args.port}/graph
-  Spectral: GET  http://localhost:{args.port}/spectral
-  REM:      POST http://localhost:{args.port}/rem
+  Canvas:    http://{args.host}:{args.port}/
+  State:     GET  http://localhost:{args.port}/state
+  Ingest:    POST http://localhost:{args.port}/ingest
+  Dream:     POST http://localhost:{args.port}/dream
+  WebSocket: ws://localhost:{args.port}/ws
+  Health:    GET  http://localhost:{args.port}/health
+  Audit:     GET  http://localhost:{args.port}/audit?last_n=20
 """)
-    uvicorn.run(app, host="0.0.0.0", port=args.port, log_level="warning")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
