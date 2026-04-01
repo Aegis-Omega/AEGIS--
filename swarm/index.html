@@ -527,7 +527,6 @@
     }
 
     function pushEvent(ev) {
-      if (ev.type === 'SNAPSHOT') return;
       if (ev.type === 'DREAM_START') {
         dreamTotal++;
         dreamCount.textContent = dreamTotal;
@@ -583,6 +582,36 @@
       ).join('');
     }
 
+    function resetDashboardState() {
+      feed.innerHTML = '';
+      epiPanel.innerHTML = '';
+      agentList.innerHTML = '';
+
+      Object.keys(agentsMap).forEach(k => delete agentsMap[k]);
+
+      Object.keys(nodes).forEach(k => delete nodes[k]);
+      edges.length = 0;
+      epiArcs.length = 0;
+      particles.length = 0;
+
+      totalEdges = 0;
+      epiphanyTotal = 0;
+      dreamTotal = 0;
+      evCount.textContent = '0';
+      epiCount.textContent = '0';
+      dreamCount.textContent = '0';
+      nodeCount.textContent = '0';
+    }
+
+    function initializeFromSnapshot(snapshot) {
+      resetDashboardState();
+      (snapshot.events || []).forEach(pushEvent);
+      if (snapshot.manifold) {
+        applyManifold(snapshot.manifold);
+        refreshManifoldCounters(snapshot.manifold);
+      }
+    }
+
     // ── WebSocket ──────────────────────────────────────────────────────────────
     let ws, reconnectDelay = 1000;
 
@@ -600,11 +629,20 @@
         try { msg = JSON.parse(raw); } catch { return; }
 
         if (msg.type === 'SNAPSHOT') {
-          (msg.events     || []).forEach(pushEvent);
-          (msg.epiphanies || []).forEach(handleEpiphany);
-          if (msg.manifold) applyManifold(msg.manifold);
-        } else {
-          pushEvent(msg);
+          initializeFromSnapshot(msg);
+          return;
+        }
+
+        if (msg.type === 'EVENT') {
+          if (msg.event) pushEvent(msg.event);
+          return;
+        }
+
+        if (msg.type === 'MANIFOLD_UPDATE') {
+          if (msg.manifold) {
+            applyManifold(msg.manifold);
+            refreshManifoldCounters(msg.manifold);
+          }
         }
       };
 
@@ -623,6 +661,21 @@
       (state.edges || []).forEach(e => addEdge(e.a, e.b, e.epiphany));
     }
 
+    function refreshManifoldCounters(state) {
+      if (typeof state.total_hyperedges === 'number') {
+        totalEdges = state.total_hyperedges;
+        evCount.textContent = totalEdges;
+      }
+      if (typeof state.total_epiphanies === 'number') {
+        epiphanyTotal = state.total_epiphanies;
+        epiCount.textContent = epiphanyTotal;
+      }
+      if (typeof state.dream_cycles_completed === 'number') {
+        dreamTotal = state.dream_cycles_completed;
+        dreamCount.textContent = dreamTotal;
+      }
+    }
+
     // ── Boot ───────────────────────────────────────────────────────────────────
     seedManifold();
     frame();
@@ -632,8 +685,10 @@
     fetch('/state')
       .then(r => r.json())
       .then(state => {
-        (state.epiphanies || []).forEach(handleEpiphany);
-        if (state.manifold) applyManifold(state.manifold);
+        if (state.manifold) {
+          applyManifold(state.manifold);
+          refreshManifoldCounters(state.manifold);
+        }
       })
       .catch(() => {});   // server offline — seed data already loaded
   </script>
