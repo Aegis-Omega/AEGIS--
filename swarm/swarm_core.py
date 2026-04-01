@@ -44,10 +44,11 @@ class PhotonicResolver:
 
     def mutate_phase(self, term: str, eta: float, resonance: float):
         res = self.ontology.get(ids=[term], include=['metadatas'])
-        if res and res['metadatas']:
-            old = res['metadatas'][0]['phase']
+        if res and res['metadatas'] and res['metadatas'][0]:
+            meta = res['metadatas'][0][0]
+            old = meta['phase']
             new = old + (eta * resonance)
-            self.ontology.update(ids=[term], metadatas=[{"phase":new,"z_level":res['metadatas'][0]['z_level']}])
+            self.ontology.update(ids=[term], metadatas=[{"phase":new,"z_level":meta['z_level']}])
             audit("OBSERVER_EFFECT", {"term":term,"delta":round(eta*resonance,6)})
 
 class QuantumManifold:
@@ -97,10 +98,11 @@ class QuantumManifold:
                     self.ingest(u, "resonates_with", v, ["dream_state_epiphany"])
                     for term in [u, v]:
                         mr = self.resolver.ontology.get(ids=[term], include=['metadatas'])
-                        if mr and mr['metadatas']:
-                            old_z = mr['metadatas'][0]['z_level']
+                        if mr and mr['metadatas'] and mr['metadatas'][0]:
+                            meta = mr['metadatas'][0][0]
+                            old_z = meta['z_level']
                             new_z = min(4, old_z+1)
-                            self.resolver.ontology.update(ids=[term], metadatas=[{"phase":mr['metadatas'][0]['phase'],"z_level":new_z}])
+                            self.resolver.ontology.update(ids=[term], metadatas=[{"phase":meta['phase'],"z_level":new_z}])
                             if new_z != old_z:
                                 audit("SYNTROPY_PROMOTION", {"term":term,"old_z":old_z,"new_z":new_z,"new_level":LEVEL_NAMES.get(new_z)})
         audit("DREAM_COMPLETE", {"cycle":self.dream_cycle_count,"epiphanies_this_cycle":cycle_epiphanies,"total_epiphanies":self.epiphany_count,"total_edges":len(self.hyperedges)})
