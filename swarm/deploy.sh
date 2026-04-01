@@ -7,8 +7,8 @@
 set -euo pipefail
 
 PROJECT="lifequestplatinum"
-SERVICE="swarm-server"
-REGION="us-central1"
+SERVICE="swarm-manifold"
+REGION="europe-west1"
 IMAGE="gcr.io/${PROJECT}/${SERVICE}"
 
 echo "[SWARM] Building Docker image: ${IMAGE}"
