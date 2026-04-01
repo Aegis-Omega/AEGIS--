@@ -528,11 +528,6 @@
 
     function pushEvent(ev) {
       if (ev.type === 'SNAPSHOT') return;
-      if (ev.type === 'DREAM_START') {
-        dreamTotal++;
-        dreamCount.textContent = dreamTotal;
-      }
-
       const d = document.createElement('div');
       d.className = `event ${ev.type}`;
       d.innerHTML = `
@@ -555,9 +550,6 @@
     }
 
     function handleEpiphany(ev) {
-      epiphanyTotal++;
-      epiCount.textContent = epiphanyTotal;
-
       // Add epiphany card
       const card = document.createElement('div');
       card.className = 'epi-card';
@@ -605,6 +597,7 @@
           if (msg.manifold) applyManifold(msg.manifold);
         } else {
           pushEvent(msg);
+          if (msg.manifold) applyManifold(msg.manifold);
         }
       };
 
@@ -618,24 +611,49 @@
       ws.onerror = () => ws.close();
     }
 
+    function updateCountersFromManifold(manifold) {
+      if (!manifold) return;
+      totalEdges    = Number(manifold.total_hyperedges ?? totalEdges) || 0;
+      epiphanyTotal = Number(manifold.total_epiphanies ?? epiphanyTotal) || 0;
+      dreamTotal    = Number(manifold.dream_cycles_completed ?? dreamTotal) || 0;
+
+      evCount.textContent    = totalEdges;
+      epiCount.textContent   = epiphanyTotal;
+      dreamCount.textContent = dreamTotal;
+
+      if (Array.isArray(manifold.nodes)) {
+        nodeCount.textContent = manifold.nodes.length;
+      }
+    }
+
     function applyManifold(state) {
       (state.nodes || []).forEach(n => addNode(n.id, n.z || 0, n.phase || 0));
       (state.edges || []).forEach(e => addEdge(e.a, e.b, e.epiphany));
+      updateCountersFromManifold(state);
+      if (!Array.isArray(state.nodes)) {
+        nodeCount.textContent = Object.keys(nodes).length;
+      }
     }
 
     // ── Boot ───────────────────────────────────────────────────────────────────
-    seedManifold();
     frame();
-    connect();
 
-    // Sync with live server if available
     fetch('/state')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`state fetch failed (${r.status})`);
+        return r.json();
+      })
       .then(state => {
         (state.epiphanies || []).forEach(handleEpiphany);
         if (state.manifold) applyManifold(state.manifold);
       })
-      .catch(() => {});   // server offline — seed data already loaded
+      .catch(() => {
+        // server offline — use seed for visual continuity only
+        seedManifold();
+      })
+      .finally(() => {
+        connect();
+      });
   </script>
 </body>
 </html>
