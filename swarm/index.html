@@ -527,7 +527,6 @@
     }
 
     function pushEvent(ev) {
-      if (ev.type === 'SNAPSHOT') return;
       if (ev.type === 'DREAM_START') {
         dreamTotal++;
         dreamCount.textContent = dreamTotal;
@@ -600,11 +599,24 @@
         try { msg = JSON.parse(raw); } catch { return; }
 
         if (msg.type === 'SNAPSHOT') {
-          (msg.events     || []).forEach(pushEvent);
-          (msg.epiphanies || []).forEach(handleEpiphany);
-          if (msg.manifold) applyManifold(msg.manifold);
-        } else {
-          pushEvent(msg);
+          (msg.events || []).forEach(pushEvent);
+          if (msg.manifold) {
+            applyManifold(msg.manifold);
+            refreshManifoldCounters(msg.manifold);
+          }
+          return;
+        }
+
+        if (msg.type === 'EVENT') {
+          if (msg.event) pushEvent(msg.event);
+          return;
+        }
+
+        if (msg.type === 'MANIFOLD_UPDATE') {
+          if (msg.manifold) {
+            applyManifold(msg.manifold);
+            refreshManifoldCounters(msg.manifold);
+          }
         }
       };
 
@@ -623,6 +635,21 @@
       (state.edges || []).forEach(e => addEdge(e.a, e.b, e.epiphany));
     }
 
+    function refreshManifoldCounters(state) {
+      if (typeof state.total_hyperedges === 'number') {
+        totalEdges = state.total_hyperedges;
+        evCount.textContent = totalEdges;
+      }
+      if (typeof state.total_epiphanies === 'number') {
+        epiphanyTotal = state.total_epiphanies;
+        epiCount.textContent = epiphanyTotal;
+      }
+      if (typeof state.dream_cycles_completed === 'number') {
+        dreamTotal = state.dream_cycles_completed;
+        dreamCount.textContent = dreamTotal;
+      }
+    }
+
     // ── Boot ───────────────────────────────────────────────────────────────────
     seedManifold();
     frame();
@@ -632,8 +659,10 @@
     fetch('/state')
       .then(r => r.json())
       .then(state => {
-        (state.epiphanies || []).forEach(handleEpiphany);
-        if (state.manifold) applyManifold(state.manifold);
+        if (state.manifold) {
+          applyManifold(state.manifold);
+          refreshManifoldCounters(state.manifold);
+        }
       })
       .catch(() => {});   // server offline — seed data already loaded
   </script>
