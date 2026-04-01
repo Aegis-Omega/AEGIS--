@@ -26,7 +26,7 @@ def get_frequency(level: int) -> float:
 class PhotonicResolver:
     def __init__(self):
         self.client = chromadb.Client()
-        self.ontology = self.client.create_collection(name="swarm_ontology", metadata={"hnsw:space":"cosine"})
+        self.ontology = self.client.get_or_create_collection(name="swarm_ontology", metadata={"hnsw:space":"cosine"})
         audit("RESOLVER_INIT", {"status":"ok"})
 
     def resolve(self, term: str) -> dict:
