@@ -33,7 +33,10 @@ from pathlib import Path
 from datetime import datetime, timezone
 from collections import defaultdict
 
-sys.path.insert(0, str(Path(__file__).parent))
+ROOT = Path(__file__).parent
+SWARM_OS = ROOT.parent
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(SWARM_OS))
 from data.arc_loader    import ARCLoader
 from model.graph_encoder import GraphEncoder
 from model.graph_world_model import GraphWorldModel
@@ -48,6 +51,99 @@ from curriculum.curriculum import Curriculum
 from utils               import accuracy, compute_cvs, compute_mdl
 from config              import DEVICE, EMBED_DIM, MAX_PROGRAM_LEN, LR, CVS_WEIGHT, MDL_WEIGHT, STATE_PATH
 
+
+# ── METABOLIC GATE ────────────────────────────────────────────────────────────
+
+def _read_biology(state_path: Path) -> tuple[float, float]:
+    """Read stress_level and atp_ratio from state.json. Returns (stress, atp_ratio)."""
+    try:
+        s = json.loads(state_path.read_text(encoding="utf-8"))
+        stress = (
+            s.get("cognition", {}).get("neuromodulators", {}).get("stress_level")
+            or s.get("neuromodulators", {}).get("stress_level")
+            or 0.40
+        )
+        atp    = s.get("metabolism", {}).get("atp_balance", 2100)
+        atp_max = s.get("metabolism", {}).get("atp_max", 10000)
+        return float(stress), float(atp) / float(atp_max)
+    except Exception:
+        return 0.40, 1.0  # safe defaults
+
+
+def check_metabolic_gate(state_path: Path) -> None:
+    """
+    Sovereignty Law: if stress > 0.8 OR ATP < 10%, halt training and enter DreamState.
+    This enforces the hormetic constraint — collapse zone must trigger consolidation.
+    """
+    stress, atp_ratio = _read_biology(state_path)
+    print(f"[METABOLIC GATE] stress={stress:.4f}  ATP={atp_ratio*100:.1f}%")
+
+    if stress > 0.8 or atp_ratio < 0.10:
+        print(f"[METABOLIC GATE] THRESHOLD EXCEEDED — entering DreamState")
+        print(f"  stress={stress:.4f} (limit 0.80)  ATP={atp_ratio*100:.1f}% (limit 10%)")
+        try:
+            from tools.swarm.dream_state import enter_rem_sleep
+            enter_rem_sleep(verbose=True)
+        except Exception as e:
+            print(f"[METABOLIC GATE] DreamState unavailable: {e}")
+        raise SystemExit(
+            "[METABOLIC GATE] Training halted. Run again after biological recovery."
+        )
+    print(f"[METABOLIC GATE] PASS — optimal zone (stress in 0.30-0.80, ATP >= 10%)")
+
+
+# ── MACRO → KNOWLEDGE GRAPH INJECTION ────────────────────────────────────────
+
+def inject_macros_to_kg(new_rules: list, state_path: Path) -> int:
+    """
+    Triangle Protocol: inject each newly induced macro as a Verified Axiom
+    into .forge/knowledge_graph.json.
+
+    Each macro becomes a z=3 node (VECTOR_RESOLUTION tier, HD≈0.15)
+    anchored to the ARC_Grammar_Core sovereign node via a 'is_verified_axiom' edge.
+    """
+    if not new_rules:
+        return 0
+
+    try:
+        from tools.swarm.orchestrator import SovereignOrchestrator
+        orch = SovereignOrchestrator(verbose=False)
+        injected = 0
+        for rule in new_rules:
+            macro_id = rule.id if hasattr(rule, "id") else str(rule)
+            desc     = rule.description if hasattr(rule, "description") else macro_id
+            # Register as VECTOR_RESOLUTION (z=3) verified axiom
+            if macro_id not in orch.nodes:
+                orch.nodes[macro_id] = {
+                    "weight":           0.618,
+                    "weight_fixed":     618000,
+                    "semantic_density": "VECTOR_RESOLUTION",
+                    "audio_resonance":  "415.00 Hz",
+                    "visual_geometry":  {"x": 0.5, "y": 0.618, "z": 0.15},
+                    "z3_status":        3,
+                    "p_score_fixed":    850_000,
+                    "hd_fixed":         150_000,
+                    "description":      f"ARC Grammar Macro — {desc}",
+                    "ingested_at":      time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "type":             "GRAMMAR_MACRO",
+                }
+            result = orch.ingest_edge(
+                macro_id,
+                "is_verified_axiom_of",
+                "ARC_Grammar_Core",
+                weight=0.618,
+                skip_triangle=False,
+            )
+            if result["status"] in ("VERIFIED", "DUPLICATE"):
+                injected += 1
+        orch._save()
+        return injected
+    except Exception as e:
+        print(f"[KG INJECT] Skipped ({e})")
+        return 0
+
+
+# ── STATE WRITE ───────────────────────────────────────────────────────────────
 
 def atomic_write_state(state_path: Path, metrics: dict) -> None:
     if not state_path.exists():
@@ -138,6 +234,10 @@ def train(args):
     induct_log  = []
     t0          = time.time()
 
+    # ── METABOLIC GATE: check biological state before training begins ─────────
+    state_path = Path(__file__).parent / STATE_PATH
+    check_metabolic_gate(state_path)
+
     print(f"\nGrammar size: {library.vocab_size()} rules (all primitives)")
     print(f"Induction every {args.induct_every} steps\n")
 
@@ -145,6 +245,9 @@ def train(args):
 
         # ── Phase B: Grammar Induction ────────────────────────────────────
         if step % args.induct_every == 0 and inducer.corpus_size() >= 4:
+            # Metabolic check before each induction cycle
+            check_metabolic_gate(state_path)
+
             new_rules = inducer.induce()
             added     = library.add_macros(new_rules)
             if added:
@@ -166,6 +269,10 @@ def train(args):
                     f"|G|={mdl_cost:.0f} | "
                     f"top: {', '.join(r.description for r in new_rules[:3])}\n"
                 )
+                # ── Photonic Memory Bridge: inject macros as Verified Axioms ──
+                kg_count = inject_macros_to_kg(new_rules, state_path)
+                if kg_count:
+                    print(f"[PHOTONIC BRIDGE] {kg_count} macros → knowledge_graph (Triangle Protocol)")
             inducer.clear()
 
         # ── Phase A: Policy Training ──────────────────────────────────────
