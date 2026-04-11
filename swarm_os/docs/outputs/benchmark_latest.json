@@ -1,7 +1,10 @@
 {
-  "timestamp": "2026-03-25 11:05 UTC",
+  "timestamp": "2026-04-11T00:00:00Z",
   "elected_model": "kimi-k2-instruct",
-  "mean_hd": 0.0991,
+  "n_tasks": 14,
+  "mean_hd_14tasks": 0.1673,
+  "mean_hd_t1_t9": 0.0991,
+  "mean_hd_t10_t14": 0.29,
   "per_task": {
     "T1-confidence-calibration": 0.1,
     "T2-error-detection": 0.0,
@@ -11,11 +14,12 @@
     "T6-adversarial-calibration": 0.0,
     "T7-stress-calibration": 0.0,
     "T8-rir-transparency": 0.125,
-    "T9-context-confidence": 0.5
+    "T9-context-confidence": 0.5,
+    "T10-sensory-bottleneck-calibration": 0.5,
+    "T11-antifragility-under-stress": 0.2,
+    "T12-metabolic-grounding-awareness": 0.0,
+    "T13-hierarchical-memory-routing": 0.75,
+    "T14-grounding-gap-verification": 0.0
   },
-  "all_models": {
-    "kimi-k2-instruct": 0.0991,
-    "nemotron-ultra-253b": 0.324,
-    "devstral-123b": 0.1177
-  }
+  "proof_suite_hd": 0.0909
 }
