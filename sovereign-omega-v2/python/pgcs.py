@@ -300,9 +300,12 @@ class PGCSController:
         self._compressions += 1
 
     def _read_disk_io(self) -> tuple:
-        """Read disk I/O counters via user-space psutil (no privileges)."""
+        """Read memory swap counters (page-ins/page-outs to disk).
+        Uses psutil.swap_memory() to measure actual virtual memory pressure,
+        not system-wide disk I/O from unrelated file system activity.
+        """
         try:
-            io = psutil.disk_io_counters()
-            return (io.read_count, io.write_count) if io else (0, 0)
+            swap = psutil.swap_memory()
+            return (swap.sin, swap.sout)
         except Exception:
             return (0, 0)
