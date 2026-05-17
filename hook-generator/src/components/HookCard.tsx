@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Check } from 'lucide-react'
+import { Copy, Check, Star } from 'lucide-react'
 import type { HookResult } from '../lib/hooks-ai.js'
 
 const TYPE_COLORS: Record<string, string> = {
@@ -18,9 +18,11 @@ const TYPE_COLORS: Record<string, string> = {
 interface HookCardProps {
   hook: HookResult
   rank: number
+  isFav: boolean
+  onToggleFav: () => void
 }
 
-export function HookCard({ hook: h, rank }: HookCardProps) {
+export function HookCard({ hook: h, rank, isFav, onToggleFav }: HookCardProps) {
   const [copied, setCopied] = useState(false)
   const isTop = rank === 0
   const colorClass = TYPE_COLORS[h.type] ?? 'bg-hook-border text-hook-muted border-hook-border'
@@ -32,9 +34,12 @@ export function HookCard({ hook: h, rank }: HookCardProps) {
   }
 
   return (
-    <div className={`bg-hook-surface border rounded-2xl p-5 group transition-all ${
-      isTop ? 'border-hook-glow/50 shadow-lg shadow-hook-accent/10' : 'border-hook-border'
-    }`}>
+    <div
+      className={`bg-hook-surface border rounded-2xl p-5 hook-card-reveal transition-all ${
+        isTop ? 'border-hook-glow/50 shadow-lg shadow-hook-accent/10' : 'border-hook-border'
+      }`}
+      style={{ animationDelay: `${rank * 60}ms`, animationFillMode: 'both' }}
+    >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-xs border rounded-full px-2.5 py-0.5 font-medium ${colorClass}`}>
@@ -48,18 +53,27 @@ export function HookCard({ hook: h, rank }: HookCardProps) {
           <span className="text-xs text-hook-muted">{h.platform_fit}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-hook-glow font-bold text-sm">{h.score}<span className="text-hook-muted font-normal">/10</span></span>
+          <span className="text-hook-glow font-bold text-sm">
+            {h.score}<span className="text-hook-muted font-normal">/10</span>
+          </span>
+          <button
+            onClick={onToggleFav}
+            aria-label={isFav ? 'Remove from favourites' : 'Add to favourites'}
+            className={`transition-colors ${isFav ? 'text-hook-accent' : 'text-hook-muted hover:text-hook-accent'}`}
+          >
+            <Star size={15} fill={isFav ? 'currentColor' : 'none'} />
+          </button>
           <button
             onClick={handleCopy}
+            aria-label="Copy hook"
             className="text-hook-muted hover:text-hook-glow transition-colors"
-            title="Copy hook"
           >
             {copied ? <Check size={15} className="text-green-400" /> : <Copy size={15} />}
           </button>
         </div>
       </div>
 
-      <p className="text-hook-text text-sm leading-relaxed font-medium">"{h.hook}"</p>
+      <p className="hook-text text-hook-text text-sm leading-relaxed font-medium">"{h.hook}"</p>
 
       <div className="mt-2 w-full bg-hook-border rounded-full h-1">
         <div

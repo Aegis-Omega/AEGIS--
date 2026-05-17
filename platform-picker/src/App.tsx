@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Sparkles, TrendingUp } from 'lucide-react'
+import { Sparkles, TrendingUp, Share2, Check } from 'lucide-react'
 import { rankPlatforms, type MatcherInput } from './lib/matcher.js'
 import { ResultCard } from './components/ResultCard.js'
+import { RadarChart } from './components/RadarChart.js'
 import { useAsyncForm } from '@shared/hooks/useAsyncForm'
 import { ErrorAlert } from '@shared/components/ErrorAlert'
 import { LoadingSpinner } from '@shared/components/LoadingSpinner'
+import type { PlatformRanking } from './lib/matcher.js'
 
 const FIELDS: { key: keyof MatcherInput; label: string; placeholder: string }[] = [
   { key: 'niche',             label: 'Your niche',         placeholder: 'e.g. fitness, cooking, comedy, finance…' },
@@ -20,12 +22,22 @@ const EMPTY: MatcherInput = {
   posting_frequency: '', monetisation_goal: '', current_following: '',
 }
 
+function buildShareText(results: PlatformRanking[], niche: string): string {
+  const lines = [`🎯 Platform Picker — ${niche}`, '']
+  for (const r of results) {
+    lines.push(`${r.platform}: ${r.score}/10 — ${r.best_for}`)
+  }
+  lines.push('', 'Generated with AEGIS Platform Picker')
+  return lines.join('\n')
+}
+
 export default function App() {
   const [form, setForm] = useState<MatcherInput>(EMPTY)
+  const [shared, setShared] = useState(false)
   const { state, result, errorMsg, submit, reset: resetAsync } = useAsyncForm(rankPlatforms)
 
   const valid = Object.values(form).every(v => v.trim().length > 0)
-  const results = result ?? []
+  const results: PlatformRanking[] = result ?? []
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +45,14 @@ export default function App() {
     await submit(form)
   }
 
-  const reset = () => { setForm(EMPTY); resetAsync() }
+  const reset = () => { setForm(EMPTY); resetAsync(); setShared(false) }
+
+  const handleShare = async () => {
+    const text = buildShareText(results, form.niche)
+    await navigator.clipboard.writeText(text)
+    setShared(true)
+    setTimeout(() => setShared(false), 2000)
+  }
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text">
@@ -82,15 +101,41 @@ export default function App() {
         )}
 
         {state === 'results' && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-6">
-              <TrendingUp size={18} className="text-brand-glow" />
-              <h2 className="font-semibold text-brand-text">Your platform ranking</h2>
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <TrendingUp size={18} className="text-brand-glow" />
+                <h2 className="font-semibold text-brand-text">Your platform ranking</h2>
+              </div>
+              <button
+                onClick={handleShare}
+                aria-label="Copy results to clipboard"
+                className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-glow border border-brand-border hover:border-brand-glow px-3 py-1.5 rounded-lg transition-colors"
+              >
+                {shared ? <Check size={13} className="text-green-400" /> : <Share2 size={13} />}
+                {shared ? 'Copied!' : 'Share'}
+              </button>
             </div>
-            {results.map((r, i) => <ResultCard key={r.platform} ranking={r} rank={i} />)}
+
+            <div className="mb-6">
+              <RadarChart rankings={results} />
+            </div>
+
+            <div className="space-y-4">
+              {results.map((r, i) => (
+                <div
+                  key={r.platform}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'both' }}
+                >
+                  <ResultCard ranking={r} rank={i} />
+                </div>
+              ))}
+            </div>
+
             <button
               onClick={reset}
-              className="w-full mt-4 border border-brand-border text-brand-muted hover:border-brand-glow hover:text-brand-glow py-3 rounded-xl text-sm transition-colors"
+              className="w-full mt-6 border border-brand-border text-brand-muted hover:border-brand-glow hover:text-brand-glow py-3 rounded-xl text-sm transition-colors"
             >
               Try another profile
             </button>

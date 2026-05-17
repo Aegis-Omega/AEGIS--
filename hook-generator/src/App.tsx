@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Zap } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Zap, Download, Star } from 'lucide-react'
 import { generateHooks, type HookInput, type HookResult, type Platform, type Tone } from './lib/hooks-ai.js'
 import { HookCard } from './components/HookCard.js'
 import { useAsyncForm } from '@shared/hooks/useAsyncForm'
@@ -10,21 +10,58 @@ const PLATFORMS: Platform[] = ['TikTok', 'YouTube Shorts', 'Instagram Reels', 'A
 const TONES: Tone[] = ['Entertaining', 'Educational', 'Controversial', 'Inspirational', 'Relatable']
 
 const EMPTY: HookInput = { niche: '', platform: 'TikTok', topic: '', tone: 'Entertaining' }
+const FAV_KEY = 'aegis_hook_favorites'
+
+function loadFavs(): Set<string> {
+  try {
+    const raw = localStorage.getItem(FAV_KEY)
+    return new Set(raw ? (JSON.parse(raw) as string[]) : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function saveFavs(favs: Set<string>) {
+  localStorage.setItem(FAV_KEY, JSON.stringify([...favs]))
+}
 
 export default function App() {
   const [form, setForm] = useState<HookInput>(EMPTY)
+  const [favs, setFavs] = useState<Set<string>>(loadFavs)
+  const [showFavsOnly, setShowFavsOnly] = useState(false)
   const { state, result, errorMsg, submit, reset: resetAsync } = useAsyncForm(generateHooks)
 
   const valid = form.niche.trim().length > 0 && form.topic.trim().length > 0
-  const results: HookResult[] = result ?? []
+  const allResults: HookResult[] = result ?? []
+  const results = showFavsOnly ? allResults.filter(h => favs.has(h.hook)) : allResults
+
+  useEffect(() => { saveFavs(favs) }, [favs])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!valid) return
+    setShowFavsOnly(false)
     await submit(form)
   }
 
-  const reset = () => { setForm(EMPTY); resetAsync() }
+  const reset = () => { setForm(EMPTY); resetAsync(); setShowFavsOnly(false) }
+
+  const toggleFav = (hook: string) => {
+    setFavs(prev => {
+      const next = new Set(prev)
+      if (next.has(hook)) next.delete(hook); else next.add(hook)
+      return next
+    })
+  }
+
+  const exportAll = () => {
+    const text = allResults
+      .map((h, i) => `${i + 1}. ${h.hook} [${h.type}] ${h.score}/10`)
+      .join('\n')
+    navigator.clipboard.writeText(text)
+  }
+
+  const favCount = allResults.filter(h => favs.has(h.hook)).length
 
   return (
     <div className="min-h-screen bg-hook-bg text-hook-text">
@@ -107,15 +144,50 @@ export default function App() {
 
         {state === 'results' && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Zap size={18} className="text-hook-glow" />
                 <h2 className="font-semibold text-hook-text">10 hooks for &ldquo;{form.topic}&rdquo;</h2>
               </div>
+              <div className="flex items-center gap-2">
+                {favCount > 0 && (
+                  <button
+                    onClick={() => setShowFavsOnly(v => !v)}
+                    aria-label="Toggle favourites filter"
+                    className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
+                      showFavsOnly
+                        ? 'text-hook-accent border-hook-accent bg-hook-accent/10'
+                        : 'text-hook-muted border-hook-border hover:text-hook-glow hover:border-hook-glow'
+                    }`}
+                  >
+                    <Star size={12} fill={showFavsOnly ? 'currentColor' : 'none'} />
+                    {favCount}
+                  </button>
+                )}
+                <button
+                  onClick={exportAll}
+                  aria-label="Copy all hooks to clipboard"
+                  className="flex items-center gap-1.5 text-xs text-hook-muted hover:text-hook-glow border border-hook-border hover:border-hook-glow px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Download size={13} />
+                  Export all
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end">
               <span className="text-hook-muted text-xs">{form.platform} · {form.tone}</span>
             </div>
 
-            {results.map((h, i) => <HookCard key={i} hook={h} rank={i} />)}
+            {results.map((h, i) => (
+              <HookCard
+                key={h.hook}
+                hook={h}
+                rank={i}
+                isFav={favs.has(h.hook)}
+                onToggleFav={() => toggleFav(h.hook)}
+              />
+            ))}
 
             <button
               onClick={reset}

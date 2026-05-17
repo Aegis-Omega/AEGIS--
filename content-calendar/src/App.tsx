@@ -20,6 +20,39 @@ const FIELDS: { key: keyof CalendarInput; label: string; placeholder: string }[]
   { key: 'pillar3',   label: 'Content pillar 3',    placeholder: 'e.g. Personal story / Motivation' },
 ]
 
+const PILLAR_LEGEND_COLORS = [
+  'bg-blue-500/15 text-blue-300 border-blue-500/25',
+  'bg-purple-500/15 text-purple-300 border-purple-500/25',
+  'bg-orange-500/15 text-orange-300 border-orange-500/25',
+]
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function buildCsv(weeks: WeekPlan[]): string {
+  const DAY_NAMES = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const header = 'Week,Theme,Day,Platform,Pillar,Hook,Format,Notes'
+  const rows = weeks.flatMap(w =>
+    w.posts.map(p => [
+      w.week,
+      `"${w.theme}"`,
+      DAY_NAMES[p.day] ?? `Day${p.day}`,
+      p.platform,
+      p.content_pillar,
+      `"${p.hook.replace(/"/g, '""')}"`,
+      p.format,
+      `"${p.notes.replace(/"/g, '""')}"`,
+    ].join(','))
+  )
+  return [header, ...rows].join('\n')
+}
+
 export default function App() {
   const [form, setForm] = useState<CalendarInput>(EMPTY)
   const { state, result, errorMsg, submit, reset: resetAsync } = useAsyncForm(generateCalendar)
@@ -33,15 +66,14 @@ export default function App() {
     await submit(form)
   }
 
-  const handleDownload = () => {
-    const text = calendarToText(weeks, form)
-    const blob = new Blob([text], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `content-calendar-${form.niche.replace(/\s+/g, '-').toLowerCase()}.txt`
-    a.click()
-    URL.revokeObjectURL(url)
+  const handleDownloadTxt = () => {
+    const blob = new Blob([calendarToText(weeks, form)], { type: 'text/plain' })
+    downloadBlob(blob, `content-calendar-${form.niche.replace(/\s+/g, '-').toLowerCase()}.txt`)
+  }
+
+  const handleDownloadCsv = () => {
+    const blob = new Blob([buildCsv(weeks)], { type: 'text/csv' })
+    downloadBlob(blob, `content-calendar-${form.niche.replace(/\s+/g, '-').toLowerCase()}.csv`)
   }
 
   const reset = () => { setForm(EMPTY); resetAsync() }
@@ -96,18 +128,38 @@ export default function App() {
 
         {state === 'results' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <CalendarDays size={18} className="text-cal-glow" />
                 <h2 className="font-semibold text-cal-text">4-week plan for {form.niche}</h2>
               </div>
-              <button
-                onClick={handleDownload}
-                className="flex items-center gap-1.5 text-xs text-cal-muted hover:text-cal-glow border border-cal-border hover:border-cal-glow px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <Download size={13} />
-                Download .txt
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownloadCsv}
+                  aria-label="Download as CSV"
+                  className="flex items-center gap-1.5 text-xs text-cal-muted hover:text-cal-glow border border-cal-border hover:border-cal-glow px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Download size={13} />
+                  CSV
+                </button>
+                <button
+                  onClick={handleDownloadTxt}
+                  aria-label="Download as text"
+                  className="flex items-center gap-1.5 text-xs text-cal-muted hover:text-cal-glow border border-cal-border hover:border-cal-glow px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Download size={13} />
+                  TXT
+                </button>
+              </div>
+            </div>
+
+            {/* Pillar legend */}
+            <div className="flex items-center gap-2 flex-wrap mb-4">
+              {pillars.map((p, i) => p && (
+                <span key={i} className={`text-xs border rounded-full px-2.5 py-0.5 ${PILLAR_LEGEND_COLORS[i]}`}>
+                  {p}
+                </span>
+              ))}
             </div>
 
             {weeks.map(w => <WeekTable key={w.week} week={w} pillars={pillars} />)}
