@@ -76,6 +76,12 @@ export const REGISTRY_ENTRIES: readonly SemanticNode[] = Object.freeze([
     [e('test/unit/sequence.test.ts', 'tested_by')],
     HS.SUBATOMIC, false, 'UUIDv7 generation — only permitted Date.now() use; overflow guard'),
 
+  n('src/core/wasm-interface.ts', 'core', null, 0, MA.GATE_GUARDED,
+    [PC.TEST_COVERED],
+    [e('src/core/fixedpoint.ts', 'depends_on'), e('test/determinism/wasm-parity.test.ts', 'tested_by')],
+    HS.SUBATOMIC, false,
+    'WASM parity harness — assertWasmParity detects JS/WASM divergence; kernel state machine (unloaded until binary compiled)'),
+
   n('src/event/workflow.ts', 'event', null, 1, MA.STANDARD,
     [PC.TEST_COVERED],
     [e('src/core/types.ts', 'depends_on'), e('src/event/workflow-recorder.ts', 'grounds'),
