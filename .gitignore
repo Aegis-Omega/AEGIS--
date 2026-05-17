@@ -45,3 +45,5 @@ hook-generator/.env
 .DS_Store
 Thumbs.db
 *.log
+content-calendar/dist/
+content-calendar/.env
