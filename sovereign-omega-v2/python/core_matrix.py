@@ -211,9 +211,13 @@ class CoreMatrix:
         # State
         self._sequence: int = 0
         self._epoch: int = 0
+        self._era: int = 0          # increments each time M1 wraps (circular log)
         self._running = False
         self._lock = threading.RLock()
         self._ready = threading.Event()
+
+        # Capacity at which M1 write head wraps (events per era)
+        self._m1_era_capacity: int = M1_SIZE // 40
 
         # Performance metrics (fixed-point for determinism)
         self._total_vcg_error_fixed: int = 0
@@ -259,9 +263,20 @@ class CoreMatrix:
         INVARIANT: All temporal values derive from sequence, never wall clock.
         """
         with self._lock:
-            # Check failsafe state before processing
-            if self._failsafe.state == EpochState.FROZEN:
-                return {'status': 'FROZEN', 'sequence': self._sequence}
+            # Check failsafe state before processing — FROZEN and RECOVERING both gate events
+            failsafe_state = self._failsafe.state
+            if failsafe_state in (EpochState.FROZEN, EpochState.RECOVERING):
+                return {'status': failsafe_state.value.upper(), 'sequence': self._sequence}
+
+            # Detect M1 circular wrap and log an era-boundary event (F-07)
+            if self._sequence > 0 and self._sequence % self._m1_era_capacity == 0:
+                self._era += 1
+                if self._event_cb:
+                    self._event_cb('M1_ERA_WRAP', {
+                        'era': self._era,
+                        'sequence': self._sequence,
+                        'capacity_per_era': self._m1_era_capacity,
+                    })
 
             # M1: state management
             self._sequence, state_hash = M1(
@@ -336,5 +351,16 @@ class CoreMatrix:
         }
 
     def get_epoch_snapshot(self) -> Optional[bytes]:
-        """Return serialisable epoch state for the epoch failsafe."""
-        return bytes(self._m1_region[:1024])  # first 1KB as representative state
+        """
+        Return a representative epoch state sample for the epoch failsafe.
+        Samples 256 bytes from four evenly-spaced positions across the 2GB M1 region
+        rather than only the first 1KB, which is not representative after the first
+        25 events fill the initial write window.
+        """
+        region_len = len(self._m1_region)
+        chunk = 256
+        positions = [0, region_len // 4, region_len // 2, (3 * region_len) // 4]
+        parts = [bytes(self._m1_region[p:p + chunk]) for p in positions]
+        seq_bytes = self._sequence.to_bytes(8, 'little')
+        era_bytes = self._era.to_bytes(4, 'little')
+        return b''.join(parts) + seq_bytes + era_bytes  # 4×256 + 12 = 1036 bytes
