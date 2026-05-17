@@ -56,8 +56,14 @@ export const REGISTRY_ENTRIES: readonly SemanticNode[] = Object.freeze([
 
   n('src/core/fixedpoint.ts', 'core', 6, 0, MA.GATE_GUARDED,
     [PC.GATE_VERIFIED],
-    [e('src/gate/hoeffding.ts', 'grounds')],
-    HS.SUBATOMIC, false, 'Fixed-point arithmetic for Bernstein bound computation'),
+    [e('src/gate/hoeffding.ts', 'grounds'), e('test/determinism/bernstein-q32-fuzz.test.ts', 'tested_by')],
+    HS.SUBATOMIC, false, 'Q32.32 fixed-point arithmetic for cross-runtime Bernstein bound computation'),
+
+  n('src/core/semantics.ts', 'core', null, 0, MA.GATE_GUARDED,
+    [PC.GATE_VERIFIED],
+    [e('src/core/canonicalize.ts', 'depends_on'), e('test/determinism/jcs-fuzz.test.ts', 'tested_by')],
+    HS.ATOMIC, false,
+    'JS semantic particle field — isReplaySafe/assertReplaySafe/ReplaySafetyViolation; formalizes replay-safe value boundary'),
 
   n('src/event/store.ts', 'event', 2, 0, MA.GATE_GUARDED,
     [PC.GATE_VERIFIED, PC.COQ_THEOREM],
