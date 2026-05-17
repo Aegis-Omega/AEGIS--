@@ -32,8 +32,12 @@ export class EventStore {
 
   /**
    * Append an event to the store.
-   * Sequence number is assigned atomically within the IndexedDB transaction.
-   * The prev_hash and self_hash are computed and attached before storage.
+   * Sequence number is assigned by a readonly read, then written in a separate readwrite
+   * transaction after the SHA-256 hash is computed outside any IDB transaction.
+   *
+   * Three-phase design avoids TransactionInactiveError from awaiting WebCrypto inside
+   * an IDB onsuccess callback. Race protection: unique index on by_stream_sequence
+   * rejects a duplicate nextSeq from a concurrent append with a constraint error.
    *
    * INVARIANT: This is the ONLY path by which events enter the store.
    * INVARIANT: sequence is never derived from array.length or client state.
@@ -49,94 +53,88 @@ export class EventStore {
   ): Promise<EventEnvelope<TPayload>> {
     const db = this.requireDB()
 
-    return new Promise((resolve, reject) => {
+    // Phase 1: Read currentSeq and prevHash in a readonly transaction (no async inside).
+    const { currentSeq, prevHash } = await new Promise<{ currentSeq: number; prevHash: SHA256Hex }>(
+      (resolve, reject) => {
+        const tx = db.transaction([EVENTS_STORE, SEQUENCES_STORE], 'readonly')
+        const eventsStore = tx.objectStore(EVENTS_STORE)
+        const sequencesStore = tx.objectStore(SEQUENCES_STORE)
+
+        const seqReq = sequencesStore.get(this.streamId)
+        seqReq.onsuccess = () => {
+          const currentSeq: number = seqReq.result ?? -1
+          const prevHashReq = eventsStore.index('by_stream_sequence')
+            .get(IDBKeyRange.only([this.streamId, currentSeq]))
+          prevHashReq.onsuccess = () => {
+            const prevEvent = prevHashReq.result as EventEnvelope | null
+            const prevHash = prevEvent?.self_hash ?? ('0'.repeat(64) as SHA256Hex)
+            resolve({ currentSeq, prevHash })
+          }
+          prevHashReq.onerror = () => reject(new EventStoreError('Failed to retrieve previous event'))
+        }
+        seqReq.onerror = () => reject(new EventStoreError('Failed to read sequence counter'))
+        tx.onerror = (e) => reject(new EventStoreError(`Transaction error: ${e}`))
+      }
+    )
+
+    const nextSeq = currentSeq + 1
+    const event_id = generateUUIDv7() as UUIDv7
+
+    // Phase 2: Compute SHA-256 outside any IDB transaction (async WebCrypto is safe here).
+    const envelopeForHashing = {
+      event_id,
+      stream_id: this.streamId,
+      event_type,
+      timestamp_ms,
+      sequence: String(nextSeq),  // BigInt serialised as string for hashing
+      producer_id,
+      producer_version,
+      payload_schema_version,
+      payload,
+      prev_hash: prevHash,
+      retention_class,
+    }
+    const canonical = canonicalizeJCS(envelopeForHashing)
+    const selfHashBytes = await (async () => {
+      if (typeof globalThis.crypto?.subtle !== 'undefined') {
+        const digest = await globalThis.crypto.subtle.digest('SHA-256', canonical as BufferSource)
+        return new Uint8Array(digest)
+      }
+      const { createHash } = await import('node:crypto')
+      return new Uint8Array(createHash('sha256').update(canonical).digest())
+    })()
+    const self_hash = Array.from(selfHashBytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('') as SHA256Hex
+
+    const envelope: EventEnvelope<TPayload> = Object.freeze({
+      event_id,
+      stream_id: this.streamId,
+      event_type,
+      timestamp_ms,
+      sequence: BigInt(nextSeq) as SequenceNumber,
+      producer_id,
+      producer_version,
+      payload_schema_version,
+      payload: Object.freeze(payload) as TPayload,
+      prev_hash: prevHash,
+      self_hash,
+      retention_class,
+    })
+
+    // Phase 3: Write in a new readwrite transaction with only synchronous IDB ops inside.
+    await new Promise<void>((resolve, reject) => {
       const tx = db.transaction([EVENTS_STORE, SEQUENCES_STORE], 'readwrite')
       const eventsStore = tx.objectStore(EVENTS_STORE)
       const sequencesStore = tx.objectStore(SEQUENCES_STORE)
-
-      // Get and atomically increment the sequence counter
-      const seqReq = sequencesStore.get(this.streamId)
-
-      seqReq.onsuccess = async () => {
-        try {
-          const currentSeq: number = seqReq.result ?? -1
-          const nextSeq = currentSeq + 1
-
-          // Get the previous event's hash for chain integrity
-          const prevHashReq = eventsStore.index('by_stream_sequence')
-            .get(IDBKeyRange.only([this.streamId, currentSeq]))
-
-          // We need to compute the hash after getting prev hash
-          // Use a nested request pattern for IndexedDB
-          prevHashReq.onsuccess = async () => {
-            try {
-              const prevEvent = prevHashReq.result as EventEnvelope | null
-              const prevHash = prevEvent?.self_hash ?? ('0'.repeat(64) as SHA256Hex)
-
-              const event_id = generateUUIDv7() as UUIDv7
-
-              // Compute self_hash over the envelope WITHOUT self_hash field
-              const envelopeForHashing = {
-                event_id,
-                stream_id: this.streamId,
-                event_type,
-                timestamp_ms,
-                sequence: String(nextSeq),  // BigInt serialised as string for hashing
-                producer_id,
-                producer_version,
-                payload_schema_version,
-                payload,
-                prev_hash: prevHash,
-                retention_class,
-              }
-
-              const canonical = canonicalizeJCS(envelopeForHashing)
-              const selfHashBytes = await (async () => {
-                if (typeof globalThis.crypto?.subtle !== 'undefined') {
-                  const digest = await globalThis.crypto.subtle.digest('SHA-256', canonical as BufferSource)
-                  return new Uint8Array(digest)
-                }
-                const { createHash } = await import('node:crypto')
-                return new Uint8Array(createHash('sha256').update(canonical).digest())
-              })()
-              const self_hash = Array.from(selfHashBytes)
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('') as SHA256Hex
-
-              const envelope: EventEnvelope<TPayload> = Object.freeze({
-                event_id,
-                stream_id: this.streamId,
-                event_type,
-                timestamp_ms,
-                sequence: BigInt(nextSeq) as SequenceNumber,
-                producer_id,
-                producer_version,
-                payload_schema_version,
-                payload: Object.freeze(payload) as TPayload,
-                prev_hash: prevHash,
-                self_hash,
-                retention_class,
-              })
-
-              // Atomically store event and update sequence counter
-              eventsStore.put({ ...envelope, sequence: nextSeq })
-              sequencesStore.put(nextSeq, this.streamId)
-
-              tx.oncomplete = () => resolve(envelope)
-              tx.onerror = () => reject(new EventStoreError('Transaction failed during append'))
-            } catch (err) {
-              reject(err)
-            }
-          }
-          prevHashReq.onerror = () => reject(new EventStoreError('Failed to retrieve previous event'))
-        } catch (err) {
-          reject(err)
-        }
-      }
-
-      seqReq.onerror = () => reject(new EventStoreError('Failed to read sequence counter'))
-      tx.onerror = (e) => reject(new EventStoreError(`Transaction error: ${e}`))
+      eventsStore.put({ ...envelope, sequence: nextSeq })
+      sequencesStore.put(nextSeq, this.streamId)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(new EventStoreError('Transaction failed during append'))
+      tx.onabort = () => reject(new EventStoreError('Transaction aborted during append'))
     })
+
+    return envelope
   }
 
   /**

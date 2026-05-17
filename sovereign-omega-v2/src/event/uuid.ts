@@ -18,9 +18,19 @@ let randBHex = '' // 8 bytes, frozen per ms; top 2 bits become variant=10
  * Supports 4096 unique IDs per millisecond before seq overflow.
  */
 export function generateUUIDv7(): UUIDv7 {
-  const now = Date.now()  // Only permitted use of Date.now() — for UUID generation only
-  if (now === lastMs) {
+  let now = Date.now()  // Only permitted use of Date.now() — for UUID generation only
+  if (now <= lastMs) {
+    now = lastMs  // enforce monotonicity; absorbs clock regression
     seq++
+    if (seq > 0xfff) {
+      // Sequence overflow: advance virtual millisecond to preserve uniqueness
+      lastMs++
+      now = lastMs
+      seq = 0
+      const rand = new Uint8Array(8)
+      crypto.getRandomValues(rand)
+      randBHex = Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('')
+    }
   } else {
     lastMs = now
     seq = 0
@@ -30,8 +40,8 @@ export function generateUUIDv7(): UUIDv7 {
   }
 
   const msHex = now.toString(16).padStart(12, '0')
-  // 12-bit sequence counter in rand_a field (supports 4096 per ms)
-  const seqHex = (seq & 0xfff).toString(16).padStart(3, '0')
+  // seq is guaranteed ≤ 0xFFF after overflow handling — no mask needed
+  const seqHex = seq.toString(16).padStart(3, '0')
   // Apply RFC 4122 variant bits (10xx) to first byte of rand_b
   const variantHex = (parseInt(randBHex.slice(0, 2), 16) & 0x3f | 0x80).toString(16).padStart(2, '0')
 

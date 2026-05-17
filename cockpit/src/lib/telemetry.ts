@@ -1,4 +1,4 @@
-const BRIDGE = 'http://localhost:7890'
+const BRIDGE = (import.meta.env.VITE_BRIDGE_URL as string | undefined) ?? 'http://localhost:7890'
 const POLL_MS = 5000
 
 export interface TelemetrySnapshot {

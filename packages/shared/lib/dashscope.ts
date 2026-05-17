@@ -26,6 +26,7 @@ export async function callDashScope<T>(opts: DashScopeCallOpts): Promise<T> {
           { role: 'user', content: opts.userMessage },
         ],
       }),
+      signal: AbortSignal.timeout(60_000),
     },
   )
 

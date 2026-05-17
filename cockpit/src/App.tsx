@@ -16,9 +16,11 @@ When asked for governance decisions, structure output as JSON:
 
 Invariants: Replayability ≠ Correctness. Calibration ≠ Truthfulness. Be concise, precise, epistemically honest.`
 
+const BRIDGE_URL = (import.meta.env.VITE_BRIDGE_URL as string | undefined) ?? 'http://localhost:7890'
+
 async function postBridgeEvent(type: string, payload: Record<string, unknown>): Promise<void> {
   try {
-    await fetch('http://localhost:7890/event', {
+    await fetch(`${BRIDGE_URL}/event`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, payload, timestamp_ms: Date.now() }),

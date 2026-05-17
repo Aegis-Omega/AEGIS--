@@ -98,20 +98,21 @@ function serializeString(s: string): string {
       continue
     }
 
-    // Surrogate pairs: handle correctly
-    if (cp >= 0xD800 && cp <= 0xDBFF) {
-      // High surrogate — combine with low surrogate
-      const nextCp = s.codePointAt(i + 1) ?? 0
-      if (nextCp >= 0xDC00 && nextCp <= 0xDFFF) {
-        result += ch + (s[i + 1] ?? '')
-        i++ // skip low surrogate
-      } else {
-        result += '\\u' + cp.toString(16).padStart(4, '0')
-      }
+    // Non-BMP character (U+10000..U+10FFFF): codePointAt returns full scalar > 0xFFFF.
+    // Must emit both UTF-16 code units and skip the low surrogate on next iteration.
+    if (cp > 0xFFFF) {
+      result += ch + (s[i + 1] ?? '')
+      i++ // skip the low surrogate code unit
       continue
     }
+
+    // Lone high surrogate (codePointAt returns surrogate value when unpaired)
+    if (cp >= 0xD800 && cp <= 0xDBFF) {
+      result += '\\u' + cp.toString(16).padStart(4, '0')
+      continue
+    }
+    // Lone low surrogate
     if (cp >= 0xDC00 && cp <= 0xDFFF) {
-      // Lone low surrogate
       result += '\\u' + cp.toString(16).padStart(4, '0')
       continue
     }
@@ -139,6 +140,7 @@ export const RFC8785_TEST_VECTORS: Array<{ input: unknown; expected: string }> =
   { input: 'a\nb', expected: '"a\\nb"' },
   { input: '\u0000', expected: '"\\u0000"' },
   { input: '\u001f', expected: '"\\u001f"' },
+  { input: '😀', expected: '"😀"' },
   { input: [], expected: '[]' },
   { input: [1, 2, 3], expected: '[1,2,3]' },
   { input: {}, expected: '{}' },
