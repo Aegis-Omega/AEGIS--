@@ -47,6 +47,10 @@ sha256sum gate.py dna.py router.py
 | `src/pipeline/schema.ts` | DecisionSchema construction |
 | `src/pipeline/index.ts` | Main pipeline orchestration |
 | `src/compliance/tombstone.ts` | GDPR tombstoning + Article 12 audit |
+| `src/registry/types.ts` | Semantic particle types: HolonicScale, MutationAuthority, ProofCoverage, SemanticNode |
+| `src/registry/entries.ts` | T0/T1 artifact registry entries — 18 classified nodes |
+| `src/registry/index.ts` | Registry access: lookupNode, queryByGate, queryByTier, queryByMutationAuthority |
+| `src/event/workflow.ts` | E5 cognitive workflow event payloads — AI-mediated development substrate |
 
 ---
 
