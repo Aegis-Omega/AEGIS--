@@ -44,11 +44,17 @@ calls `matrix.wait_ready(timeout=5.0)` before `serve_forever()`.
 **File:** `sovereign-omega-v2/CLAUDE.md` + `scripts/verify-hashes.mjs`
 **Kill vector:** `gate.py`, `dna.py`, `router.py` are declared FROZEN with SHA256 hashes
 and are described as mutation authority, genome/schema, and execution router. They do not
-exist in `sovereign-omega-v2/python/`. The `verify-hashes.mjs` silently SKIPs all three.
-The constitutional integrity check is a no-op.
-**Action:** These files require /guardian APPROVED to create. Operator must decide whether
+exist in `sovereign-omega-v2/python/`. The `verify-hashes.mjs` previously silently SKIPped
+all three and exited 0 — the constitutional integrity check was a no-op.
+**Partial fix applied:** `verify-hashes.mjs` now distinguishes three exit codes:
+  - 0 = all files present and hash-correct
+  - 1 = file present but hash WRONG (constitutional violation)
+  - 2 = file absent (incomplete; emits loud WARN, not silent SKIP)
+Missing files now produce exit 2 with explicit operator guidance message.
+**Remaining action:** Files still need to be created. Operator must decide whether
 to migrate from `sovereign-omega/` (legacy) or author new implementations.
-**Status:** DOCUMENTED — awaiting /guardian decision
+Creation requires /guardian APPROVED verdict.
+**Status:** PARTIALLY MITIGATED — silent no-op fixed; /guardian decision still pending
 
 ---
 

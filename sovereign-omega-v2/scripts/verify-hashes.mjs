@@ -2,6 +2,12 @@
 // ============================================================
 // SOVEREIGN OMEGA — Frozen File Hash Verification
 // Run before any session that touches constitutional files.
+//
+// Exit codes:
+//   0 — all files present and hash-correct
+//   1 — at least one file present but hash WRONG (constitutional violation)
+//   2 — at least one file absent (not yet authored; /guardian decision pending)
+//       A missing constitutional file is NOT the same as a passing check.
 // ============================================================
 
 import { createHash } from 'crypto'
@@ -13,11 +19,13 @@ const FROZEN_FILES = {
   'router.py': 'c96e566ce6eb9cec358b2112757142bc88ea4fea9160edb2914c8d711007ac769',
 }
 
-let allOk = true
+let hashFailed = false
+let filesMissing = false
 
 for (const [file, expectedHash] of Object.entries(FROZEN_FILES)) {
   if (!existsSync(file)) {
-    console.log(`  SKIP: ${file} — not present in this directory`)
+    console.warn(`  WARN: ${file} — file not present; constitutional check INCOMPLETE`)
+    filesMissing = true
     continue
   }
   const content = readFileSync(file)
@@ -28,14 +36,23 @@ for (const [file, expectedHash] of Object.entries(FROZEN_FILES)) {
     console.error(`  FAIL: ${file}`)
     console.error(`        Expected: ${expectedHash}`)
     console.error(`        Got:      ${actualHash}`)
-    allOk = false
+    hashFailed = true
   }
 }
 
-if (!allOk) {
-  console.error('\n[FROZEN FILE VIOLATION] Constitutional files have been modified.')
+if (hashFailed) {
+  console.error('\n[FROZEN FILE VIOLATION] One or more constitutional files have been modified.')
   console.error('Requires /guardian APPROVED verdict before proceeding.')
   process.exit(1)
 }
 
-console.log('\nAll present frozen files verified.')
+if (filesMissing) {
+  console.warn('\n[CONSTITUTIONAL FILES ABSENT] gate.py / dna.py / router.py do not exist.')
+  console.warn('Integrity check is INCOMPLETE — not a pass.')
+  console.warn('Operator must decide: migrate from sovereign-omega/ or author new implementations.')
+  console.warn('Creation requires /guardian APPROVED verdict.')
+  process.exit(2)
+}
+
+console.log('\nAll frozen files present and hash-verified.')
+
