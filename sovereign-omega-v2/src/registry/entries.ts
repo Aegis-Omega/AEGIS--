@@ -45,14 +45,17 @@ export const REGISTRY_ENTRIES: readonly SemanticNode[] = Object.freeze([
     HS.SUBATOMIC, false, 'SHA-256 byte-level hashing utilities'),
 
   n('src/core/tier.ts', 'core', null, 0, MA.GATE_GUARDED,
-    [PC.TEST_COVERED],
-    [e('src/core/types.ts', 'depends_on')],
-    HS.ATOMIC, false, 'Epistemic tier classification and migration rule enforcement'),
+    [PC.GATE_VERIFIED, PC.TEST_COVERED],
+    [e('src/core/types.ts', 'depends_on'), e('test/unit/tier.test.ts', 'tested_by')],
+    HS.ATOMIC, false,
+    'Epistemic tier classification, path ceiling enforcement, migration rule (no T4/T5 → T0–T2)'),
 
   n('src/core/schema-registry.ts', 'core', null, 0, MA.GATE_GUARDED,
-    [PC.TEST_COVERED],
-    [e('src/core/hashing.ts', 'depends_on'), e('src/core/types.ts', 'depends_on')],
-    HS.ATOMIC, false, 'Schema registry with seal() — fail closed on unknown schema versions'),
+    [PC.GATE_VERIFIED, PC.TEST_COVERED],
+    [e('src/core/hashing.ts', 'depends_on'), e('src/core/types.ts', 'depends_on'),
+     e('test/unit/schema-registry.test.ts', 'tested_by')],
+    HS.ATOMIC, false,
+    'SchemaRegistry with seal() — fail closed on unknown schema versions; no fallback validation'),
 
   n('src/core/fixedpoint.ts', 'core', 6, 0, MA.GATE_GUARDED,
     [PC.GATE_VERIFIED],

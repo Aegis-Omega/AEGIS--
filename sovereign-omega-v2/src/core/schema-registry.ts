@@ -29,7 +29,7 @@ export interface ValidationResult {
   readonly errors: readonly string[]
 }
 
-class SchemaRegistry {
+export class SchemaRegistry {
   private readonly schemas = new Map<string, SchemaDefinition>()
   private readonly versionIndex = new Map<string, string>()  // version → schema_id
   private sealed = false
