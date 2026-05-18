@@ -23,7 +23,7 @@ graph TD
 
     BRIDGE --> MATRIX["🧠 CoreMatrix<br/>PGCS · TGCS · AFSE<br/>Epoch failsafe · VCG"]
 
-    SOVTS["📐 sovereign-omega-v2/<br/>TypeScript Runtime<br/>8 gates · 151 tests"]
+    SOVTS["📐 sovereign-omega-v2/<br/>TypeScript Runtime<br/>8 gates · 184 tests"]
     SOVTS --> BRIDGE
 ```
 
