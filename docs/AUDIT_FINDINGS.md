@@ -70,10 +70,11 @@ boot, not incremental. The code captures a baseline at init (correct) and comput
 (correct approach), but `sin/sout` values are in **pages** on Linux, not bytes. The page
 size (typically 4096 bytes) is never applied. On a system with pre-existing swap activity,
 any swap since boot inflates the delta.
-**Fix:** Multiply `sin/sout` delta by `resource.getpagesize()`, or use
-`psutil.disk_io_counters()` for direct disk I/O. This is informational on the CI machine
-(no swap configured); investigate on the AMD RX 570 target hardware before 12h test.
-**Status:** OPEN — investigate on target hardware before P3 run
+**Fix applied:** `import resource` added to pgcs.py. `_read_disk_io` now returns
+`(swap.sin * resource.getpagesize(), swap.sout * resource.getpagesize())`. Fields renamed
+`disk_page_ins/outs` → `disk_swap_bytes_in/out` to reflect byte semantics. `passes_criterion`
+unchanged (zero-equality works for both units). Python smoke test PASS confirmed post-fix.
+**Status:** ✅ RESOLVED
 
 ### F-09 · ~~Epoch snapshot captures 1KB of 2GB M1 region — not representative~~
 **File:** `sovereign-omega-v2/python/core_matrix.py`
@@ -158,7 +159,7 @@ The CLAUDE.md non-equivalence table applies to their relationship:
 | Tier | Count | Resolved | Open |
 |------|-------|----------|------|
 | T0 — Critical | 6 | 5 | 1 (F-06 — /guardian decision) |
-| T1 — Important | 4 | 3 | 1 (F-08 — investigate on target hardware) |
+| T1 — Important | 4 | 4 | 0 |
 | T2 — Pre-listing | 5 | 2 | 3 (F-13, F-14 post-deployment; F-15 informational) |
 | Holonic | 4 | 0 | 4 (H-01 to H-04) |
 

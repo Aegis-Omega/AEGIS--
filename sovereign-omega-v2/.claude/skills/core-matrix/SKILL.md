@@ -18,7 +18,7 @@ Success criterion is T0 and non-negotiable: corruption_count must equal 0.
 For the full 12-hour stress test:
 Run: python python/tests/stress_test.py
 All three criteria must pass simultaneously:
-  PGCS: disk_page_ins = 0 AND disk_page_outs = 0
+  PGCS: disk_swap_bytes_in = 0 AND disk_swap_bytes_out = 0
   Epoch Failsafe: corruption_count = 0
   Gradient-Anchor: drift_index D = 0 across 100,000 epochs
 

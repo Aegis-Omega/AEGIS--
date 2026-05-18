@@ -6,7 +6,7 @@ Primary validation protocol for the Python core matrix on AMD RX 570 / 8GB RAM.
 This test must pass before any production deployment.
 
 SUCCESS CRITERIA (all must pass simultaneously):
-  PGCS: disk_page_ins = 0 AND disk_page_outs = 0 throughout 12 hours
+  PGCS: disk_swap_bytes_in = 0 AND disk_swap_bytes_out = 0 throughout 12 hours
   TGCS: run-to-run telemetry variance σ² = 0
   AFSE: correlation index R² >= 0.98 with distributed baselines
   Epoch Failsafe: corruption_count = 0 across 1,000+ crash loops

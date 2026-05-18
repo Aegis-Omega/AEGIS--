@@ -23,6 +23,7 @@ import array
 import ctypes
 import mmap
 import os
+import resource
 import threading
 import time
 from dataclasses import dataclass, field
@@ -52,14 +53,14 @@ class PGCSTelemetry:
     compressions_performed: int
     bytes_compressed: int
     compression_ratio_achieved: float
-    disk_page_ins: int          # MUST equal 0 for pass
-    disk_page_outs: int         # MUST equal 0 for pass
+    disk_swap_bytes_in: int     # bytes swapped in since baseline; MUST equal 0 for pass
+    disk_swap_bytes_out: int    # bytes swapped out since baseline; MUST equal 0 for pass
     ring_buffer_utilisation: float
 
     @property
     def passes_criterion(self) -> bool:
-        return self.disk_page_ins == PGCS_DISK_IO_TARGET and \
-               self.disk_page_outs == PGCS_DISK_IO_TARGET
+        return self.disk_swap_bytes_in == PGCS_DISK_IO_TARGET and \
+               self.disk_swap_bytes_out == PGCS_DISK_IO_TARGET
 
 
 # ── Ring Buffer ──────────────────────────────────────────────────────────────
@@ -274,8 +275,8 @@ class PGCSController:
             compressions_performed=self._compressions,
             bytes_compressed=self._bytes_compressed,
             compression_ratio_achieved=self._ring.compression_ratio,
-            disk_page_ins=delta_io[0],
-            disk_page_outs=delta_io[1],
+            disk_swap_bytes_in=delta_io[0],
+            disk_swap_bytes_out=delta_io[1],
             ring_buffer_utilisation=self._ring.utilisation,
         )
 
@@ -300,12 +301,15 @@ class PGCSController:
         self._compressions += 1
 
     def _read_disk_io(self) -> tuple:
-        """Read memory swap counters (page-ins/page-outs to disk).
-        Uses psutil.swap_memory() to measure actual virtual memory pressure,
-        not system-wide disk I/O from unrelated file system activity.
+        """Read memory swap counters as bytes (page-ins/page-outs to disk).
+        psutil.swap_memory().sin/sout return cumulative page counts since boot
+        on Linux. Multiplied by resource.getpagesize() to convert to bytes.
+        The passes_criterion check (== 0) is unit-agnostic; byte units ensure
+        correct display in telemetry and comparisons across platforms.
         """
         try:
             swap = psutil.swap_memory()
-            return (swap.sin, swap.sout)
+            page_size = resource.getpagesize()
+            return (swap.sin * page_size, swap.sout * page_size)
         except Exception:
             return (0, 0)
