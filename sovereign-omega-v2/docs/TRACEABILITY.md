@@ -476,3 +476,17 @@ Invariants enforced: INV-SHP-01 (ASSESS before LOCK), INV-SHP-02 (LOCK is single
 | `src/frame/dfa.ts` | T0 | 28 | `SHPTransitionMachine`, `transition()`, `certifyExecution()`, `FrameTransitionRecord`, `ExecutionCertificate` |
 
 Test count after Gate 28: **697 tests, 38 files**
+
+---
+
+## Layer Y — Topology Hash Engine (Gate 29)
+
+**Epistemic Tier: T0 (constitutional identity law)**
+
+Implements `ConstitutionalIdentity(T) = TopologyHash(T)`. A `GovernanceTopology` is the complete fingerprint of one governance epoch: SITR state + AOIE global state + constitutional verdict + ledger Merkle root + consensus QC hash + DFA certificate hash. `topologiesConverge(a, b)` checks byte-identical `topology_hash` values — the constitutional convergence test. `verifyTopology()` re-derives the hash from fields to detect tampering.
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `src/frame/topology.ts` | T0 | 29 | `GovernanceTopology`, `buildTopology()`, `computeTopologyHash()`, `topologiesConverge()`, `verifyTopology()` |
+
+Test count after Gate 29: **721 tests, 39 files**
