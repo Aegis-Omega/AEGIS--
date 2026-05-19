@@ -193,7 +193,7 @@ governance throughput, not implementation throughput."
 Threshold: < 1/1000 cycles per sequence unit → governance falling behind event production.
 
 **All provenance gaps are now closed. The system has full epistemic traceability.**
-Gate 8: **287 tests**, 22 test files, all passing.
+Gate 8: **330 tests**, 24 test files, all passing.
 
 ---
 
@@ -261,3 +261,85 @@ constitutional_stability_score / environmental_drift_rate / replay_identity_inte
 `createContract / expireContract / isContractActive` →
 **T1** → docs/CAPABILITY_GOVERNANCE.md §Plugin Capability Contracts
 → `is_least_privilege = true` is hardcoded at construction — no mechanism to override.
+
+---
+
+## Layer F — Agent Habitat (TypeScript)
+
+### src/agents/types.ts — 8 agent types + 7 interfaces
+`AgentType (8 literals) | AgentManifest | AgentMemoryEntry | CoordinationFrame |
+WorkflowType (7 literals) | WorkflowExecution | AgentCapabilityManifest` →
+**T1** → docs/AGENT_CONSTITUTION.md RULE-01..08
+→ "Agents are operational inhabitants of the governed workspace, not constitutional authorities."
+All 8 agent types derive from the AEGIS orchestration taxonomy in
+SOVEREIGN_OMEGA_INTEGRATED_SPEC_v2.md §Agent Habitat.
+
+### src/agents/registry/agent-registry.ts — admission and lifecycle
+`AgentRegistry.register() / retire() / getActive() / registeredCount()` →
+**T1** → docs/AGENT_CONSTITUTION.md RULE-01..03
+→ Admission requires: T0–T2 epistemic tier, `is_replay_safe=true`, correct schema version.
+Pattern: identical to ExtensionRegistry — immutable functional update, private constructor.
+
+### src/agents/coordination/AgentCoordinator.ts — deterministic sequential scheduler
+`scheduleAgent / nextAgent / recordFrame / verifyDeterminism / coordinationStability` →
+**T0** → docs/AGENT_COORDINATION_MODEL.md §Replay-Determinism Requirement
+→ "No nondeterministic parallel mutation. All coordination is sequential via monotonically
+   increasing sequence numbers." Frame sequence monotonicity enforced at constitutional tier.
+
+### src/agents/scheduler/scheduler.ts — pure deterministic schedule builder
+`buildSchedule / computeSchedulePressure` →
+**T1** → docs/AGENT_COORDINATION_MODEL.md §nextAgent Algorithm
+→ Sort by agent_type then agent_id ensures byte-identical output across N runs.
+Verified: determinism test in agents.test.ts runs 3× identical inputs.
+
+### src/agents/memory/agent-memory.ts — append-only agent memory
+`AgentMemory.store() / recall() / verifyReplayCompleteness()` →
+**T0** → docs/AGENT_CONSTITUTION.md RULE-04
+→ "Memory entries must arrive in strictly increasing sequence order."
+Pattern: identical to MutationLedger — monotonic sequence enforcement, append-only.
+
+### src/agents/telemetry/agent-telemetry.ts — 6 constitutional metrics
+`agent_coordination_stability | workflow_replay_integrity | workspace_memory_density |
+extension_ecology_entropy | mutation_chain_depth | orchestration_pressure_index` →
+**T2** → docs/IDE_RUNTIME_SPEC.md §6 Agent Telemetry Metrics — T2 Provenance
+→ All 6 metrics are T2 provisional, pending P3 empirical validation.
+Threshold values (16 plugins, 8 agents, 16 workflows, 100 density cap) are engineering estimates.
+
+### src/agents/workflows/types.ts + workflow-engine.ts — replay-safe workflow execution
+`BUILT_IN_WORKFLOWS (7 entries) | WorkflowEngine.startWorkflow() / recordFrame() /
+completeWorkflow() / abortWorkflow() / replayIntegrity()` →
+**T1** → docs/AGENT_CONSTITUTION.md RULE-02 + docs/AGENT_COORDINATION_MODEL.md
+→ All 7 built-in workflow types have `is_replay_safe: true`.
+`replayIntegrity()` = invariant_satisfied frames / total frames; 1.0 = constitutional integrity.
+
+---
+
+## Layer G — IDE Nervous System (TypeScript)
+
+### src/ide/types.ts — 10 panel state interfaces + IDERuntimeState
+`ReplayExplorerPanelState | WorkspaceTopologyPanelState | AgentHabitatPanelState |
+ConstitutionalInvariantDashboardState | TelemetryCockpitState | CapabilityGovernanceSurfaceState |
+ExtensionEcologyViewState | MutationTimelinePanelState | ReplayIntegrityPanelState |
+EnvironmentalDriftMonitorState | IDERuntimeState` →
+**T1** → docs/IDE_RUNTIME_SPEC.md §10 Panel Definitions
+→ "All panel states derive from replay state. No UI components in this layer."
+Every panel: `is_replay_reconstructable: true`, `schema_version: IDE_PANEL_SCHEMA_VERSION`.
+
+### src/ide/workspace/WorkspaceMemoryGraph.ts — append-only provenance graph
+`addNode / addEdge / nodesForAgent / replayLineage | 6 GraphNodeTypes` →
+**T1** → docs/WORKSPACE_MEMORY_MODEL.md
+→ "Replay archives function as evolutionary workspace memory."
+Immutable: every mutation returns a new graph instance. SHA-256 payload hashes bind
+graph nodes to the event substrate integrity chain.
+
+### src/ide/panels/panel-state.ts — pure panel state factories
+`buildInitialIDERuntimeState + 10 individual panel builders` →
+**T1** → docs/IDE_RUNTIME_SPEC.md §Orchestrator Lifecycle
+→ "Same OrchestratorUpdateParams always produces the same IDERuntimeState."
+All 10 factories are pure functions; no Date.now(), no external state.
+
+### src/ide/orchestration/orchestrator.ts — IDE nervous system coordinator
+`IDEOrchestrator.create() / update() / getState() / panelSequence()` →
+**T1** → docs/IDE_RUNTIME_SPEC.md §Constitutional Invariants for the IDE Layer
+→ "IDEOrchestrator.update() must not read from any external source — params only."
+`panelSequence()` is monotonically non-decreasing; verified by ide.test.ts.
