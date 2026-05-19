@@ -49,3 +49,6 @@ content-calendar/dist/
 content-calendar/.env
 hub/dist/
 hub/.env
+
+# Rust build artifacts
+crates/*/target/
