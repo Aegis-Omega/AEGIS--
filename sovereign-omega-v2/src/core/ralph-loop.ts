@@ -108,6 +108,11 @@ export class RalphLoop {
     return count
   }
 
+  /** Serialisable snapshot of all completed cycles — for persistence and replay. */
+  exportCycles(): readonly RalphCycle[] {
+    return [...this.cycles]
+  }
+
   getState(entropyAtEnd?: number): RalphLoopState {
     const base = {
       total_cycles: this._cycleNumber,

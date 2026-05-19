@@ -130,6 +130,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             ]
             body = ('\n'.join(lines) + '\n').encode()
             self.send_response(200)
+            self._cors_headers()
             self.send_header('Content-Type', 'text/plain; version=0.0.4')
             self.send_header('Content-Length', len(body))
             self.end_headers()
@@ -142,6 +143,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             snap = matrix.emit_vcg_telemetry()
             data = json.dumps(snap)
             self.send_response(200)
+            self._cors_headers()
             self.send_header('Content-Type', 'text/event-stream')
             self.send_header('Cache-Control', 'no-cache')
             self.send_header('X-Accel-Buffering', 'no')
@@ -178,9 +180,20 @@ class BridgeHandler(BaseHTTPRequestHandler):
         else:
             self._respond(404, {'error': 'NOT_FOUND'})
 
+    def _cors_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self._cors_headers()
+        self.end_headers()
+
     def _respond(self, code, data):
         body = json.dumps(data).encode()
         self.send_response(code)
+        self._cors_headers()
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', len(body))
         self.end_headers()

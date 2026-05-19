@@ -160,3 +160,11 @@ export function isCycleCoherent(
 ): boolean {
   return cycle.gate_result === 'PASS' && !hasT0Violation(invariantResult)
 }
+
+/** Human-readable summary for dashboard display. One line per violation, or "ALL CLEAR". */
+export function formatReport(result: InvariantCheckResult): string {
+  if (result.passed) return `ALL CLEAR — ${INVARIANTS.length} invariants checked at seq ${result.checked_at_sequence}`
+  return result.violations
+    .map(v => `[${v.severity}] ${v.invariant_id}: ${v.description} (got ${String(v.observed_value)}, want ${v.expected})`)
+    .join('\n')
+}

@@ -54,27 +54,37 @@ graph TD
 TypeScript Runtime (src/)          Python Core Matrix (python/)
 ├── core/
 │   ├── canonicalize.ts  Gate 1    ├── pgcs.py   — swap I/O criterion
-│   ├── fixedpoint.ts    Gate 6    ├── tgcs.py   — variance tracking
-│   ├── semantics.ts     Ω⁵.5     ├── afse.py   — R² estimation
-│   └── wasm-interface.ts Ω⁵.7    ├── core_matrix.py — M1/M2/M3
-├── event/                          └── bridge.py  — HTTP port 7890
-│   ├── store.ts         Gate 2          GET /telemetry → cockpit
-│   ├── workflow.ts      E5 schemas      POST /event
-│   └── workflow-recorder.ts Ω⁵.8       POST /gate_signal
-├── gate/                               GET /health
-│   ├── hoeffding.ts     Gate 6
+│   ├── types.ts         Ω+H       ├── tgcs_afse.py — variance + R²
+│   ├── ralph-loop.ts    Ω+H       ├── epoch_failsafe.py — crash guard
+│   ├── invariant-checker.ts Ω+H  ├── gradient_anchor.py — β=0.9 EMA
+│   └── fixedpoint.ts    Gate 6    ├── hardware_config.py — entropy math
+├── event/                          ├── core_matrix.py — M1/M2/M3
+│   ├── store.ts         Gate 2    └── bridge.py  — HTTP port 7890
+│   └── uuid.ts          Gate 2          GET /telemetry · /telemetry/stream
+├── gate/                               POST /event · /gate_signal
+│   ├── hoeffding.ts     Gate 6          GET /health · /metrics · /snapshot
 │   └── risk.ts          Gate 6
 ├── calibration/vcg.ts   Gate 5
 ├── projection/reducer.ts Gate 4
-├── pipeline/index.ts    Gate 7
-├── registry/ (22 nodes) Ω⁵
+├── pipeline/
+│   ├── index.ts         Gate 7
+│   └── backpressure.ts  Ω+H
 └── runtime/             Gate 8
 ```
 
-### Semantic Particle Registry (src/registry/)
+### Holonic Extension Modules (Ω+H — added in 100-cycle evolution)
 
-22 classified T0/T1 nodes, each with: epistemic tier, gate coverage, proof coverage,
-ancestry edges, holonic scale, mutation authority. No T4/T5 entries permitted.
+| Module | Holonic Scale | Invariants Added |
+|--------|--------------|-----------------|
+| `src/core/types.ts` | FIELD | HolonMetadata, HolonicScale, RalphCycle types |
+| `src/core/ralph-loop.ts` | ORGANISM | Ralph cycle ledger, convergenceDepth() |
+| `src/core/invariant-checker.ts` | ORGANISM | INV-01..INV-08, formatReport() |
+| `src/pipeline/backpressure.ts` | MOLECULAR | HWM=1000/LWM=100, Little's Law |
+| `python/hardware_config.py` | SUBATOMIC | Shannon entropy, KL divergence, MI |
+| `python/epoch_failsafe.py` | CELLULAR | export/import checkpoint, entropy metrics |
+| `python/tgcs_afse.py` | CELLULAR | throughput entropy, holonic_scaling_score |
+
+Gate 8 validation: **202 tests, 20 test files, all passing.**
 
 ## Cockpit Telemetry Flow
 
