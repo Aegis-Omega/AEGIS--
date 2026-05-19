@@ -77,18 +77,34 @@ Wilson score interval: Agresti & Coull (1998) (external).
 **T2** → RALPH_LOOP_OMEGA_EXECUTION_SYNTHESIS.md (`1TTzre0Oy1BEZ_g5lm926XJ2UiFtjfJsr`)
 → "Review → Analyze → Link → Patch → Harmonize as the iterative governance protocol."
 
-### src/core/invariant-checker.ts — 8 runtime invariants
+### src/core/invariant-checker.ts — 10 runtime invariants
 `INV-01..INV-08` →
 **T0** → sovereign-omega-v2/CLAUDE.md (Critical Invariants section) +
 SOVEREIGN_OMEGA_INTEGRATED_SPEC_v2.md (`1cfFY59zAczNPCL7mvr_TxFo1yR7xfDNh`)
 → §6: "Invariant set for Layer A TypeScript runtime."
 
-### src/core/types.ts — HolonMetadata + HolonicScale
-`HolonicScale / EpistemicTier / HolonMetadata / RalphLoopState` →
+`INV-09 (AFSE R² ≥ 0.98 when pgcs_passes)` →
+**T1** → stress_test.py P2 validation (R²=0.9976, 1000 crash loops) +
+tgcs_afse.py `AFSE_R2_THRESHOLD = 0.98` (mechanically enforced constant)
+→ "Scaling validity: AFSE R² below threshold indicates consumer→distributed generalisation failure."
+
+`INV-10 (TGCS σ² = 0)` →
+**T1** → stress_test.py P2 validation (σ²=0 across all runs) +
+tgcs_afse.py `TGCS_VARIANCE_TARGET = 0` (mechanically enforced constant)
+→ "Thermal stability: non-zero variance indicates throttling-induced timing inconsistency."
+
+### src/core/types.ts — HolonMetadata + HolonicScale + CycleArchive
+`HolonicScale / EpistemicTier / HolonMetadata / RalphLoopState / CycleArchive` →
 **T2** → Preserving Criticality in Holonic AI (`1LJ1KoT195nJDBLGyR9VRzrnVWlFCxgO8`) +
 A Holon-Architected Compiler (`1lu31YCW-TW2SVr3IyGeQZBTB1YXbnCG5`)
 → "Holon hierarchy from Koestler; scale taxonomy from AEGIS field architecture."
 → ChatGPT adversarial audit (CONFIDENCE 0.95): "canonical holonic phrase" applied.
+
+`CycleArchive / CYCLE_ARCHIVE_SCHEMA_VERSION = '1.0.0'` →
+**T1** → RALPH_LOOP_OMEGA_EXECUTION_SYNTHESIS.md (`1TTzre0Oy1BEZ_g5lm926XJ2UiFtjfJsr`)
+→ "Replay persistence requires explicit schema versioning to enable regression archaeology."
+ChatGPT adversarial audit (CONFIDENCE 0.96): "replay persistence introduces schema migration
+complexity that should become a first-class constitutional concern early."
 
 ### src/event/store.ts — three-phase IDB append (F-03 fix)
 `Phase 1 (readonly tx) → Phase 2 (WebCrypto) → Phase 3 (readwrite tx)` →
@@ -145,4 +161,13 @@ CLAUDE.md is committed and hash-verified alongside the implementation; it consti
 sufficient T0 provenance for mechanically-derived invariants.
 Drive mirror: CLAUDE.md (Drive copy) `1gnM-TwrOHLUyon2sdBJpImAcZtV1pxzC`.
 
+### src/core/ralph-loop.ts — governanceThroughput()
+`completedCycles / sequenceSpan` →
+**T2** → Engineering hypothesis grounded in event-sourcing literature.
+Uses sequence numbers, not wall-clock time — preserves determinism invariant.
+ChatGPT adversarial audit (CONFIDENCE 0.96): "next scalability bottleneck is likely
+governance throughput, not implementation throughput."
+Threshold: < 1/1000 cycles per sequence unit → governance falling behind event production.
+
 **All provenance gaps are now closed. The system has full epistemic traceability.**
+Gate 8: **215 tests**, 20 test files, all passing.

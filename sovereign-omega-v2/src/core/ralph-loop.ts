@@ -13,8 +13,10 @@ import {
   HolonicScale,
   EpistemicTier,
   RalphPhase,
+  CYCLE_ARCHIVE_SCHEMA_VERSION,
   type RalphCycle,
   type RalphLoopState,
+  type CycleArchive,
   type UUIDv7,
   type SequenceNumber,
 } from './types.js'
@@ -108,9 +110,25 @@ export class RalphLoop {
     return count
   }
 
-  /** Serialisable snapshot of all completed cycles — for persistence and replay. */
-  exportCycles(): readonly RalphCycle[] {
-    return [...this.cycles]
+  /**
+   * Versioned archive for persistence and replay.
+   * Deserializers must check schema_version === CYCLE_ARCHIVE_SCHEMA_VERSION
+   * before trusting the payload. Schema changes require a version bump.
+   */
+  exportArchive(currentSequence: number, entropyAtEnd?: number): CycleArchive {
+    const base: CycleArchive = {
+      schema_version: CYCLE_ARCHIVE_SCHEMA_VERSION,
+      archived_at_sequence: currentSequence,
+      cycles: [...this.cycles],
+      total_cycles: this._cycleNumber,
+      convergence_depth: this.convergenceDepth(),
+      entropy_at_start: this.entropyAtStart,
+    }
+    return deepFreeze<CycleArchive>(
+      entropyAtEnd !== undefined
+        ? { ...base, entropy_at_end: entropyAtEnd }
+        : base
+    )
   }
 
   getState(entropyAtEnd?: number): RalphLoopState {
@@ -137,4 +155,21 @@ export function estimateSystemEntropy(gateAcceptanceRate: number): number {
   const p = Math.max(0, Math.min(1, gateAcceptanceRate))
   if (p === 0 || p === 1) return 0
   return -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p))
+}
+
+/**
+ * Governance throughput: cycles completed per sequence-span unit.
+ *
+ * Uses event sequence numbers, not wall-clock time, to preserve determinism.
+ * A span of 0 returns 0 (no throughput measurable without event flow).
+ * Interpretation: higher = faster governance cadence relative to event volume.
+ * Bottleneck threshold: if cyclesPerSequenceUnit drops below 1/1000, governance
+ * is falling behind event production — backpressure should be applied upstream.
+ */
+export function governanceThroughput(
+  completedCycles: number,
+  sequenceSpan: number,
+): number {
+  if (sequenceSpan <= 0) return 0
+  return completedCycles / sequenceSpan
 }

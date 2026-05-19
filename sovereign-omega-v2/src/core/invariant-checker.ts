@@ -35,6 +35,9 @@ export interface RuntimeSnapshot {
   sequence: number
   gate_acceptance_rate?: number
   gate_sealed?: boolean
+  // Layer B epistemic metrics — coupled to INV-09/INV-10 when present
+  afse_r2?: number
+  tgcs_variance?: number
 }
 
 const INVARIANTS = [
@@ -119,6 +122,32 @@ const INVARIANTS = [
     check: (s: RuntimeSnapshot) => s.sequence >= 0,
     expected: 'sequence ≥ 0',
     observed: (s: RuntimeSnapshot) => s.sequence,
+  },
+  {
+    id: 'INV-09',
+    // AFSE R² ≥ 0.98 is only enforceable when PGCS passes (valid I/O baseline).
+    // When afse_r2 is absent, invariant is vacuously satisfied (metric not yet wired).
+    description: 'AFSE R² must be ≥ 0.98 when PGCS passes (scaling validity criterion)',
+    severity: 'T1_ALERT' as const,
+    scale: HolonicScale.CELLULAR,
+    tier: EpistemicTier.T1,
+    check: (s: RuntimeSnapshot) =>
+      !s.pgcs_passes || s.afse_r2 === undefined || s.afse_r2 >= 0.98,
+    expected: 'afse_r2 ≥ 0.98 (when pgcs_passes)',
+    observed: (s: RuntimeSnapshot) => s.afse_r2,
+  },
+  {
+    id: 'INV-10',
+    // TGCS σ² = 0 is the run-to-run variance target. When non-zero, thermal
+    // throttling is affecting timing consistency. Vacuously satisfied when absent.
+    description: 'TGCS run-to-run variance must be zero (thermal stability criterion)',
+    severity: 'T1_ALERT' as const,
+    scale: HolonicScale.CELLULAR,
+    tier: EpistemicTier.T1,
+    check: (s: RuntimeSnapshot) =>
+      s.tgcs_variance === undefined || s.tgcs_variance === 0,
+    expected: 'tgcs_variance = 0',
+    observed: (s: RuntimeSnapshot) => s.tgcs_variance,
   },
 ] as const
 

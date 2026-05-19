@@ -396,3 +396,20 @@ export interface RalphLoopState {
   readonly entropy_at_end?: number    // Shannon entropy after — should decrease
   readonly convergence_depth: number  // consecutive cycles with zero findings
 }
+
+// ─── Cycle Archive (replay persistence) ───────────────────────
+// Schema version is a first-class field — schema evolution must
+// bump CYCLE_ARCHIVE_SCHEMA_VERSION before changing RalphCycle shape.
+// Deserializers must reject archives with unknown schema versions.
+
+export const CYCLE_ARCHIVE_SCHEMA_VERSION = '1.0.0' as const
+
+export interface CycleArchive {
+  readonly schema_version: typeof CYCLE_ARCHIVE_SCHEMA_VERSION
+  readonly archived_at_sequence: number   // sequence number at export time
+  readonly cycles: readonly RalphCycle[]
+  readonly total_cycles: number
+  readonly convergence_depth: number
+  readonly entropy_at_start: number
+  readonly entropy_at_end?: number
+}

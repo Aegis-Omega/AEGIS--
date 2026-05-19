@@ -1,7 +1,7 @@
-// Ralph Loop state machine unit tests — Cycles 81–90
+// Ralph Loop state machine unit tests — Cycles 81–90, extended Cycles 91–100
 import { describe, it, expect } from 'vitest'
-import { RalphLoop, estimateSystemEntropy } from '../../src/core/ralph-loop.js'
-import { HolonicScale, RalphPhase, EpistemicTier, type RalphCycle, type SequenceNumber } from '../../src/core/types.js'
+import { RalphLoop, estimateSystemEntropy, governanceThroughput } from '../../src/core/ralph-loop.js'
+import { HolonicScale, RalphPhase, EpistemicTier, CYCLE_ARCHIVE_SCHEMA_VERSION, type RalphCycle, type SequenceNumber } from '../../src/core/types.js'
 import {
   checkInvariants,
   hasT0Violation,
@@ -73,6 +73,27 @@ describe('RalphLoop', () => {
     expect(state.entropy_at_start).toBe(1.0)
     expect(state.entropy_at_end).toBe(0.1)
   })
+
+  it('exportArchive produces versioned CycleArchive', () => {
+    const loop = new RalphLoop(HolonicScale.CELLULAR, 0.9)
+    loop.beginCycle(SEQ).harmonize('PASS')
+    loop.beginCycle(SEQ).harmonize('PASS')
+    const archive = loop.exportArchive(999, 0.3)
+    expect(archive.schema_version).toBe(CYCLE_ARCHIVE_SCHEMA_VERSION)
+    expect(archive.archived_at_sequence).toBe(999)
+    expect(archive.cycles).toHaveLength(2)
+    expect(archive.total_cycles).toBe(2)
+    expect(archive.convergence_depth).toBe(2)
+    expect(archive.entropy_at_start).toBe(0.9)
+    expect(archive.entropy_at_end).toBe(0.3)
+  })
+
+  it('exportArchive omits entropy_at_end when not provided', () => {
+    const loop = new RalphLoop(HolonicScale.ATOMIC, 0.5)
+    loop.beginCycle(SEQ).harmonize('PASS')
+    const archive = loop.exportArchive(100)
+    expect('entropy_at_end' in archive).toBe(false)
+  })
 })
 
 // ─── estimateSystemEntropy ────────────────────────────────────────────────────
@@ -98,6 +119,28 @@ describe('estimateSystemEntropy', () => {
   it('clamps out-of-range inputs', () => {
     expect(estimateSystemEntropy(-1)).toBe(0)
     expect(estimateSystemEntropy(2)).toBe(0)
+  })
+})
+
+// ─── governanceThroughput ─────────────────────────────────────────────────────
+
+describe('governanceThroughput', () => {
+  it('returns cycles-per-sequence-unit', () => {
+    // 10 cycles over 10000 sequence events = 0.001 cycles/seq
+    expect(governanceThroughput(10, 10_000)).toBeCloseTo(0.001, 6)
+  })
+
+  it('returns 0 for zero span', () => {
+    expect(governanceThroughput(5, 0)).toBe(0)
+  })
+
+  it('returns 0 for negative span', () => {
+    expect(governanceThroughput(3, -1)).toBe(0)
+  })
+
+  it('increases linearly with cycle count', () => {
+    expect(governanceThroughput(100, 1000)).toBeCloseTo(0.1, 6)
+    expect(governanceThroughput(200, 1000)).toBeCloseTo(0.2, 6)
   })
 })
 
@@ -149,6 +192,43 @@ describe('checkInvariants', () => {
   it('fails INV-05 when gate_sealed = false', () => {
     const result = checkInvariants({ ...nominal, gate_sealed: false })
     expect(result.violations.some(v => v.invariant_id === 'INV-05')).toBe(true)
+  })
+
+  it('INV-09: passes when afse_r2 absent (vacuously satisfied)', () => {
+    const result = checkInvariants(nominal)
+    expect(result.violations.some(v => v.invariant_id === 'INV-09')).toBe(false)
+  })
+
+  it('INV-09: passes when afse_r2 ≥ 0.98', () => {
+    const result = checkInvariants({ ...nominal, afse_r2: 0.9976 })
+    expect(result.violations.some(v => v.invariant_id === 'INV-09')).toBe(false)
+  })
+
+  it('INV-09: fails when pgcs_passes and afse_r2 < 0.98', () => {
+    const result = checkInvariants({ ...nominal, pgcs_passes: true, afse_r2: 0.95 })
+    expect(result.violations.some(v => v.invariant_id === 'INV-09')).toBe(true)
+    expect(hasT0Violation(result)).toBe(false) // T1_ALERT, not T0
+  })
+
+  it('INV-09: passes when afse_r2 < 0.98 but pgcs does not pass', () => {
+    const result = checkInvariants({ ...nominal, pgcs_passes: false, afse_r2: 0.5 })
+    expect(result.violations.some(v => v.invariant_id === 'INV-09')).toBe(false)
+  })
+
+  it('INV-10: passes when tgcs_variance absent (vacuously satisfied)', () => {
+    const result = checkInvariants(nominal)
+    expect(result.violations.some(v => v.invariant_id === 'INV-10')).toBe(false)
+  })
+
+  it('INV-10: passes when tgcs_variance = 0', () => {
+    const result = checkInvariants({ ...nominal, tgcs_variance: 0 })
+    expect(result.violations.some(v => v.invariant_id === 'INV-10')).toBe(false)
+  })
+
+  it('INV-10: fails when tgcs_variance > 0 (thermal instability)', () => {
+    const result = checkInvariants({ ...nominal, tgcs_variance: 0.0001 })
+    expect(result.violations.some(v => v.invariant_id === 'INV-10')).toBe(true)
+    expect(hasT0Violation(result)).toBe(false) // T1_ALERT, not T0
   })
 
   it('isCycleCoherent requires PASS gate AND no T0 violations', () => {
