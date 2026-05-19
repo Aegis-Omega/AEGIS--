@@ -504,3 +504,17 @@ Test count after Gate 29: **721 tests, 39 files**
 | `src/frame/lineage.ts` | T0 | 30 | `TopologyLineage`, `buildLineageEntry()`, `certifyLineage()`, `computeLineageHash()`, `LineageCertificate` |
 
 Test count after Gate 30: **742 tests, 40 files**
+
+---
+
+## Layer AA — Divergence Classification Engine (Gate 31)
+
+**Epistemic Tier: T0 (constitutional freeze law)**
+
+Implements the Divergence Laws (D0–D4) and the Divergence Freeze Law: `TopologyHash_A ≠ TopologyHash_B → mutation authority suspended` when divergence class ≥ D2. `compareTopologies()` classifies every topology mismatch by severity — D0 (sequence drift), D1 (serializer mismatch), D2 (ledger/DFA mismatch), D3 (consensus inconsistency), D4 (constitutional invalidity via tampered hash). `mutationAuthorityActive()` enforces the freeze law over a set of reports.
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `src/frame/divergence.ts` | T0 | 31 | `compareTopologies()`, `mutationAuthorityActive()`, `DivergenceReport`, `DivergenceClass` D0–D4 |
+
+Test count after Gate 31: **763 tests, 41 files**
