@@ -518,3 +518,32 @@ Implements the Divergence Laws (D0–D4) and the Divergence Freeze Law: `Topolog
 | `src/frame/divergence.ts` | T0 | 31 | `compareTopologies()`, `mutationAuthorityActive()`, `DivergenceReport`, `DivergenceClass` D0–D4 |
 
 Test count after Gate 31: **763 tests, 41 files**
+
+---
+
+## Layer AB — Constitutional Capsule VM (Gate 32)
+
+**Epistemic Tier: T0 (grammar) / T2 (execution)**
+
+The only admissible extensibility boundary. `buildManifest()` produces a content-addressed `CapsuleManifest` (capsule_id = hashValue of all fields). `runCapsule()` enforces three constitutional checks in order: (1) capability grammar — is this operation declared in the manifest? (2) entropy evaluation — does the canonical payload fit the budget? (3) event commit — produce `event_hash` + lineage-linked `attestation_hash`. Outcomes: `COMMITTED` / `REJECTED` / `ROLLED_BACK`. No hidden state; all outputs are pure function values.
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `src/capsule/types.ts` | T0 | 32 | `CapsuleManifest`, `CapsuleCapability`, `CapsuleResult`, `CapsuleError` |
+| `src/capsule/kernel.ts` | T2 | 32 | `buildManifest()`, `capabilityGranted()`, `runCapsule()` |
+
+Test count after Gate 32: **804 tests, 43 files** (combined with Gate 33 below)
+
+---
+
+## Layer AC — Ontology Reduction Enforcement (Gate 33)
+
+**Epistemic Tier: T0 (machine-enforced semantic admissibility)**
+
+Closes the abstraction expansion surface: unmapped abstractions are constitutionally invalid. Every new abstraction must declare all four mappings — `primitive_mapping` (T0 primitive), `replay_mapping` (SHP phase), `topology_mapping` (GovernanceTopology field), `epistemic_tier` (T0–T3 only). T4/T5 are constitutionally blocked at `admitAbstraction()`. `ReductionRegistry` is append-only; `register()` enforces sequence monotonicity. A REJECTED result returns the registry unchanged.
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `src/constitutional/reduction.ts` | T0 | 33 | `OntologyRecord`, `ReductionRegistry`, `buildOntologyRecord()`, `admitAbstraction()` |
+
+Test count after Gate 33: **804 tests, 43 files**
