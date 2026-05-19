@@ -136,6 +136,45 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
 
+        elif self.path == '/telemetry/stream':
+            # Cycles 31–35: Server-Sent Events stream for cockpit real-time dashboard.
+            # Emits a telemetry snapshot every 5 seconds. Compatible with EventSource API.
+            snap = matrix.emit_vcg_telemetry()
+            data = json.dumps(snap)
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/event-stream')
+            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('X-Accel-Buffering', 'no')
+            self.end_headers()
+            try:
+                import time as _time
+                while True:
+                    snap = matrix.emit_vcg_telemetry()
+                    gate_t = gate.telemetry()
+                    payload = {**snap, 'gate': gate_t}
+                    line = f'data: {json.dumps(payload)}\n\n'.encode()
+                    self.wfile.write(line)
+                    self.wfile.flush()
+                    _time.sleep(5)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            return
+
+        elif self.path == '/snapshot':
+            # Cycles 36–40: Epoch state snapshot — returns current M1 representative sample.
+            snap_bytes = matrix.get_epoch_snapshot()
+            if snap_bytes is None:
+                self._respond(503, {'error': 'SNAPSHOT_UNAVAILABLE'})
+                return
+            vcg = matrix.emit_vcg_telemetry()
+            self._respond(200, {
+                'snapshot_hex': snap_bytes.hex(),
+                'snapshot_len': len(snap_bytes),
+                'sequence': vcg['sequence'],
+                'epoch': vcg['epoch'],
+                'failsafe_state': vcg['failsafe_state'],
+            })
+
         else:
             self._respond(404, {'error': 'NOT_FOUND'})
 

@@ -194,3 +194,56 @@ class AFSEController:
             return 0.0
         variance = sum((yi - y_mean) ** 2 for yi in y) / n
         return max(0.0, min(1.0, 1.0 - variance / (y_mean ** 2)))
+
+    # ── Cycles 71–80: Information-theoretic AFSE metrics ─────────────────────
+
+    def throughput_entropy(self) -> float:
+        """
+        Shannon entropy (nats) of the throughput distribution.
+        Computed by bucketing local samples into 10 equal-width bins.
+        High entropy = unpredictable throughput (thermal or scheduling noise).
+        Zero entropy = completely uniform throughput (ideal).
+        """
+        y = self._local_samples
+        if len(y) < 2:
+            return 0.0
+        import math
+        lo, hi = min(y), max(y)
+        if hi == lo:
+            return 0.0
+        bins = 10
+        width = (hi - lo) / bins
+        counts = [0] * bins
+        for v in y:
+            idx = min(bins - 1, int((v - lo) / width))
+            counts[idx] += 1
+        total = len(y)
+        entropy = 0.0
+        for c in counts:
+            if c > 0:
+                p = c / total
+                entropy -= p * math.log(p)
+        return entropy
+
+    def effective_bandwidth(self) -> float:
+        """
+        Effective bandwidth = mean throughput * (1 - normalized_entropy).
+        Combines throughput and stability: high throughput + high entropy = low effective BW.
+        """
+        y = self._local_samples
+        if not y:
+            return 0.0
+        mean_tp = sum(y) / len(y)
+        max_entropy = __import__('math').log(10)  # log(num_bins) = max entropy
+        norm_entropy = min(1.0, self.throughput_entropy() / max_entropy) if max_entropy > 0 else 0.0
+        return mean_tp * (1.0 - norm_entropy)
+
+    def holonic_scaling_score(self) -> float:
+        """
+        Holonic scaling score: R² * effective_bandwidth / DISTRIBUTED_BASELINE_EPS.
+        Integrates stability (R²), information content (entropy), and raw speed.
+        Target: > 0.80 for production deployment.
+        """
+        r2 = self._compute_r_squared()
+        eb = self.effective_bandwidth()
+        return r2 * eb / self.DISTRIBUTED_BASELINE_EPS

@@ -322,3 +322,71 @@ export interface AmbiguityFlag {
   readonly introduced_at_sequence: SequenceNumber
   readonly resolved: boolean
 }
+
+// ─── Holonic Hierarchy Types (Cycles 21–25) ────────────────
+// Each component in AEGIS is simultaneously a whole and a part.
+// HolonicScale classifies what level of the architecture a component operates at.
+
+export enum HolonicScale {
+  SUBATOMIC = 'subatomic',   // byte ordering, hash invariants, fixed-point precision
+  ATOMIC    = 'atomic',      // individual files, functions, proof units
+  MOLECULAR = 'molecular',   // modules (core/, event/, gate/, calibration/)
+  CELLULAR  = 'cellular',    // subsystems (E3 substrate, VCG, Python Core Matrix)
+  ORGANISM  = 'organism',    // full sovereign-omega-v2 runtime
+  FIELD     = 'field',       // Drive corpus + Claude + ChatGPT + Qwen + operators
+}
+
+export enum EpistemicTier {
+  T0 = 'T0',  // mechanically proven
+  T1 = 'T1',  // empirically validated
+  T2 = 'T2',  // engineering hypothesis
+  T3 = 'T3',  // research conjecture
+  T4 = 'T4',  // speculative systems vision
+  T5 = 'T5',  // creative/worldbuilding
+}
+
+export interface HolonMetadata {
+  readonly holon_id: string
+  readonly scale: HolonicScale
+  readonly tier: EpistemicTier
+  readonly part_of: readonly string[]     // parent holon IDs
+  readonly composed_of: readonly string[] // child holon IDs
+  readonly invariants: readonly string[]  // human-readable invariant descriptions
+  readonly interaction_surface: readonly string[] // exported API / event types
+}
+
+// ─── Ralph Loop State Machine (Cycles 26–30) ──────────────
+// The Ralph Loop (Review → Analyze → Link → Patch → Harmonize)
+// is the primary iterative improvement protocol for AEGIS.
+// Each cycle operates at one holonic scale and elevates it.
+
+export enum RalphPhase {
+  REVIEW    = 'REVIEW',    // R: read all relevant state at the target scale
+  ANALYZE   = 'ANALYZE',   // A: identify gaps, violations, and opportunities
+  LINK      = 'LINK',      // L: establish couplings between holons that need them
+  PATCH     = 'PATCH',     // P: apply the minimal correct transformation
+  HARMONIZE = 'HARMONIZE', // H: verify the result is coherent with all parent holons
+}
+
+export interface RalphCycle {
+  readonly cycle_id: UUIDv7
+  readonly cycle_number: number
+  readonly target_scale: HolonicScale
+  readonly phase: RalphPhase
+  readonly findings: readonly string[]       // what the Review phase found
+  readonly analysis_notes: readonly string[] // what the Analyze phase concluded
+  readonly links_established: readonly string[] // what the Link phase coupled
+  readonly patches_applied: readonly string[]   // what the Patch phase changed
+  readonly harmonization_result: 'COHERENT' | 'INCOHERENT' | 'PENDING'
+  readonly gate_result?: 'PASS' | 'FAIL'
+  readonly sequence: SequenceNumber
+}
+
+export interface RalphLoopState {
+  readonly total_cycles: number
+  readonly completed_cycles: readonly RalphCycle[]
+  readonly current_cycle?: Omit<RalphCycle, 'harmonization_result' | 'gate_result'>
+  readonly entropy_at_start: number   // Shannon entropy of system state before this loop
+  readonly entropy_at_end?: number    // Shannon entropy after — should decrease
+  readonly convergence_depth: number  // consecutive cycles with zero findings
+}

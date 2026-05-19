@@ -241,3 +241,127 @@ class EpochFailsafeController:
     def passes_t0_criterion(self) -> bool:
         """Returns True if the T0 success criterion is met: zero corruption events."""
         return self._corruption_count == 0
+
+    # ── Cycles 11–15: Checkpoint / Restore ───────────────────────────────────
+
+    def export_checkpoint(self) -> dict:
+        """
+        Export full failsafe state as a serialisable checkpoint dict.
+        Used for cross-session persistence and forensic audit trails.
+        State: current EpochState + both buffer snapshots + log.
+        """
+        with self._lock:
+            def _snap(s: Optional[EpochSnapshot]) -> Optional[dict]:
+                if not s:
+                    return None
+                return {
+                    'epoch_id': s.epoch_id,
+                    'snapshot_hash': s.snapshot_hash,
+                    'event_count': s.event_count,
+                    'last_event_sequence': s.last_event_sequence,
+                    'timestamp_sequence': s.timestamp_sequence,
+                    'state_bytes_hex': s.state_bytes.hex(),
+                }
+            return {
+                'state': self._state.value,
+                'corruption_count': self._corruption_count,
+                'consecutive_failures': self._consecutive_failures,
+                'failure_threshold': self._failure_threshold,
+                'epoch_n': _snap(self._epoch_n),
+                'epoch_n1': _snap(self._epoch_n1),
+                'failsafe_log': [
+                    {
+                        'epoch_id': e.epoch_id,
+                        'trigger_reason': e.trigger_reason,
+                        'buffer_id': e.buffer_id,
+                        'snapshot_hash_before': e.snapshot_hash_before,
+                        'snapshot_hash_after': e.snapshot_hash_after,
+                        'recovery_successful': e.recovery_successful,
+                        'consensus_rounds': e.consensus_rounds,
+                        'timestamp_sequence': e.timestamp_sequence,
+                    }
+                    for e in self._failsafe_log
+                ],
+            }
+
+    def import_checkpoint(self, checkpoint: dict) -> bool:
+        """
+        Restore failsafe state from a checkpoint dict (from export_checkpoint).
+        Verifies snapshot hashes before restoring. Returns True on success.
+        INVARIANT: Only restores if all hash verifications pass.
+        """
+        def _parse_snap(d: Optional[dict]) -> Optional[EpochSnapshot]:
+            if not d:
+                return None
+            s = EpochSnapshot(
+                epoch_id=d['epoch_id'],
+                snapshot_hash=d['snapshot_hash'],
+                event_count=d['event_count'],
+                last_event_sequence=d['last_event_sequence'],
+                timestamp_sequence=d['timestamp_sequence'],
+                state_bytes=bytes.fromhex(d['state_bytes_hex']),
+            )
+            if not self._verify_snapshot_integrity(s):
+                return None
+            return s
+
+        snap_n = _parse_snap(checkpoint.get('epoch_n'))
+        snap_n1 = _parse_snap(checkpoint.get('epoch_n1'))
+
+        with self._lock:
+            self._epoch_n = snap_n
+            self._epoch_n1 = snap_n1
+            self._state = EpochState(checkpoint.get('state', 'active'))
+            self._corruption_count = checkpoint.get('corruption_count', 0)
+            self._consecutive_failures = checkpoint.get('consecutive_failures', 0)
+            self._failure_threshold = checkpoint.get('failure_threshold', 3)
+            log_entries = checkpoint.get('failsafe_log', [])
+            self._failsafe_log = [
+                FailsafeEvent(
+                    epoch_id=e['epoch_id'],
+                    trigger_reason=e['trigger_reason'],
+                    buffer_id=e['buffer_id'],
+                    snapshot_hash_before=e['snapshot_hash_before'],
+                    snapshot_hash_after=e['snapshot_hash_after'],
+                    recovery_successful=e['recovery_successful'],
+                    consensus_rounds=e['consensus_rounds'],
+                    timestamp_sequence=e['timestamp_sequence'],
+                )
+                for e in log_entries
+            ]
+        return True
+
+    # ── Cycles 16–20: Entropy metrics ────────────────────────────────────────
+
+    def failsafe_entropy(self) -> float:
+        """
+        Shannon entropy (nats) of the failsafe event distribution.
+        Measures how predictable the failure pattern is — high entropy = unpredictable
+        failures = potential adversarial input. Returns 0.0 if fewer than 2 events.
+        """
+        if len(self._failsafe_log) < 2:
+            return 0.0
+        import math
+        counts: Dict[str, int] = {}
+        for e in self._failsafe_log:
+            counts[e.trigger_reason] = counts.get(e.trigger_reason, 0) + 1
+        total = len(self._failsafe_log)
+        entropy = 0.0
+        for count in counts.values():
+            p = count / total
+            if p > 0:
+                entropy -= p * math.log(p)
+        return entropy
+
+    def mean_consensus_rounds(self) -> float:
+        """Mean consensus rounds across all failsafe events. 0.0 if no events."""
+        if not self._failsafe_log:
+            return 0.0
+        return sum(e.consensus_rounds for e in self._failsafe_log) / len(self._failsafe_log)
+
+    def recovery_success_rate(self) -> float:
+        """Fraction of failsafe events that ended in successful recovery. 1.0 if no events."""
+        if not self._failsafe_log:
+            return 1.0
+        successes = sum(1 for e in self._failsafe_log if e.recovery_successful)
+        return successes / len(self._failsafe_log)

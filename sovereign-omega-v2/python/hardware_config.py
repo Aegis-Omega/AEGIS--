@@ -199,3 +199,127 @@ def bit_interleave(a: int, b: int) -> int:
         result |= ((a >> i) & 1) << (2 * i)
         result |= ((b >> i) & 1) << (2 * i + 1)
     return result
+
+
+# ── Information-Theoretic Primitives (Cycles 1–10) ──────────────────────────
+# Shannon entropy and related measures are the mathematical substrate for
+# self-aware calibration. All functions use Q16.16 fixed-point arithmetic.
+# Inputs are probability vectors (list of Q16.16 values summing to INT_SCALE).
+
+import math as _math
+
+def _log2_fixed(x: int) -> int:
+    """log2(x) in Q16.16 where x is a Q16.16 probability. Returns Q16.16."""
+    if x <= 0:
+        return -INT_MAX
+    # Convert to float, compute log2, convert back to Q16.16
+    # This is the only permissible float use — information measures inherently
+    # require logarithms, which have no integer closed form.
+    flt = x / INT_SCALE
+    return int(_math.log2(flt) * INT_SCALE)
+
+
+def shannon_entropy_fixed(probs: list) -> int:
+    """
+    Shannon entropy H(P) = -Σ p_i * log2(p_i). Returns Q16.16 bits.
+    probs: list of Q16.16 values (must sum to INT_SCALE).
+    H=0 = certain, H=INT_SCALE*log2(n) = uniform over n.
+    """
+    total = 0
+    for p in probs:
+        if p <= 0:
+            continue
+        log2_p = _log2_fixed(p)
+        # H += -p * log2(p), both in Q16.16; result in Q16.32 → shift back
+        total += -fixed_mul(p, log2_p)
+    return total
+
+
+def kl_divergence_fixed(p_probs: list, q_probs: list) -> int:
+    """
+    KL divergence D_KL(P||Q) = Σ p_i * log2(p_i / q_i). Returns Q16.16.
+    Undefined (returns INT_MAX) where q_i=0 and p_i>0.
+    """
+    total = 0
+    for p, q in zip(p_probs, q_probs):
+        if p <= 0:
+            continue
+        if q <= 0:
+            return INT_MAX
+        log2_ratio = _log2_fixed(p) - _log2_fixed(q)
+        total += fixed_mul(p, log2_ratio)
+    return total
+
+
+def cross_entropy_fixed(p_probs: list, q_probs: list) -> int:
+    """
+    Cross-entropy H(P, Q) = -Σ p_i * log2(q_i). Returns Q16.16 bits.
+    Equal to H(P) + D_KL(P||Q).
+    """
+    total = 0
+    for p, q in zip(p_probs, q_probs):
+        if p <= 0:
+            continue
+        if q <= 0:
+            return INT_MAX
+        total += -fixed_mul(p, _log2_fixed(q))
+    return total
+
+
+def mutual_information_fixed(joint: list, p_marginal: list, q_marginal: list) -> int:
+    """
+    Mutual information I(X;Y) = Σ p(x,y) * log2(p(x,y) / p(x)*p(y)).
+    joint: flat list of Q16.16 joint probabilities (len = |X| * |Y|).
+    p_marginal, q_marginal: marginals over X and Y respectively.
+    Returns Q16.16.
+    """
+    n_x = len(p_marginal)
+    n_y = len(q_marginal)
+    total = 0
+    for i, pxy in enumerate(joint):
+        if pxy <= 0:
+            continue
+        x = i // n_y
+        y = i % n_y
+        px = p_marginal[x] if x < len(p_marginal) else 0
+        py = q_marginal[y] if y < len(q_marginal) else 0
+        if px <= 0 or py <= 0:
+            continue
+        log2_ratio = _log2_fixed(pxy) - _log2_fixed(fixed_mul(px, py))
+        total += fixed_mul(pxy, log2_ratio)
+    return total
+
+
+def entropy_rate_fixed(symbol_seq: list, alphabet_size: int) -> int:
+    """
+    Empirical entropy rate from a symbol sequence (bigram model).
+    Returns H(X_n | X_{n-1}) in Q16.16 bits.
+    """
+    if len(symbol_seq) < 2 or alphabet_size <= 0:
+        return 0
+    # Count bigram and unigram frequencies
+    bigram: dict = {}
+    unigram: dict = {}
+    for i in range(len(symbol_seq) - 1):
+        a, b = symbol_seq[i], symbol_seq[i + 1]
+        bigram[(a, b)] = bigram.get((a, b), 0) + 1
+        unigram[a] = unigram.get(a, 0) + 1
+    total_pairs = len(symbol_seq) - 1
+    rate = 0
+    for (a, b), count in bigram.items():
+        p_ab = (count * INT_SCALE) // total_pairs
+        p_a = (unigram[a] * INT_SCALE) // total_pairs
+        if p_a <= 0:
+            continue
+        p_b_given_a = fixed_div(p_ab, p_a)
+        if p_b_given_a <= 0:
+            continue
+        rate += -fixed_mul(p_ab, _log2_fixed(p_b_given_a))
+    return rate
+
+
+def compression_ratio_fixed(original_len: int, compressed_len: int) -> int:
+    """Compression ratio as Q16.16: compressed/original. Lower = better compression."""
+    if original_len <= 0:
+        return INT_SCALE
+    return fixed_div(compressed_len * INT_SCALE, original_len * INT_SCALE)
