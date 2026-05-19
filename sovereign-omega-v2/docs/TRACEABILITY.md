@@ -864,3 +864,63 @@ Proves `runFrame()` correctness at every edge of its input space — not just th
 | `test/integration/frame-kernel-adversarial.test.ts` | T0 | 51 | 24 adversarial edge-case tests across 6 proof groups |
 
 Test count after Gates 49–51: **1196 tests, 62 files**
+
+---
+
+## Layer AT — AOIE Classification Adversarial (Gate 52)
+
+**Epistemic Tier: T1 (empirically validated)**
+
+Fills boundary conditions not reachable by the unit-level AOIE tests. Four proof groups:
+
+(1) **Identity continuity boundaries** — `snapshotsAreIdentical` uses `canonicalizeSnapshot` which hashes all fields (`snapshot_id`, `sequence`, `state_hash`, etc.) — two snapshots are "identical" only when their full canonical form is byte-identical. CONTINUOUS: single-object repetition. DRIFTED: proven at drift=0.25 (1 of 4 pairs different) and drift≈0.22 (2 of 9 pairs different) — both fall in (0, 0.3]. BROKEN: 2 distinct snapshots → drift=1.0 > 0.3.
+
+(2) **Constitutional drift boundaries** — exact threshold behaviour proven: rate=0.1 is STABLE (threshold is `> 0.1`, not `≥`); rate=0.5 is DRIFTING (threshold is `> 0.5`, not `≥`); rate=0.2 → DRIFTING; rate=0.6 → DIVERGED; 1 mutation / 1 snapshot → DIVERGED (rate=1.0).
+
+(3) **GlobalState composition grid** — all 7 non-SECURE branches verified: ALERT from CONTESTED, DRIFTED, DRIFTING; COMPROMISED from DEADLOCKED, BROKEN, DIVERGED; COMPROMISED beats ALERT (DEADLOCKED + DRIFTED → COMPROMISED).
+
+(4) **Lattice and concurrent determinism** — `globalStateOrdinal` assigns 0/1/2 to SECURE/ALERT/COMPROMISED; `compareGlobalStates` antisymmetry for all 3 ordered pairs; 10 concurrent `classifyRuntime` calls → byte-identical `global_state`; ALERT from unverified assertion flows correctly into `global_state`.
+
+| File | Tier | Gate | Role |
+|------|------|------|------|
+| `test/integration/aoie-adversarial.test.ts` | T1 | 52 | 22 AOIE boundary and composition tests |
+
+---
+
+## Layer AU — Enforcement Engine Adversarial (Gate 53)
+
+**Epistemic Tier: T0 (mechanically proven)**
+
+Fills enforcement gaps not covered by unit tests. Three proof groups:
+
+(1) **All 5 ContainmentAction types** — `freeze_workflow` APPLIED when workflow in active set; `freeze_workflow` SKIPPED when not in active set (gap vs unit tests); `elevate_state` unconditionally APPLIED with no target lookup (gap); `block_frame` and `invalidate_replay_chain` unconditionally APPLIED with empty active sets.
+
+(2) **Count invariant** — `directives_applied + directives_skipped === decisions.length` proven for mixed 5-directive batch (3 APPLIED, 2 SKIPPED); 20-directive all-APPLIED batch (all `block_frame`); 20-directive all-SKIPPED batch (all `quarantine_agent` with empty active agent set). Result and all decisions are frozen. Identical input × 3 → identical result structure.
+
+(3) **capturePostEnforcementSnapshot hash sensitivity** — `state_hash` encodes `sitr_state:directives_applied:sequence`; different `directives_applied` → different hash; different `sequence` → different hash; same params → same hash × 3; `phase` is always `'post_enforcement'`. `computeAutoDirectives`: 3 non-replay-safe frames → 3 `quarantine_agent` directives; 3 workflow violations → 3 `invalidate_replay_chain` directives; mixed → correct total; FNV-1a directive IDs deterministic × 3; different sequence → different IDs.
+
+| File | Tier | Gate | Role |
+|------|------|------|------|
+| `test/integration/enforcement-adversarial.test.ts` | T0 | 53 | 22 enforcement and directive adversarial tests |
+
+---
+
+## Layer AV — Ledger Hash Chain Integrity (Gate 54)
+
+**Epistemic Tier: T0 (mechanically proven)**
+
+Cryptographic proof that `LedgerChain` is not merely structurally append-only but fully self-verifying: an independent auditor can verify every link using only `hashValue()` and `GENESIS_HASH`.
+
+**Hash-chain linkage law**: For a correctly-built 10-entry chain, `entries[i+1].previous_hash === await hashValue(entries[i])` holds for all i. `entries[0].previous_hash === GENESIS_HASH` (64 zero bytes). `hashValue()` is deterministic × 3. Different `frame_hash` → different `hashValue` output.
+
+**`verifyChain()` adversarial** — tamper `frame_hash` at entry[3] → fails at sequence 5 (next link broken, not current); tamper `previous_hash` of entry[0] to non-genesis → fails immediately at sequence 1, `verified_entries=0`; tamper `governance_hash` at entry[5] → fails at sequence 7; tamper `previous_hash` of entry[5] directly → fails at sequence 6. Last-entry `frame_hash` tamper → chain still verifies (the tampered entry's outgoing hash is not checked by `verifyChain` — only the incoming link is verified).
+
+**`verifySequences()`** — structural-only (no crypto): empty → valid; monotonic → valid; non-monotonic sequence (3,2) → invalid at correct position; duplicate → invalid.
+
+**`LedgerChain` structural** — `LedgerConstraintError` on equal sequence; `LedgerConstraintError` on decreasing sequence; `lastEntry` and `lastSequence` track correctly after 7 appends; source chain provably immutable after append (length and `lastSequence` unchanged on original).
+
+| File | Tier | Gate | Role |
+|------|------|------|------|
+| `test/integration/ledger-chain-integrity.test.ts` | T0 | 54 | 21 hash-chain integrity and structural tests |
+
+Test count after Gates 52–54: **1261 tests, 65 files**
