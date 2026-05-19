@@ -53,6 +53,29 @@ T3 research grounds T0 math — not T0 architecture decisions.
 
 ---
 
+## Layer C — Rust Constitutional Substrate
+
+### crates/constitutional-substrate — constitutional execution substrate
+`StateHash / ReplayEvent / ReplayLedger / EntropyVector / VerifierAttestation / ArchiveVersion / InvariantViolation / ProvenanceReference / OntologyReference` →
+**T0** → SOVEREIGN_OMEGA_INTEGRATED_SPEC_v2.md (`1cfFY59zAczNPCL7mvr_TxFo1yR7xfDNh`)
+→ §2: "Bit-shifted integer arithmetic for cross-GPU determinism." (fixed-point Q16.16)
+→ §3: "Three functional regions over a contiguous byte array." (substrate partitioning)
+**T0** → A Holon-Architected Compiler (`1lu31YCW-TW2SVr3IyGeQZBTB1YXbnCG5`)
+→ "Cryptographic lineage is the only valid substrate for replay integrity." (chain hashing)
+**T1** → RALPH_LOOP_OMEGA_EXECUTION_SYNTHESIS.md (`1TTzre0Oy1BEZ_g5lm926XJ2UiFtjfJsr`)
+→ "Replay persistence requires explicit schema versioning." (ArchiveVersion v1.0.0)
+
+`ArchiveVersion / ARCHIVE_V1_0_0 / ArchiveHeader` →
+**T0** → docs/REPLAY_CONSTITUTION.md LAW-02 (machine-readable version boundaries)
+→ little-endian 6-byte wire format: major:u16, minor:u16, patch:u16
+
+`ChainHasher trait` →
+**T0** → Constitutional minimalism — SHA-256 at integration boundary only.
+Substrate stores and chains hashes; callers provide the hash function.
+Zero cryptographic dependencies in the Rust layer.
+
+---
+
 ## Layer A — TypeScript Governance Runtime
 
 ### src/core/canonicalize.ts — RFC 8785 JCS
