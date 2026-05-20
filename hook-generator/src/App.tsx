@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Zap, Download, Star } from 'lucide-react'
+import { initAnalytics, trackEvent } from '@shared/lib/analytics'
 import { generateHooks, type HookInput, type HookResult, type Platform, type Tone } from './lib/hooks-ai.js'
 import { HookCard } from './components/HookCard.js'
 import { useAsyncForm } from '@shared/hooks/useAsyncForm'
@@ -37,6 +38,13 @@ export default function App() {
   const results = showFavsOnly ? allResults.filter(h => favs.has(h.hook)) : allResults
 
   useEffect(() => { saveFavs(favs) }, [favs])
+  useEffect(() => {
+    initAnalytics()
+    trackEvent('trial_started', { product: 'hook-generator' })
+  }, [])
+  useEffect(() => {
+    if (state === 'results') trackEvent('result_generated', { product: 'hook-generator' })
+  }, [state])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

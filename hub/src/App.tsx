@@ -1,6 +1,15 @@
+import { useEffect, useRef } from 'react'
 import { ProductCard } from './components/ProductCard.js'
 import { PricingTable } from './components/PricingTable.js'
 import { Zap, Lock, RefreshCw, Code } from 'lucide-react'
+
+// Minimal observational analytics — PostHog, determinism_class: 'observational'
+// No write-back into governance paths. BigQuery warehouse → dbt metric layer.
+function captureEvent(event: string, props?: Record<string, unknown>): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ph = (window as any).posthog
+  if (typeof ph?.capture === 'function') ph.capture(event, props)
+}
 
 const PRODUCTS = [
   {
@@ -77,6 +86,17 @@ const GUARANTEES = [
 ]
 
 export default function App() {
+  const trialStartRef = useRef(Date.now())
+
+  useEffect(() => {
+    captureEvent('trial_started', { product: 'hub', source: document.referrer || 'direct' })
+  }, [])
+
+  const handlePurchaseClick = (product: string, price: number) => {
+    const ttv = Math.round((Date.now() - trialStartRef.current) / 1000)
+    captureEvent('conversion', { product, price, ttv_seconds: ttv })
+  }
+
   return (
     <div className="min-h-screen bg-hub-bg text-hub-text">
 
@@ -111,6 +131,7 @@ export default function App() {
             href="https://gumroad.com/l/aegis-full-toolkit"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => handlePurchaseClick('full-toolkit', 39)}
             className="inline-flex items-center justify-center gap-2 bg-hub-accent text-white font-semibold px-8 py-3.5 rounded-xl hover:opacity-90 transition-opacity text-sm"
           >
             <Zap size={15} />
@@ -228,6 +249,36 @@ export default function App() {
         </div>
       </div>
 
+      {/* Cross-sell activation strip */}
+      <div className="max-w-3xl mx-auto px-4 pb-12">
+        <div className="bg-hub-surface border border-hub-accent/20 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <p className="text-hub-text text-sm font-semibold">Already using one tool?</p>
+            <p className="text-hub-muted text-xs mt-0.5">Get all three for $39 — save $18. Starter Pack (any two) for $29.</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <a
+              href="https://gumroad.com/l/aegis-starter-pack"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => handlePurchaseClick('starter-pack', 29)}
+              className="text-xs border border-hub-border text-hub-muted hover:text-hub-text hover:border-hub-accent/40 px-4 py-2 rounded-lg transition-all"
+            >
+              Any 2 — $29
+            </a>
+            <a
+              href="https://gumroad.com/l/aegis-full-toolkit"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => handlePurchaseClick('full-toolkit-crosssell', 39)}
+              className="text-xs bg-hub-accent text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+            >
+              All 3 — $39
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Final CTA */}
       <div className="max-w-2xl mx-auto px-4 pb-20 text-center">
         <div className="bg-hub-surface border border-hub-accent/20 rounded-2xl p-10">
@@ -237,6 +288,7 @@ export default function App() {
             href="https://gumroad.com/l/aegis-full-toolkit"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => handlePurchaseClick('full-toolkit', 39)}
             className="inline-flex items-center justify-center gap-2 bg-hub-accent text-white font-semibold px-10 py-4 rounded-xl hover:opacity-90 transition-opacity text-sm"
           >
             <Zap size={15} />

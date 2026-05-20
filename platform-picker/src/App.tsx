@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sparkles, TrendingUp, Share2, Check } from 'lucide-react'
+import { initAnalytics, trackEvent } from '@shared/lib/analytics'
 import { rankPlatforms, type MatcherInput } from './lib/matcher.js'
 import { ResultCard } from './components/ResultCard.js'
 import { RadarChart } from './components/RadarChart.js'
@@ -36,6 +37,15 @@ export default function App() {
   const [form, setForm] = useState<MatcherInput>(EMPTY)
   const [shared, setShared] = useState(false)
   const { state, result, errorMsg, submit, reset: resetAsync } = useAsyncForm(rankPlatforms)
+
+  useEffect(() => {
+    initAnalytics()
+    trackEvent('trial_started', { product: 'platform-picker' })
+  }, [])
+
+  useEffect(() => {
+    if (state === 'results') trackEvent('result_generated', { product: 'platform-picker' })
+  }, [state])
 
   const valid = Object.values(form).every(v => v.trim().length > 0)
   const results: PlatformRanking[] = result ?? []

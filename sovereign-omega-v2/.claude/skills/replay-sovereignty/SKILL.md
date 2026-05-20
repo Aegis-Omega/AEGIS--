@@ -52,6 +52,8 @@ Flag immediately as T0_ABORT if any of the following are detected:
 | Unbounded ecology growth | Spawning without bounded memory/execution/entropy declaration |
 | Privileged orchestration | Code possessing authority not derivable from replay lineage |
 | Centralized sovereign intelligence | Single control surface with unrestricted mutation rights |
+| Law of Silence violation | Agent communicates with another agent directly (not through EventEnvelope); any direct text/object exchange between agents that bypasses the constitutional boundary |
+| Corpus sovereignty violation | Raw narrative or unprocessed corpus content propagated into agent cognition without 5-phase RALPH loop processing |
 
 ## Reporting Format
 

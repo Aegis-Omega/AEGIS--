@@ -186,6 +186,12 @@ replay divergence · topology non-determinism · unbounded ecology · privileged
 
 **Golden ratio:** `MUTATION_RATE_LIMIT = DEFAULT_QUORUM_THRESHOLD = (√5−1)/2 ≈ 0.6180339887`
 
+**Law of Silence:** agents communicate exclusively through mediated EventEnvelope; no direct agent-to-agent text exchange permitted; confinement enforced at constitutional boundary.
+
+**Corpus Sovereignty:** all corpus knowledge enters through 5-phase RALPH loop; raw narrative must NOT propagate directly into agent cognition; only replay-certifiable abstractions propagate.
+
+**Commercial Analytics Stratum:** PostHog observational layer only (`determinism_class: 'observational'`). Stratum separated from governance telemetry. BigQuery as warehouse; dbt metric layer for transformation. No write-back authority into governance paths.
+
 **Remaining hard problems (no abstraction supersedes them):**
 1. Cross-platform deterministic replay   4. Verifier scalability
 2. GPU nondeterminism                    5. Floating-point canonicalization

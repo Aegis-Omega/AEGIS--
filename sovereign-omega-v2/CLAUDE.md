@@ -150,6 +150,8 @@ All remaining systems are subordinate orchestration infrastructure.
 | OWNERSHIP SOVEREIGNTY | ACTIVE — authority derives from replay legality, not permissions |
 | REDUCTION-FIRST | ACTIVE — expansion phase terminated; empirical justification required |
 | ECOLOGY BOUNDED | ACTIVE — adaptive/recursive/bounded/replay-governed; NOT sovereign AI |
+| LAW OF SILENCE | ACTIVE — agents communicate exclusively through mediated EventEnvelope; no direct agent-to-agent text exchange; confinement enforced at constitutional boundary |
+| CORPUS SOVEREIGNTY | ACTIVE — all corpus knowledge enters through 5-phase RALPH loop; raw narrative must NOT propagate directly into agent cognition; only replay-certifiable abstractions propagate |
 
 **Prohibited in all subsystems (T0_ABORT — no exception paths):**
 

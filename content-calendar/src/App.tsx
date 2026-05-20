@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CalendarDays, Download } from 'lucide-react'
+import { initAnalytics, trackEvent } from '@shared/lib/analytics'
 import { generateCalendar, calendarToText, type CalendarInput, type WeekPlan } from './lib/calendar-ai.js'
 import { WeekTable } from './components/WeekTable.js'
 import { useAsyncForm } from '@shared/hooks/useAsyncForm'
@@ -60,6 +61,14 @@ export default function App() {
 
   const valid = Object.values(form).every(v => v.trim().length > 0)
   const weeks: WeekPlan[] = result ?? []
+
+  useEffect(() => {
+    initAnalytics()
+    trackEvent('trial_started', { product: 'content-calendar' })
+  }, [])
+  useEffect(() => {
+    if (state === 'results') trackEvent('result_generated', { product: 'content-calendar' })
+  }, [state])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
