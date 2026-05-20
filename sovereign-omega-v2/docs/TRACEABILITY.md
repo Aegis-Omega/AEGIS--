@@ -924,3 +924,53 @@ Cryptographic proof that `LedgerChain` is not merely structurally append-only bu
 | `test/integration/ledger-chain-integrity.test.ts` | T0 | 54 | 21 hash-chain integrity and structural tests |
 
 Test count after Gates 52–54: **1261 tests, 65 files**
+
+---
+
+## Layer AW — Gate 55: CRDT Convergence Adversarial
+
+**Constitutional claim**: `joinLedgerEntries()` satisfies G-Set lattice laws at operational scale — 150-entry join with 50-entry overlap, 3-way associativity over 120 disjoint entries, conflict detection at arbitrary positions (first, middle=25, last of 50).
+
+**Epistemic tier**: T2 (engineering hypothesis — G-Set merge correctness over large entry arrays)
+
+**Scope**: Gaps filled vs unit tests — large-scale join (100+100 with overlap), 3-way associativity at scale, 10× determinism (sync function), conflict at sequence 25 of 50.
+
+**Key invariant proven**: `join(join(A,B),C)` and `join(A,join(B,C))` produce byte-identical sorted sequence arrays for disjoint 40-entry sets. `CRDTConflictError` thrown when same-sequence entry appears with different frame_hash at any position.
+
+| File | Tier | Gate | Role |
+|------|------|------|------|
+| `test/integration/crdt-adversarial.test.ts` | T2 | 55 | 22 large-scale G-Set join and conflict tests |
+
+---
+
+## Layer AX — Gate 56: Consensus Adversarial
+
+**Constitutional claim**: `runConsensusRound()` correctly implements HotStuff BFT quorum semantics for f=2 (n=7, threshold=5) and f=4 (n=13, threshold=9) configurations, filtering wrong-block_hash votes, duplicate votes, and unknown validators.
+
+**Epistemic tier**: T2 (engineering hypothesis — BFT quorum at f=2 and f=4)
+
+**Scope**: Gaps filled vs unit tests — f=2/f=4 configurations, all-wrong-hash (NO_QUORUM), 5-correct + 2-wrong (COMMITTED), 3-correct + 4-wrong (NO_QUORUM), duplicate counting, 10 concurrent rounds → identical results.
+
+**Key invariant proven**: Exactly 2f+1 valid Ed25519-signed votes for the correct block_hash → COMMITTED. Any fewer → NO_QUORUM. Duplicate votes from same validator counted once. Votes for wrong block_hash filtered before quorum check.
+
+| File | Tier | Gate | Role |
+|------|------|------|------|
+| `test/integration/consensus-adversarial.test.ts` | T2 | 56 | 22 HotStuff BFT adversarial tests |
+
+---
+
+## Layer AY — Gate 57: Evolution + Mirror Stream Adversarial
+
+**Constitutional claim**: `assessProposal()` correctly gates capability evolution through a 5-proposal rejection cascade (1 APPROVED → manifest updated → 4 REJECTED as already registered). `MirrorStream.observe()` encodes only `topology_hash + sequence` in `observation_hash` — sitr_state changes with same topology_hash produce identical hashes.
+
+**Epistemic tier**: T2/T1 (evolution semantics T2; mirror stream hash contract T1)
+
+**Scope**: Gaps filled vs unit tests — 5-proposal rejection cascade, stale-DFA priority over capability check, observation_hash encoding contract, 10-observation MirrorStream chain, non-monotonic sequence throws MirrorError.
+
+**Key invariant proven**: `observation_hash = hashValue({ observed_topology_hash, sequence: seq.toString() })` — two topologies with identical topology_hash and sequence produce identical observation_hash regardless of sitr_state, aoie_global_state, or constitutional_verdict.
+
+| File | Tier | Gate | Role |
+|------|------|------|------|
+| `test/integration/evolution-mirror-adversarial.test.ts` | T2 | 57 | 22 evolution + mirror adversarial tests |
+
+Test count after Gates 55–57: **1319 tests, 68 files**
