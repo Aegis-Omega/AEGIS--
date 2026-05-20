@@ -974,3 +974,53 @@ Test count after Gates 52–54: **1261 tests, 65 files**
 | `test/integration/evolution-mirror-adversarial.test.ts` | T2 | 57 | 22 evolution + mirror adversarial tests |
 
 Test count after Gates 55–57: **1319 tests, 68 files**
+
+---
+
+## Layer AZ — Gate 58: Swarm Convergence Adversarial
+
+**Constitutional claim**: `tallyVotes()` correctly implements quorum voting at 100-node scale with exact boundary semantics — 67/100 = 0.67 ≥ threshold (quorum reached), 66/100 = 0.66 < threshold (not reached), tie-breaking deterministic by lexicographically-first topology_hash.
+
+**Epistemic tier**: T2 (engineering hypothesis — quorum threshold semantics)
+
+**Scope**: Gaps filled vs unit tests — 100-vote unanimous tally, 70/30 split, exact boundary 67/100, sub-threshold 66/100, 3-way split winner, 50/50 tie (lex first wins, but 50/100 < 0.67 → not reached), custom thresholds 0.5 and 0.9, sequence mismatch throws SwarmError, 10 concurrent tallyVotes → identical convergence_hash.
+
+**Key invariant proven**: `quorum_reached = vote_count / total_votes >= quorumThreshold` (≥, not >). `quorum_hash` = topology_hash with most votes; on tie, lexicographically smallest hash wins. `convergence_hash` is deterministic and encodes the full outcome including `quorum_reached` boolean.
+
+| File | Tier | Gate | Role |
+|------|------|------|------|
+| `test/integration/swarm-adversarial.test.ts` | T2 | 58 | 18 swarm convergence adversarial tests |
+
+---
+
+## Layer BA — Gate 59: Self-Attestation Tamper Matrix
+
+**Constitutional claim**: `verifySelfAttestation()` detects independent tampering of each of the 5 attestation fields (dfa_certificate_hash, topology_hash, lineage_terminal_hash, capsule_attestation_hash, sequence) and direct tampering of attestation_hash itself. Null serialization contract: `null lineage → 'genesis'` and `null capsule → 'none'` in the hash — producing different attestation_hash than non-null values of the same fields.
+
+**Epistemic tier**: T0 (mechanically proven — pure hash composition with deterministic null substitution)
+
+**Scope**: Gaps filled vs unit tests — full 6-field tamper matrix, null-to-non-null and non-null-to-null cross-tamper, 10× consecutive verify of valid record, null serialization contract verified by hash difference.
+
+**Key invariant proven**: Every field participates in `attestation_hash`. There is no subset of fields that can be mutated while leaving the hash unchanged. Null fields serialize to string sentinels ('genesis'/'none'), so null↔non-null transitions are detectable.
+
+| File | Tier | Gate | Role |
+|------|------|------|------|
+| `test/integration/attestation-tamper.test.ts` | T0 | 59 | 18 self-attestation tamper matrix tests |
+
+---
+
+## Layer BB — Gate 60: Adaptive Lineage Scale
+
+**Constitutional claim**: `certifyAdaptiveLineage()` correctly validates 100-entry chains of both pure TOPOLOGY_TRANSITION and mixed TOPOLOGY+CAPABILITY_EVOLUTION events; detects tampering of entry_hash or previous_entry_hash at any position (first, middle=50, last) in a 100-entry chain; produces different certificate_hash for chains of different length.
+
+**Epistemic tier**: T2 (engineering hypothesis — adaptive lineage correctness at scale)
+
+**Scope**: Gaps filled vs unit tests — 100-entry topo chain certify, 100-entry mixed chain certify, tamper at position 0/10/50/last (both entry_hash and previous_entry_hash), certificate_hash length-sensitivity (100 vs 99 entries), certify × 3 → identical certificate_hash, GENESIS_TOPOLOGY_HASH is first entry's previous_entry_hash.
+
+**Key invariant proven**: `certifyAdaptiveLineage` validates both `previous_entry_hash` linkage (against predecessor's `entry_hash`) and `entry_hash` recomputation for every entry in O(n) — no bypass is possible at any chain position.
+
+| File | Tier | Gate | Role |
+|------|------|------|------|
+| `test/integration/adaptive-lineage-scale.test.ts` | T2 | 60 | 18 adaptive lineage scale tests |
+
+Test count after Gates 58–60: **1373 tests, 71 files**
