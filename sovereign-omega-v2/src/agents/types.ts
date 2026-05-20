@@ -19,6 +19,14 @@ export type AgentType =
   | 'InvariantEnforcementAgent'
   | 'DocumentationAgent'
   | 'EnvironmentAdaptationAgent'
+  // CRGM §8 — 7 new agent types (Gate 143, T2 engineering hypothesis)
+  | 'SentinelAgent'                // Threat detection — ASSESS phase
+  | 'ArbitrationAgent'             // Governance validation — LOCK phase
+  | 'MemoryAgent'                  // Lineage preservation — HARMONIZE phase
+  | 'SimulationAgent'              // Future-state projection — bounded T2
+  | 'EntropySuppressionAgent'      // Drift containment — all phases
+  | 'ConstitutionalGuardianAgent'  // Invariant enforcement — LOCK phase
+  | 'FederationRelayAgent'         // Cross-node synchronization — PROPAGATE phase
 
 export const ALL_AGENT_TYPES: readonly AgentType[] = [
   'WorkspaceMappingAgent',
@@ -29,6 +37,13 @@ export const ALL_AGENT_TYPES: readonly AgentType[] = [
   'InvariantEnforcementAgent',
   'DocumentationAgent',
   'EnvironmentAdaptationAgent',
+  'SentinelAgent',
+  'ArbitrationAgent',
+  'MemoryAgent',
+  'SimulationAgent',
+  'EntropySuppressionAgent',
+  'ConstitutionalGuardianAgent',
+  'FederationRelayAgent',
 ] as const
 
 export type AgentStatus = 'registered' | 'active' | 'suspended' | 'retired'
