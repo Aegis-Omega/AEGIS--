@@ -1,0 +1,7 @@
+{
+  "framework": "vite",
+  "buildCommand": "cd hub && npm install && npm run build",
+  "outputDirectory": "hub/dist",
+  "installCommand": "echo 'install handled per-product'",
+  "rewrites": [{"source": "/(.*)", "destination": "/index.html"}]
+}
