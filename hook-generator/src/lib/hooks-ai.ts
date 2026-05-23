@@ -1,4 +1,4 @@
-import { callDashScope } from '@shared/lib/dashscope'
+import { callConstitutional } from '@shared/lib/constitutional-ai'
 
 export type Platform = 'TikTok' | 'YouTube Shorts' | 'Instagram Reels' | 'All platforms'
 export type Tone = 'Entertaining' | 'Educational' | 'Controversial' | 'Inspirational' | 'Relatable'
@@ -48,7 +48,8 @@ Topic: ${input.topic}
 Tone: ${input.tone}
 `.trim()
 
-  const parsed = await callDashScope<unknown>({ systemPrompt: SYSTEM_PROMPT, userMessage })
+  const result = await callConstitutional<unknown>({ systemPrompt: SYSTEM_PROMPT, userMessage })
+  const parsed = result.data
   const arr: unknown[] = Array.isArray(parsed)
     ? parsed
     : ((parsed as Record<string, unknown[]>)[Object.keys(parsed as object)[0]] ?? [])

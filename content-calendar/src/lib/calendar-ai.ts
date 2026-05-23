@@ -1,4 +1,4 @@
-import { callDashScope } from '@shared/lib/dashscope'
+import { callConstitutional } from '@shared/lib/constitutional-ai'
 
 export interface CalendarInput {
   niche: string
@@ -53,10 +53,11 @@ Content pillar 2: ${input.pillar2}
 Content pillar 3: ${input.pillar3}
 `.trim()
 
-  const parsed = await callDashScope<{ weeks?: WeekPlan[] } | WeekPlan[]>({
+  const result = await callConstitutional<{ weeks?: WeekPlan[] } | WeekPlan[]>({
     systemPrompt: SYSTEM_PROMPT,
     userMessage,
   })
+  const parsed = result.data
   return Array.isArray(parsed) ? parsed : (parsed.weeks ?? [])
 }
 

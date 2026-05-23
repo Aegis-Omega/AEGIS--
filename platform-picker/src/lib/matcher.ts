@@ -1,4 +1,4 @@
-import { callDashScope } from '@shared/lib/dashscope'
+import { callConstitutional } from '@shared/lib/constitutional-ai'
 
 const PLATFORMS = ['TikTok', 'YouTube Shorts', 'Instagram Reels', 'Snapchat Spotlight'] as const
 
@@ -39,7 +39,8 @@ Monetisation goal: ${input.monetisation_goal}
 Current following size: ${input.current_following}
 `.trim()
 
-  const parsed = await callDashScope<unknown>({ systemPrompt: SYSTEM_PROMPT, userMessage })
+  const result = await callConstitutional<unknown>({ systemPrompt: SYSTEM_PROMPT, userMessage })
+  const parsed = result.data
   const arr: unknown[] = Array.isArray(parsed)
     ? parsed
     : ((parsed as Record<string, unknown[]>)[Object.keys(parsed as object)[0]] ?? [])
