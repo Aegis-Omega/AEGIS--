@@ -1315,6 +1315,23 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 
 ---
 
+## Layer CR — Skill Harness Phase 4: Orchestration Router (Gate 164)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `sovereign-omega-v2/src/skill-harness/router.ts` | T2 | 164 | Skill-informed task routing: ROUTE_TO_BEST / DELEGATE_SPECIALIST / ESCALATE_HUMAN / COLLABORATE using 5 routing signals |
+| `sovereign-omega-v2/test/unit/skill-router.test.ts` | T2 | 164 | 20 unit tests: constants, error handling, all 4 decision types, structure, determinism ×3 |
+
+---
+
+## Layer CS — Skill Harness Phase 4 Integration (Gate 165)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `sovereign-omega-v2/test/integration/skill-router-composition.test.ts` | T2 | 165 | 5 integration tests: telemetry→routing, inference→routing, decay→routing, full pipeline determinism ×3 |
+
+---
+
 ## Layer CN — Phase 7 Production Hardening — Rust (Gate 160)
 
 | Module | Tier | Gate | Role |
@@ -1365,10 +1382,11 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 ## Final Constitutional Status
 
 ```
-AEGIS Ω — Gates 1–163 complete
-AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–3 + Marketplace UI
+AEGIS Ω — Gates 1–165 complete
+AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–4 + Marketplace UI
 CL-Ψ Cognitive Fabric: 7-phase Rust inference crate (89 tests) for AMD RX 570
-Test count: 2089 (sovereign-omega-v2) + 89 (aegis-cl-psi Rust) + cockpit + studio builds clean
+Test count: 2114 (sovereign-omega-v2) + 89 (aegis-cl-psi Rust) + cockpit + studio builds clean
+Skill Harness: Phase 1 (catalog) + Phase 2 (telemetry) + Phase 3 (inference+decay) + Phase 4 (orchestration router)
 Holonic triad: PROVEN at 1/φ across three scales
 Martingale: E[S_{n+1}|F_n] = S_n — ANCHORED
 Replay: is_replay_reconstructable = true on all records
