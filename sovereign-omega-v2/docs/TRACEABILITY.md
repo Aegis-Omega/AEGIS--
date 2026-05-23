@@ -1315,6 +1315,14 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 
 ---
 
+## Layer CV — Holonic Swarm + RALPH + Skill Harness Composition (Gate 169)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `sovereign-omega-v2/test/integration/swarm-ralph-skill-composition.test.ts` | T2 | 169 | 11 integration tests: holonic 1/φ triad proof, Fibonacci pacing, 5-agent swarm quorum, RALPH→evidence→inference→routing pipeline, martingale boundary at 61/62 |
+
+---
+
 ## Layer CT — Skill Harness Phase 5: Collaborative Multi-Agent Specialization (Gate 166)
 
 | Module | Tier | Gate | Role |
@@ -1400,10 +1408,10 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 ## Final Constitutional Status
 
 ```
-AEGIS Ω — Gates 1–168 complete
+AEGIS Ω — Gates 1–169 complete
 AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–6 + Marketplace UI
 CL-Ψ Cognitive Fabric: 7-phase Rust inference crate (89 tests) for AMD RX 570
-Test count: 2147 (sovereign-omega-v2) + 89 (aegis-cl-psi Rust) + cockpit + studio builds clean
+Test count: 2158 (sovereign-omega-v2) + 89 (aegis-cl-psi Rust) + all 7 products build clean (studio, cockpit, platform-picker, hook-generator, content-calendar, hub)
 Skill Harness: Phase 1 (catalog) + Phase 2 (telemetry) + Phase 3 (inference+decay) + Phase 4 (routing) + Phase 5 (collaboration) + Phase 6 (cross-org seam)
 Holonic triad: PROVEN at 1/φ across three scales
 Martingale: E[S_{n+1}|F_n] = S_n — ANCHORED

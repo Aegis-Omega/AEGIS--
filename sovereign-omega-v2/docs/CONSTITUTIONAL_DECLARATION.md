@@ -1,5 +1,6 @@
 # AEGIS Ω — Constitutional Declaration
-## Gates 1–123 · 61 Holonic RALPH Loops · Branch: claude/aegis-setup-Lx7Ji
+## Gates 1–169 · All Holonic Scales Complete · Branch: claude/aegis-setup-Lx7Ji
+## Date: 2026-05-23 · Status: CERTIFIED
 
 ---
 
@@ -11,16 +12,16 @@ byte-level canonicalization through organism-level certification. The system is
 deterministic, bounded, replay-verifiable, constitutionally-governed, and adaptive
 within declared K-bounds.
 
-**Date**: 2026-05-20
+**Date**: 2026-05-23
 **Operator**: Tarik Skalić
 **Branch**: claude/aegis-setup-Lx7Ji
-**Gate 8 status**: PASS — 1833 tests, 109 files, 0 type errors, build clean
+**Gate 8 status**: PASS — 2158 tests, 129 test files, 0 type errors, build clean
 
 ---
 
 ## Constitutional Substrate
 
-### Gate Count: 123
+### Gate Count: 169
 
 | Scale | Gates | Count |
 |-------|-------|-------|
@@ -28,13 +29,16 @@ within declared K-bounds.
 | ATOMIC | 28–44 | 17 — Frame modules through chain scaling |
 | MOLECULAR | 45–62 | 18 — Holonic RALPH, swarm, attestation, martingale |
 | CELLULAR | 63–101 | 39 — Adversarial, composition, Python, products |
-| ORGANISM | 102–113 | 12 — Full constitutional stack through push |
-| FIELD | 114–123 | 10 — Studio projection layer + declaration |
+| ORGANISM | 102–123 | 22 — Full constitutional stack + Studio + swarm |
+| FIELD | 124–169 | 46 — Fibonacci swarm, Skill Harness 1–6, CL-Ψ 7 phases, holonic composition |
 
-### Test Count: 1833 (sovereign-omega-v2)
+### Test Count: 2158 (sovereign-omega-v2) + 89 (aegis-cl-psi Rust)
 
-All 1833 tests pass. No test was weakened. No assertion was softened.
+All 2158 TypeScript tests pass. All 89 Rust tests pass. No test was weakened.
 Each gate followed strict RALPH: READ → ASSESS → LOCK → PROPAGATE → HARMONIZE.
+
+Skill Harness phases complete: catalog → telemetry → inference+decay → routing → collaboration → cross-org seam
+CL-Ψ Rust crate phases complete: Phase 1–7 (SGM-Ψ through production hardening, EU AI Act audit chain)
 
 ### AEGIS Studio: 27 modules, build clean
 
@@ -155,6 +159,7 @@ Modification requires /guardian APPROVED verdict. Verified by `node scripts/veri
 
 | Product | Build | Deploy |
 |---------|-------|--------|
+| sovereign-omega-v2 | ✅ 2158 tests · 0 type errors | Vercel |
 | platform-picker | ✅ clean | Vercel |
 | hook-generator | ✅ clean | Vercel |
 | content-calendar | ✅ clean | Vercel |
