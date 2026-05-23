@@ -1315,6 +1315,24 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 
 ---
 
+## Layer CT — Skill Harness Phase 5: Collaborative Multi-Agent Specialization (Gate 166)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `sovereign-omega-v2/src/skill-harness/collaboration.ts` | T2 | 166 | Peer consensus (runs-weighted confidence average) + skill transfer with TRANSFER_DISCOUNT=0.7, validated_runs reset |
+| `sovereign-omega-v2/test/unit/skill-collaboration.test.ts` | T2 | 166 | 27 unit tests: constants, errors, propose/apply/transfer structure, peer consensus weighted average, determinism ×3 |
+
+---
+
+## Layer CU — Skill Harness Phase 5 Integration + Phase 6 Seam (Gates 167–168)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `sovereign-omega-v2/test/integration/skill-collaboration-composition.test.ts` | T2 | 167 | 6 integration tests: transfer→routing, consensus+inference, decay→consensus, full pipeline determinism ×3 |
+| `sovereign-omega-v2/src/skill-harness/cross-org.ts` | T2 | 168 | Phase 6 seam stub: CrossOrgConsentLevel, OrgSkillManifest type, crossOrgTransfer() throws until infrastructure exists |
+
+---
+
 ## Layer CR — Skill Harness Phase 4: Orchestration Router (Gate 164)
 
 | Module | Tier | Gate | Role |
@@ -1382,11 +1400,11 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 ## Final Constitutional Status
 
 ```
-AEGIS Ω — Gates 1–165 complete
-AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–4 + Marketplace UI
+AEGIS Ω — Gates 1–168 complete
+AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–6 + Marketplace UI
 CL-Ψ Cognitive Fabric: 7-phase Rust inference crate (89 tests) for AMD RX 570
-Test count: 2114 (sovereign-omega-v2) + 89 (aegis-cl-psi Rust) + cockpit + studio builds clean
-Skill Harness: Phase 1 (catalog) + Phase 2 (telemetry) + Phase 3 (inference+decay) + Phase 4 (orchestration router)
+Test count: 2147 (sovereign-omega-v2) + 89 (aegis-cl-psi Rust) + cockpit + studio builds clean
+Skill Harness: Phase 1 (catalog) + Phase 2 (telemetry) + Phase 3 (inference+decay) + Phase 4 (routing) + Phase 5 (collaboration) + Phase 6 (cross-org seam)
 Holonic triad: PROVEN at 1/φ across three scales
 Martingale: E[S_{n+1}|F_n] = S_n — ANCHORED
 Replay: is_replay_reconstructable = true on all records
