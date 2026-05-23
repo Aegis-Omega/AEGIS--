@@ -19,6 +19,7 @@ from gate import gate
 from router import router
 from hardware_config import detect_hardware
 from tgcs_afse import TGCSController, AFSEController
+from ledger_persist import save_checkpoint, load_checkpoint, checkpoint_exists, CheckpointError
 
 matrix = CoreMatrix()
 _hw = detect_hardware()
@@ -26,6 +27,7 @@ _tgcs = TGCSController(hw_profile=_hw)
 _afse = AFSEController()
 last_ack_sequence = -1
 _lock = threading.Lock()
+_last_autosave_epoch = -1
 
 
 def _register_handlers() -> None:
@@ -73,6 +75,13 @@ class BridgeHandler(BaseHTTPRequestHandler):
             context  = bytes.fromhex(data.get('context_hex', ''))
             result = router.route(payload, verifier, context)
             self._respond(200, result)
+
+        elif self.path == '/checkpoint':
+            try:
+                meta = save_checkpoint(matrix)
+                self._respond(200, {'status': 'SAVED', **meta})
+            except Exception as e:
+                self._respond(500, {'status': 'ERROR', 'reason': str(e)})
 
         elif self.path == '/inference':
             import subprocess, os
@@ -183,6 +192,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 import time as _time
+                global _last_autosave_epoch
+                _sse_cycle = 0
                 while True:
                     snap = matrix.emit_vcg_telemetry()
                     gate_t = gate.telemetry()
@@ -190,10 +201,28 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     line = f'data: {json.dumps(payload)}\n\n'.encode()
                     self.wfile.write(line)
                     self.wfile.flush()
+                    # Auto-save checkpoint every 5 SSE cycles (25s) if epoch advanced
+                    _sse_cycle += 1
+                    if _sse_cycle % 5 == 0:
+                        current_epoch = int(snap.get('epoch', 0))
+                        if current_epoch > _last_autosave_epoch:
+                            try:
+                                save_checkpoint(matrix)
+                                _last_autosave_epoch = current_epoch
+                            except Exception:
+                                pass
                     _time.sleep(5)
             except (BrokenPipeError, ConnectionResetError):
                 pass
             return
+
+        elif self.path == '/checkpoint':
+            vcg = matrix.emit_vcg_telemetry()
+            self._respond(200, {
+                'sequence': vcg['sequence'],
+                'epoch': vcg['epoch'],
+                'checkpoint_exists': checkpoint_exists(),
+            })
 
         elif self.path == '/snapshot':
             # Cycles 36–40: Epoch state snapshot — returns current M1 representative sample.
@@ -239,12 +268,31 @@ def run_bridge(port=None):
     matrix.start()
     if not matrix.wait_ready(timeout=5.0):
         print(json.dumps({'event_type': 'BRIDGE_START_TIMEOUT', 'port': port}), flush=True)
+
+    # Restore from checkpoint if one exists — crash-safe resume
+    if checkpoint_exists():
+        try:
+            meta = load_checkpoint(matrix)
+            print(json.dumps({
+                'event_type': 'CHECKPOINT_RESTORED',
+                'sequence': meta['sequence'],
+                'epoch': meta['epoch'],
+                'era': meta['era'],
+            }), flush=True)
+        except CheckpointError as e:
+            print(json.dumps({'event_type': 'CHECKPOINT_RESTORE_FAILED', 'reason': str(e)}), flush=True)
+
     server = HTTPServer(('127.0.0.1', port), BridgeHandler)
     print(json.dumps({'event_type': 'BRIDGE_READY', 'port': port}), flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         gate.seal()
+        try:
+            save_checkpoint(matrix)
+            print(json.dumps({'event_type': 'CHECKPOINT_SAVED_ON_SHUTDOWN'}), flush=True)
+        except Exception as e:
+            print(json.dumps({'event_type': 'CHECKPOINT_SAVE_FAILED', 'reason': str(e)}), flush=True)
         matrix.stop()
 
 
