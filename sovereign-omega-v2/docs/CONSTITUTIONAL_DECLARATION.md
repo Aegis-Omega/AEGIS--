@@ -172,8 +172,8 @@ Modification requires /guardian APPROVED verdict. Verified by `node scripts/veri
 ## Python Layer B
 
 ```
-P1 smoke (--quick, 60s):       PASS — 4,642,500 events, PGCS/TGCS/AFSE/Failsafe PASS
-P2 crash-loops (1000 loops):   PASS — 781,900 events, corruption_count=0 throughout
+P1 smoke (--quick, 60s):       PASS — 3,699,200 events, PGCS/TGCS/AFSE/Failsafe PASS (R²=0.9912)
+P2 crash-loops (1000 loops):   PASS — 644,000 events, corruption_count=0 throughout (R²=0.9905)
 ```
 
 ---
