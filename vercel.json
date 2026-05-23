@@ -1,0 +1,10 @@
+{
+  "buildCommand": "cd packages/shared && npm install && cd ../platform-picker && npm install && npm run build && cd ../hook-generator && npm install && npm run build && cd ../content-calendar && npm install && npm run build && cd ../hub && npm install && npm run build && cd .. && mkdir -p dist && cp -r hub/dist/. dist/ && mkdir -p dist/platform-picker && cp -r platform-picker/dist/. dist/platform-picker/ && mkdir -p dist/hook-generator && cp -r hook-generator/dist/. dist/hook-generator/ && mkdir -p dist/content-calendar && cp -r content-calendar/dist/. dist/content-calendar/",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/platform-picker/(.*)", "destination": "/platform-picker/index.html" },
+    { "source": "/hook-generator/(.*)",  "destination": "/hook-generator/index.html"  },
+    { "source": "/content-calendar/(.*)", "destination": "/content-calendar/index.html" },
+    { "source": "/((?!platform-picker|hook-generator|content-calendar).*)", "destination": "/index.html" }
+  ]
+}

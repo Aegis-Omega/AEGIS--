@@ -1,7 +1,7 @@
 const TOOLS = [
-  { name: 'Platform Picker', url: 'https://platform-picker.vercel.app' },
-  { name: 'Hook Generator', url: 'https://hook-generator.vercel.app' },
-  { name: 'Content Calendar', url: 'https://content-calendar.vercel.app' },
+  { name: 'Platform Picker', url: '/platform-picker/' },
+  { name: 'Hook Generator', url: '/hook-generator/' },
+  { name: 'Content Calendar', url: '/content-calendar/' },
 ]
 
 interface ToolkitFooterProps {
@@ -22,8 +22,6 @@ export function ToolkitFooter({ current, borderClass = 'border-gray-800', mutedC
             <a
               key={t.name}
               href={t.url}
-              target="_blank"
-              rel="noopener noreferrer"
               className={`text-xs ${glowClass} transition-colors underline-offset-2 hover:underline`}
             >
               {t.name}

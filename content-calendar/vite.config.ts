@@ -6,6 +6,7 @@ import { resolve } from 'path'
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
+  base: '/content-calendar/',
   plugins: [react()],
   resolve: {
     alias: {
