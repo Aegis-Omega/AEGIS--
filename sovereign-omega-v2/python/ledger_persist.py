@@ -22,8 +22,9 @@ import os
 import tempfile
 
 CHECKPOINT_VERSION = '1.0.0'
-DEFAULT_CHECKPOINT_PATH = os.path.join(
-    os.path.dirname(__file__), 'aegis_checkpoint.json'
+DEFAULT_CHECKPOINT_PATH = os.environ.get(
+    'AEGIS_CHECKPOINT_PATH',
+    os.path.join(os.path.dirname(__file__), 'aegis_checkpoint.json'),
 )
 
 # M1 layout constants (mirror core_matrix.py — not imported to avoid circular deps)
