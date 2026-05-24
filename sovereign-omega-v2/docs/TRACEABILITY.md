@@ -1458,6 +1458,15 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 
 ---
 
+## Layer DH — SlabAllocator: Multi-Tiered Epoch-Based Slab Allocator (Gate 194)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `src/memory/slab-allocator.ts` | T2 | 194 | `SlabAllocator` — multi-tiered epoch-based slab allocator. Constitutional translation of the Slab-Oriented Multi-Tiered Epoch Allocator spec. Four size tiers: `TINY=4KB \| SMALL=16KB \| MEDIUM=64KB \| LARGE=1MB` (power-of-2, eliminates fragmentation). `CHUNKS_PER_SLAB=64` (matches 64-bit bitmap). Each slab's `allocated_bitmap: bigint` encodes chunk availability; `firstFreeBit()` finds first free chunk in O(64)=O(1); `popcount()` counts allocated chunks. `allocate(tier, sequence)` finds existing slab with free chunk or creates new slab (throws `SlabAllocatorError` if `MAX_SLABS_PER_TIER=8` ecology bound reached). `release(handle, sequence)` clears bitmap bit + sets `last_release_epoch`; double-release throws. `decommissionEmpty(current_epoch)` marks slabs with `allocated_count=0` and epoch gap ≥ `SLAB_DECOMMISSION_THRESHOLD=8` (F_6) as `is_decommissioned=true`. `certify()` produces frozen `SlabCertificate` with `allocator_hash = hashValue(sorted slab_hashes, sequence)`. Holonic constants: `MAX_SLABS_PER_TIER=MAX_UNIVERSES=8`; `SLAB_DECOMMISSION_THRESHOLD=MAX_SIMULATION_DEPTH=8=F_6`. Immutable pattern throughout. |
+| `test/unit/slab-allocator.test.ts` | T2 | 194 | 32 tests: SLAB_SCHEMA_VERSION=1.0.0; CHUNKS_PER_SLAB=64; SLAB_DECOMMISSION_THRESHOLD=8; MAX_SLABS_PER_TIER=8; SLAB_TIER_SIZES power-of-2; SlabAllocatorError is Error; empty/slabCount=0; allocate→frozen handle; handle_hash 64-char hex; slabCount+totalAllocated increment; immutable; chunk_index=0 first; chunk_index=1 second same slab; deterministic×3; tier isolation; 64-fill overflows to slab 2; MAX_SLABS_PER_TIER overflow throws; release decrements; re-allocate after release; double-release throws; unknown slab throws; last_release_epoch set; decommission within threshold=no; at threshold=yes; still-allocated=no; null last_release=no; certify frozen; allocator_hash 64-char; fields correct; deterministic×3; different states→different hashes. |
+
+---
+
 ## Layer DG — GraceSupervisor: Self-Healing Grace Loop (Gate 193)
 
 | Module | Tier | Gate | Role |
@@ -1590,7 +1599,7 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 ## Final Constitutional Status
 
 ```
-AEGIS Ω — Gates 1–193 complete
+AEGIS Ω — Gates 1–194 complete
 AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–6 + Marketplace UI
 CL-Ψ Cognitive Fabric: 7-phase Rust inference crate + Edge BFT Verifier for AMD RX 570
 BFT Synthesis Swarm: three-agent game-theoretic code generation at 1/φ convergence threshold
@@ -1611,7 +1620,8 @@ Multiverse composition: all constitutional layers (synthesis, Shapley, martingal
 Collapse protocol: fork→evolve→converge→collapse→re-fork lifecycle complete; CollapseRecord frozen+hash-linked audit trail
 ForkTree: DAG of universe genealogy across epoch boundaries; tree_hash commits full causal lineage in one 64-char digest
 GraceSupervisor: self-healing Grace Loop — fault isolation, state reversion, GraceEvent audit chain, GraceCertificate
-Test count: 2531 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
+SlabAllocator: 4-tier epoch slab allocator; 64-bit bigint bitmaps; decommission at F_6 epochs; MAX_SLABS_PER_TIER=8
+Test count: 2563 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
 Holonic triad: PROVEN at 1/φ across three scales
 Martingale: E[S_{n+1}|F_n] = S_n — ANCHORED
 Replay: is_replay_reconstructable = true on all records
