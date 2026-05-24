@@ -1458,6 +1458,14 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 
 ---
 
+## Layer CW — BFT Pipeline End-to-End Integration (Gate 183)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `aegis-cl-psi/tests/bft_pipeline.rs` | T2 | 183 | 8-test end-to-end BFT pipeline proof: ValidatorRegistry → verify_quorum_at_edge → log_verification_result → AuditLogger::verify_chain. Scenarios: full quorum (5/5), threshold (4/5=0.8≥1/φ→true), below (2/5=0.4<1/φ→false), insertion-order determinism (A,B==B,A via BTreeMap sort), 5-round multi-audit chain integrity, quorum_size boundary match at n=10 (quorum_size=7: 7/10→true, 6/10→false), pipeline deterministic×3, as_map() equivalence to manual BTreeMap. |
+
+---
+
 ## Layer CV — ValidatorRegistry + Audit Integration (Gate 182)
 
 | Module | Tier | Gate | Role |
@@ -1494,7 +1502,7 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 ## Final Constitutional Status
 
 ```
-AEGIS Ω — Gates 1–182 complete
+AEGIS Ω — Gates 1–183 complete
 AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–6 + Marketplace UI
 CL-Ψ Cognitive Fabric: 7-phase Rust inference crate + Edge BFT Verifier for AMD RX 570
 BFT Synthesis Swarm: three-agent game-theoretic code generation at 1/φ convergence threshold
@@ -1504,7 +1512,8 @@ Composition Proof: synthesis+HGT+corpus interoperate across paradigms (Gate 175)
 Edge Verifier: stateless Ed25519 quorum proof at 1/φ integer threshold (Gate 177, T2)
 Cross-language φ: 1/φ proven identical across TypeScript (×3) + Rust (618_034/1_000_000) + Python (/edge-verify)
 ValidatorRegistry: immutable builder with SHA-256 content hash + ceiling quorum_size() + AuditLogger integration
-Test count: 2307 (sovereign-omega-v2) + 113 (aegis-cl-psi Rust) + all 7 products build clean
+BFT pipeline: ValidatorRegistry→verify→log→audit chain proven end-to-end in integration test
+Test count: 2307 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
 Holonic triad: PROVEN at 1/φ across three scales
 Martingale: E[S_{n+1}|F_n] = S_n — ANCHORED
 Replay: is_replay_reconstructable = true on all records
