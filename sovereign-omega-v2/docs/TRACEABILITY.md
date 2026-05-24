@@ -1458,6 +1458,15 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 
 ---
 
+## Layer DC — MultiverseRegistry — Multi-Branch Causal Governance (Gate 189)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `src/memory/multiverse.ts` | T2 | 189 | `MultiverseRegistry` — multi-branch causal governance. Each "universe" = named `AdaptiveLineage` fork from a declared `fork_point`. `fork()` creates a new branch (MAX_UNIVERSES=8 = MAX_SIMULATION_DEPTH = F_6, Fibonacci-capped ecology bound). `appendToUniverse()` appends `AdaptiveEvent` to named universe lineage; `BoundedGeneration` tracks per-universe evolution count — saturation (⊥) permanently closes universe. `checkConvergence()` tallies each universe's `lastHash` via `tallyVotes()` at 1/φ threshold — the same golden-ratio constant governing swarm consensus and martingale mutation rate. `certifyAll()` calls `certifyMartingale()` per universe, returning sorted `UniverseCertification[]`. `listUniverses()` returns alphabetically sorted IDs (no Map iteration order — deterministic). Immutable pattern throughout. |
+| `test/unit/multiverse.test.ts` | T2 | 189 | 35 tests: MAX_UNIVERSES=MAX_SIMULATION_DEPTH=8; empty/fork/duplicate-throws/ecology-cap/immutability/fork-hash-64/fork-deterministic×3/independent-universes/append-chains/convergence-on-genesis/diverged-partial-quorum/certifyAll-sorted/entropy-bounded-per-universe (hot=false, cold=true)/fork-hash-preserved/three-parallel-independence. |
+
+---
+
 ## Layer DB — Bounded Generation Camera + Exclusive Slot Map (Gate 188)
 
 | Module | Tier | Gate | Role |
@@ -1546,7 +1555,7 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 ## Final Constitutional Status
 
 ```
-AEGIS Ω — Gates 1–188 complete
+AEGIS Ω — Gates 1–189 complete
 AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–6 + Marketplace UI
 CL-Ψ Cognitive Fabric: 7-phase Rust inference crate + Edge BFT Verifier for AMD RX 570
 BFT Synthesis Swarm: three-agent game-theoretic code generation at 1/φ convergence threshold
@@ -1562,7 +1571,8 @@ Martingale-synthesis: 61/62 boundary proven with real synthesis records — four
 Shapley attribution: game-theory.ts — closed-form φ_A+φ_B+φ_G=v(N) for 3-agent synthesis game
 Shapley-Martingale: joint composition proven — each layer certifies independently, 61/62 boundary preserved
 Bounded generation: BoundedGeneration (ℤ_{2^32} ⊎ {⊥}) + ExclusiveSlotMap + Coq/Iris formal spec (T2/T3)
-Test count: 2410 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
+Multiverse: MultiverseRegistry — MAX_UNIVERSES=8 parallel AdaptiveLineage branches; convergence at 1/φ via tallyVotes
+Test count: 2445 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
 Holonic triad: PROVEN at 1/φ across three scales
 Martingale: E[S_{n+1}|F_n] = S_n — ANCHORED
 Replay: is_replay_reconstructable = true on all records
