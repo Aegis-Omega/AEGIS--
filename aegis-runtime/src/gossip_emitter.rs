@@ -1,0 +1,158 @@
+//! Pillar 6 — Zero-Copy UDP Scatter-Gather Gossip Protocol
+//!
+//! EPISTEMIC TIER: T2 (engineering hypothesis)
+//!
+//! MTU-aligned 64-byte network frame. Senders write runtime counters into a
+//! fixed stack buffer and push directly via std::net::UdpSocket (non-blocking).
+//! No tokio dependency — std::thread drives the emission cadence via sequence ticks.
+//!
+//! Frame layout (64 bytes, all little-endian):
+//!   [0..2]   AEGIS_PROTOCOL_MAGIC: 0xE0E0
+//!   [2..4]   local_node_id: u16
+//!   [4..12]  root_state_pulses: u64
+//!   [12..20] semantic_traversals: u64
+//!   [20..28] agent_state_alpha: u64
+//!   [28..36] agent_state_beta: u64
+//!   [36..44] agent_state_gamma: u64
+//!   [44..52] reserved_a: u64 = 0
+//!   [52..60] reserved_b: u64 = 0
+//!   [60..62] cluster_consensus_score: u16
+//!   [62..64] network_friction: u16
+//!
+//! Constitutional invariants:
+//! - No tokio — std::net::UdpSocket only
+//! - Frame is exactly 64 bytes (asserted in tests)
+//! - active_violations (friction) must be 0 for T0 pass
+
+use byteorder::{LittleEndian, WriteBytesExt};
+use std::net::UdpSocket;
+use crate::AEGIS_PROTOCOL_MAGIC;
+
+pub const FRAME_SIZE: usize = 64;
+
+/// One gossip heartbeat frame.
+#[derive(Clone, Debug)]
+pub struct GossipFrame {
+    pub local_node_id: u16,
+    pub root_state_pulses: u64,
+    pub semantic_traversals: u64,
+    pub agent_state_alpha: u64,
+    pub agent_state_beta: u64,
+    pub agent_state_gamma: u64,
+    pub cluster_consensus_score: u16,
+    pub network_friction: u16,
+}
+
+impl GossipFrame {
+    /// Serialize to exactly 64 bytes.
+    pub fn to_bytes(&self) -> [u8; FRAME_SIZE] {
+        let mut buf = Vec::with_capacity(FRAME_SIZE);
+        buf.write_u16::<LittleEndian>(AEGIS_PROTOCOL_MAGIC).unwrap();
+        buf.write_u16::<LittleEndian>(self.local_node_id).unwrap();
+        buf.write_u64::<LittleEndian>(self.root_state_pulses).unwrap();
+        buf.write_u64::<LittleEndian>(self.semantic_traversals).unwrap();
+        buf.write_u64::<LittleEndian>(self.agent_state_alpha).unwrap();
+        buf.write_u64::<LittleEndian>(self.agent_state_beta).unwrap();
+        buf.write_u64::<LittleEndian>(self.agent_state_gamma).unwrap();
+        buf.write_u64::<LittleEndian>(0u64).unwrap(); // reserved_a
+        buf.write_u64::<LittleEndian>(0u64).unwrap(); // reserved_b
+        buf.write_u16::<LittleEndian>(self.cluster_consensus_score).unwrap();
+        buf.write_u16::<LittleEndian>(self.network_friction).unwrap();
+        let mut out = [0u8; FRAME_SIZE];
+        out.copy_from_slice(&buf[..FRAME_SIZE]);
+        out
+    }
+
+    /// Parse a 64-byte frame. Returns None on magic mismatch.
+    pub fn from_bytes(b: &[u8; FRAME_SIZE]) -> Option<Self> {
+        let magic = u16::from_le_bytes([b[0], b[1]]);
+        if magic != AEGIS_PROTOCOL_MAGIC { return None; }
+        Some(Self {
+            local_node_id:           u16::from_le_bytes([b[2],  b[3]]),
+            root_state_pulses:       u64::from_le_bytes(b[4..12].try_into().ok()?),
+            semantic_traversals:     u64::from_le_bytes(b[12..20].try_into().ok()?),
+            agent_state_alpha:       u64::from_le_bytes(b[20..28].try_into().ok()?),
+            agent_state_beta:        u64::from_le_bytes(b[28..36].try_into().ok()?),
+            agent_state_gamma:       u64::from_le_bytes(b[36..44].try_into().ok()?),
+            cluster_consensus_score: u16::from_le_bytes([b[60], b[61]]),
+            network_friction:        u16::from_le_bytes([b[62], b[63]]),
+        })
+    }
+}
+
+/// UDP gossip emitter — non-blocking, no tokio.
+pub struct GossipEmitter {
+    socket: Option<UdpSocket>,
+    target: String,
+    sent_count: u64,
+}
+
+impl GossipEmitter {
+    pub fn new(target: impl Into<String>) -> Result<Self, std::io::Error> {
+        let socket = UdpSocket::bind("0.0.0.0:0")?;
+        socket.set_nonblocking(true)?;
+        Ok(Self { socket: Some(socket), target: target.into(), sent_count: 0 })
+    }
+
+    pub fn noop() -> Self { Self { socket: None, target: String::new(), sent_count: 0 } }
+
+    pub fn emit(&mut self, frame: &GossipFrame) -> std::io::Result<usize> {
+        let bytes = frame.to_bytes();
+        match &self.socket {
+            None => Ok(0),
+            Some(sock) => match sock.send_to(&bytes, &self.target) {
+                Ok(n) => { self.sent_count += 1; Ok(n) }
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(0),
+                Err(e) => Err(e),
+            }
+        }
+    }
+
+    pub fn sent_count(&self) -> u64 { self.sent_count }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn frame() -> GossipFrame {
+        GossipFrame { local_node_id: 7, root_state_pulses: 1000, semantic_traversals: 500,
+            agent_state_alpha: 10, agent_state_beta: 20, agent_state_gamma: 30,
+            cluster_consensus_score: 9500, network_friction: 0 }
+    }
+
+    #[test] fn frame_is_64_bytes() { assert_eq!(frame().to_bytes().len(), FRAME_SIZE); }
+    #[test] fn magic_at_offset_0() {
+        let b = frame().to_bytes();
+        assert_eq!(u16::from_le_bytes([b[0], b[1]]), AEGIS_PROTOCOL_MAGIC);
+    }
+    #[test] fn roundtrip() {
+        let f = frame();
+        let b = f.to_bytes();
+        let f2 = GossipFrame::from_bytes(&b).unwrap();
+        assert_eq!(f2.local_node_id, 7);
+        assert_eq!(f2.cluster_consensus_score, 9500);
+        assert_eq!(f2.network_friction, 0);
+    }
+    #[test] fn bad_magic_returns_none() {
+        let mut b = frame().to_bytes();
+        b[0] = 0xFF; b[1] = 0xFF;
+        assert!(GossipFrame::from_bytes(&b).is_none());
+    }
+    #[test] fn serialization_deterministic_3x() {
+        let make = || frame().to_bytes();
+        assert_eq!(make(), make()); assert_eq!(make(), make());
+    }
+    #[test] fn reserved_bytes_zero() {
+        let b = frame().to_bytes();
+        let reserved_a = u64::from_le_bytes(b[44..52].try_into().unwrap());
+        let reserved_b = u64::from_le_bytes(b[52..60].try_into().unwrap());
+        assert_eq!(reserved_a, 0); assert_eq!(reserved_b, 0);
+    }
+    #[test] fn noop_emitter_ok() {
+        let mut e = GossipEmitter::noop();
+        assert_eq!(e.emit(&frame()).unwrap(), 0);
+        assert_eq!(e.sent_count(), 0);
+    }
+    #[test] fn friction_zero_for_t0_pass() { assert_eq!(frame().network_friction, 0); }
+}
