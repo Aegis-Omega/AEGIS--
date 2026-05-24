@@ -1458,6 +1458,14 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 
 ---
 
+## Layer CX — Synthesis Swarm Adversarial Integration (Gate 184)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `test/integration/synthesis-adversarial.test.ts` | T2 | 184 | 11-test adversarial proof of all three non-COMMITTED synthesis paths. REJECTED: Gamma explicit rejection overrides convergence. MALFORMED: Gamma parse failure → REJECTED (exception swallowed). DEADLOCK: Gamma COMMITTED but Alpha (rich features) vs Beta (minimal) structural_similarity < 1/φ ≈ 0.618034 → converged=false → DEADLOCK. Committed reference path verified. Cross-record: different tasks → different synthesis_hash; same task×3 → identical synthesis_hash (deterministic). AdaptiveLineage: 3 REJECTED synthesis hashes → CAPABILITY_EVOLUTION chain → certifyAdaptiveLineage is_valid=true; 4-entry mixed COMMITTED/REJECTED chain → valid. |
+
+---
+
 ## Layer CW — BFT Pipeline End-to-End Integration (Gate 183)
 
 | Module | Tier | Gate | Role |
@@ -1502,7 +1510,7 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 ## Final Constitutional Status
 
 ```
-AEGIS Ω — Gates 1–183 complete
+AEGIS Ω — Gates 1–184 complete
 AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–6 + Marketplace UI
 CL-Ψ Cognitive Fabric: 7-phase Rust inference crate + Edge BFT Verifier for AMD RX 570
 BFT Synthesis Swarm: three-agent game-theoretic code generation at 1/φ convergence threshold
@@ -1513,7 +1521,8 @@ Edge Verifier: stateless Ed25519 quorum proof at 1/φ integer threshold (Gate 17
 Cross-language φ: 1/φ proven identical across TypeScript (×3) + Rust (618_034/1_000_000) + Python (/edge-verify)
 ValidatorRegistry: immutable builder with SHA-256 content hash + ceiling quorum_size() + AuditLogger integration
 BFT pipeline: ValidatorRegistry→verify→log→audit chain proven end-to-end in integration test
-Test count: 2307 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
+Synthesis adversarial: REJECTED/DEADLOCK/parse-fail paths + AdaptiveLineage chaining proven
+Test count: 2318 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
 Holonic triad: PROVEN at 1/φ across three scales
 Martingale: E[S_{n+1}|F_n] = S_n — ANCHORED
 Replay: is_replay_reconstructable = true on all records
