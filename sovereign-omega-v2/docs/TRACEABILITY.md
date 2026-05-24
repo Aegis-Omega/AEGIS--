@@ -1458,6 +1458,15 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 
 ---
 
+## Layer DE — Multiverse Collapse Protocol (Gate 191)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `src/memory/collapse.ts` | T2 | 191 | `collapseMultiverse(registry, convergence, sequence)` — decoherence of parallel universes into one canonical timeline. Requires `quorum_reached=true`. Winner = alphabetically first `converged_universe_id` (deterministic). All non-winning universes sealed: `SealedUniverse[]` records terminal_hash+lineage_length+fork_hash for full audit trail. Winner's lineage replayed into new `MultiverseRegistry` under `canonical` ID. `CollapseRecord` frozen + hash-linked: `collapse_hash = hashValue(winner_id, winner_hash, sealed_hashes, convergence_hash, sequence)`. Post-collapse registry can fork new timelines from `canonical`. `CollapseError` on no-quorum or empty converged set. Lifecycle complete: fork → evolve → converge → collapse → re-fork. |
+| `test/unit/collapse.test.ts` | T2 | 191 | 21 tests: COLLAPSE_SCHEMA_VERSION=1.0.0; CollapseError is Error; collapse produces frozen record; collapse_hash 64-char hex; canonical_id='canonical'; output registry has only 1 universe; throws on quorum_reached=false; total_collapsed=universeCount-1; winner_hash matches quorum_hash; deterministic×3; different sequence→different hash; canonical lineage length=winner length; canonical certifies correctly; post-collapse fork works; sealed_universes records terminal_hashes correctly; sealed fork_hashes match originals. |
+
+---
+
 ## Layer DD — Multiverse Holonic Composition (Gate 190)
 
 | Module | Tier | Gate | Role |
@@ -1563,7 +1572,7 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 ## Final Constitutional Status
 
 ```
-AEGIS Ω — Gates 1–190 complete
+AEGIS Ω — Gates 1–191 complete
 AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–6 + Marketplace UI
 CL-Ψ Cognitive Fabric: 7-phase Rust inference crate + Edge BFT Verifier for AMD RX 570
 BFT Synthesis Swarm: three-agent game-theoretic code generation at 1/φ convergence threshold
@@ -1581,7 +1590,8 @@ Shapley-Martingale: joint composition proven — each layer certifies independen
 Bounded generation: BoundedGeneration (ℤ_{2^32} ⊎ {⊥}) + ExclusiveSlotMap + Coq/Iris formal spec (T2/T3)
 Multiverse: MultiverseRegistry — MAX_UNIVERSES=8 parallel AdaptiveLineage branches; convergence at 1/φ via tallyVotes
 Multiverse composition: all constitutional layers (synthesis, Shapley, martingale, swarm) compose correctly across universes
-Test count: 2457 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
+Collapse protocol: fork→evolve→converge→collapse→re-fork lifecycle complete; CollapseRecord frozen+hash-linked audit trail
+Test count: 2478 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
 Holonic triad: PROVEN at 1/φ across three scales
 Martingale: E[S_{n+1}|F_n] = S_n — ANCHORED
 Replay: is_replay_reconstructable = true on all records
