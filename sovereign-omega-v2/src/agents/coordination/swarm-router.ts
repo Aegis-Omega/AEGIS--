@@ -50,10 +50,11 @@ export interface ModelEndpoint {
 // ─── Task — the unit of work dispatched to the swarm ─────
 
 export interface SwarmTask {
-  readonly task_id: SHA256Hex       // hashValue({prompt_hash, sequence})
-  readonly prompt_hash: SHA256Hex   // hashValue(raw prompt bytes) — not the prompt
+  readonly task_id: SHA256Hex         // hashValue({prompt_hash, sequence[, constitution_hash]})
+  readonly prompt_hash: SHA256Hex     // hashValue(raw prompt bytes) — not the prompt
   readonly schema_version: typeof SWARM_ROUTER_SCHEMA_VERSION
   readonly sequence: SequenceNumber
+  readonly directive_hash?: SHA256Hex // optional: constitution fingerprint at dispatch time
   readonly is_replay_reconstructable: true
 }
 
@@ -130,17 +131,20 @@ export class ModelRegistry {
 export async function buildSwarmTask(
   promptBytes: Uint8Array,
   sequence: SequenceNumber,
+  constitutionHash?: SHA256Hex,
 ): Promise<SwarmTask> {
   const prompt_hash = await hashValue({ bytes: Array.from(promptBytes) })
   const task_id = await hashValue({
     prompt_hash,
     sequence: sequence.toString(),
+    ...(constitutionHash !== undefined ? { constitution_hash: constitutionHash } : {}),
   })
   return deepFreeze<SwarmTask>({
     task_id,
     prompt_hash,
     schema_version: SWARM_ROUTER_SCHEMA_VERSION,
     sequence,
+    ...(constitutionHash !== undefined ? { directive_hash: constitutionHash } : {}),
     is_replay_reconstructable: true,
   })
 }
