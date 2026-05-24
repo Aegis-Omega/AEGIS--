@@ -1,8 +1,4 @@
-// ============================================================
-// CorpusEngine — 5-phase RALPH pipeline
-// EPISTEMIC TIER: T2 · Gate 144
-// Phase fibonacci_depths: [1,1,2,3,5] (F_1..F_5)
-// ============================================================
+// CorpusEngine — 5-phase RALPH pipeline · T2 · fibonacci_depths [1,1,2,3,5]
 
 import type { SHA256Hex } from '../core/types.js'
 import { hashValue } from '../core/hashing.js'
@@ -11,6 +7,7 @@ import { fibonacciInterval } from '../agents/scheduler/fibonacci.js'
 import type {
   CorpusDocument, RalphPhaseRecord, CorpusLineageRecord, RalphPhase, DocumentTier,
 } from './types.js'
+import { visitSections, sectionText } from './section-visitor.js'
 
 const PHASES: readonly RalphPhase[] = [
   'OBSERVATION', 'INTERPRETATION', 'ARBITRATION', 'MUTATION', 'PROPAGATION',
@@ -37,8 +34,11 @@ const DOMAIN_SIGNALS: Array<[RegExp, string]> = [
 
 function extractDomainSignals(content: string): readonly string[] {
   const found: string[] = []
-  for (const [pattern, domain] of DOMAIN_SIGNALS) {
-    if (pattern.test(content) && !found.includes(domain)) found.push(domain)
+  for (const section of visitSections(content)) {
+    const text = sectionText(section)
+    for (const [pattern, domain] of DOMAIN_SIGNALS) {
+      if (pattern.test(text) && !found.includes(domain)) found.push(domain)
+    }
   }
   return found.length > 0 ? found : ['general']
 }
