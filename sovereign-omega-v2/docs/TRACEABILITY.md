@@ -1458,6 +1458,15 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 
 ---
 
+## Layer DG — GraceSupervisor: Self-Healing Grace Loop (Gate 193)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `src/memory/grace-supervisor.ts` | T2 | 193 | `GraceSupervisor` — fault-tolerant execution wrapper implementing the Self-Healing Runtime Grace Loop. Constitutional translation: "Trap Interception" → `catch(MultiverseError \| AdaptiveLineageError)`; "State Reversion" → pre-fault `MultiverseRegistry` retained automatically (immutable pattern); "Restitution Phase" → frozen `GraceEvent` commits fault to audit chain. `FaultClass` enum: `ECOLOGY_OVERFLOW \| DUPLICATE_UNIVERSE \| SEQUENCE_VIOLATION \| GENERATION_SATURATED`. `executeWithGrace()` wraps any registry operation — on success forwards new registry; on recoverable fault retains pre-fault registry, records `GraceEvent` with `grace_hash = hashValue({fault_class, faulted_universe_id, pre_fault_node_count, sequence})`. Unrecoverable errors rethrow. `certify()` produces `GraceCertificate` with `grace_chain_hash` committing full fault history. Dual-memory model: `AdaptiveLineage` = memory 0 (durable, never discarded); volatile working state = memory 1 (not committed on fault — immutable pattern provides this free). |
+| `test/unit/grace-supervisor.test.ts` | T2 | 193 | 22 tests: GRACE_SCHEMA_VERSION=1.0.0; GraceError is Error; create/graceEventCount=0; success path forwards registry + faulted=false + null grace_event; immutable (original unchanged); chained success; ECOLOGY_OVERFLOW fault faulted=true + grace_event set + fault_class correct + pre-fault registry retained + graceEventCount increments×2; DUPLICATE_UNIVERSE fault_class; grace_event frozen; grace_hash 64-char hex; deterministic×3; different sequences→different hashes; is_replay_reconstructable + schema_version; certify frozen; fault_class_counts accumulate; grace_chain_hash deterministic×3; unrecoverable TypeError rethrows. |
+
+---
+
 ## Layer DF — ForkTree: DAG of Universe Genealogy (Gate 192)
 
 | Module | Tier | Gate | Role |
@@ -1581,7 +1590,7 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 ## Final Constitutional Status
 
 ```
-AEGIS Ω — Gates 1–192 complete
+AEGIS Ω — Gates 1–193 complete
 AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–6 + Marketplace UI
 CL-Ψ Cognitive Fabric: 7-phase Rust inference crate + Edge BFT Verifier for AMD RX 570
 BFT Synthesis Swarm: three-agent game-theoretic code generation at 1/φ convergence threshold
@@ -1601,7 +1610,8 @@ Multiverse: MultiverseRegistry — MAX_UNIVERSES=8 parallel AdaptiveLineage bran
 Multiverse composition: all constitutional layers (synthesis, Shapley, martingale, swarm) compose correctly across universes
 Collapse protocol: fork→evolve→converge→collapse→re-fork lifecycle complete; CollapseRecord frozen+hash-linked audit trail
 ForkTree: DAG of universe genealogy across epoch boundaries; tree_hash commits full causal lineage in one 64-char digest
-Test count: 2509 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
+GraceSupervisor: self-healing Grace Loop — fault isolation, state reversion, GraceEvent audit chain, GraceCertificate
+Test count: 2531 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
 Holonic triad: PROVEN at 1/φ across three scales
 Martingale: E[S_{n+1}|F_n] = S_n — ANCHORED
 Replay: is_replay_reconstructable = true on all records
