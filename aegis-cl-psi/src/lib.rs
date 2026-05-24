@@ -65,6 +65,9 @@ pub mod triadic_merkle_node;
 // Gate 208 — Holonic State Machine (T2, orchestrates 3-layer escalation with BFT consensus)
 pub mod holonic_state;
 
+// Gate 211 — Orthogonal Domain Verifier (T2, |dot(C,O)| < ε enforces D0 ∩ D1 = ∅)
+pub mod orthogonal_verifier;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
