@@ -62,6 +62,15 @@ pub mod pyramidal_stack;
 // Gate 207 — Dodecagonal Mesh Engine (T2, transforms pyramid into 12-fold quasicrystalline lattice)
 pub mod dodecagonal_mesh;
 
+// Gate 208 — Geometric Variance Engine (T2, replaces scalar sums with tensor-alignment metrics)
+pub mod geometric_variance;
+
+// Gate 208 — Triadic Merkle-Patricia Node (T2, gates state mutations behind geometric variance checks)
+pub mod triadic_merkle_node;
+
+// Gate 208 — Holonic State Machine (T2, orchestrates 3-layer escalation with BFT consensus)
+pub mod holonic_state;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
