@@ -53,6 +53,15 @@ pub mod edge_verifier;
 // Gate 206 — Causal Confidence Arbiter (T2, prevents hallucination via confidence bounding)
 pub mod causal_arbiter;
 
+// Gate 207 — Adaptive Lineage Compaction Engine (T2, reduces memory footprint while preserving audit trail)
+pub mod lineage_compactor;
+
+// Gate 207 — Pyramidal Stack Engine (T2, computes cumulative causal capacity using square pyramidal numbers)
+pub mod pyramidal_stack;
+
+// Gate 207 — Dodecagonal Mesh Engine (T2, transforms pyramid into 12-fold quasicrystalline lattice)
+pub mod dodecagonal_mesh;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
