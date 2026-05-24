@@ -1458,6 +1458,15 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 
 ---
 
+## Layer DF — ForkTree: DAG of Universe Genealogy (Gate 192)
+
+| Module | Tier | Gate | Role |
+|--------|------|------|------|
+| `src/memory/fork-tree.ts` | T2 | 192 | `ForkTree` — directed acyclic graph of universe genealogy across multiple collapse-and-rebirth cycles. Every `fork()` adds a `ForkNode` (universe_id, parent: string|'genesis', fork_hash, sequence, is_sealed, node_hash). Every collapse seals losing universes and appends a `CollapseEvent` to ordered history. Ancestry via `getAncestry()` (path from genesis to universe, cycle-guarded with Set). `getChildren()` maps parent→child ids. `certify()` produces frozen `ForkTreeCertificate` with `tree_hash = hashValue(sorted node_hashes + event_hashes, sequence)` — one 64-char digest commits the entire DAG. Tree grows monotonically: nodes never removed, only sealed. Enables full causal lineage across epoch boundaries. Immutable pattern throughout: all mutations return new ForkTree instance. |
+| `test/unit/fork-tree.test.ts` | T2 | 192 | 31 tests: FORK_TREE_SCHEMA_VERSION=1.0.0; ForkTreeError is Error; empty/nodeCount=0; recordFork→frozen ForkNode; node_hash 64-char hex; duplicate throws ForkTreeError; non-genesis parent; node_hash deterministic×3; different universe_id→different hash; getChildren returns direct children; getNode found/null; getAncestry unknown→[]; getAncestry single; getAncestry 3-level chain; depth=1/depth=3; recordCollapse seals losers; CollapseEvent event_hash 64-char hex; collapseCount increments; getCollapseEvents ordered; event_hash deterministic×3; certify frozen; tree_hash 64-char hex; certificate fields correct; tree_hash deterministic×3; different trees→different tree_hashes. |
+
+---
+
 ## Layer DE — Multiverse Collapse Protocol (Gate 191)
 
 | Module | Tier | Gate | Role |
@@ -1572,7 +1581,7 @@ Boundary: 61/100 (bounded) · 62/100 (suspended) — greatest integer < 100·(1/
 ## Final Constitutional Status
 
 ```
-AEGIS Ω — Gates 1–191 complete
+AEGIS Ω — Gates 1–192 complete
 AGI Swarm Framework: Fibonacci-paced RALPH loops + Skill Harness Phase 1–6 + Marketplace UI
 CL-Ψ Cognitive Fabric: 7-phase Rust inference crate + Edge BFT Verifier for AMD RX 570
 BFT Synthesis Swarm: three-agent game-theoretic code generation at 1/φ convergence threshold
@@ -1591,7 +1600,8 @@ Bounded generation: BoundedGeneration (ℤ_{2^32} ⊎ {⊥}) + ExclusiveSlotMap 
 Multiverse: MultiverseRegistry — MAX_UNIVERSES=8 parallel AdaptiveLineage branches; convergence at 1/φ via tallyVotes
 Multiverse composition: all constitutional layers (synthesis, Shapley, martingale, swarm) compose correctly across universes
 Collapse protocol: fork→evolve→converge→collapse→re-fork lifecycle complete; CollapseRecord frozen+hash-linked audit trail
-Test count: 2478 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
+ForkTree: DAG of universe genealogy across epoch boundaries; tree_hash commits full causal lineage in one 64-char digest
+Test count: 2509 (sovereign-omega-v2) + 121 (aegis-cl-psi Rust) + all 7 products build clean
 Holonic triad: PROVEN at 1/φ across three scales
 Martingale: E[S_{n+1}|F_n] = S_n — ANCHORED
 Replay: is_replay_reconstructable = true on all records
