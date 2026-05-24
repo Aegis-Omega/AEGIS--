@@ -105,6 +105,26 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 out = {'status': 'error', 'stderr': result.stderr.decode()[:200]}
             self._respond(200, out)
 
+        elif self.path == '/edge-verify':
+            # Stateless 1/φ quorum threshold check — same integer approximation as
+            # aegis-cl-psi/src/edge_verifier.rs (618_034/1_000_000 ≈ 0.618034 ≈ 1/φ).
+            # Actual Ed25519 verification happens at the Rust/WASM layer; this endpoint
+            # applies the threshold rule to pre-computed counts.
+            valid_count = int(data.get('valid_count', 0))
+            total_count = int(data.get('total_count', 0))
+            sequence = int(data.get('sequence', 0))
+            if total_count <= 0:
+                self._respond(400, {'error': 'total_count must be > 0'})
+                return
+            is_quorum_verified = valid_count * 1_000_000 >= total_count * 618_034
+            self._respond(200, {
+                'is_quorum_verified': is_quorum_verified,
+                'valid_count': valid_count,
+                'total_count': total_count,
+                'sequence': sequence,
+                'threshold': '618034/1000000',
+            })
+
         else:
             self._respond(404, {'error': 'NOT_FOUND'})
 
