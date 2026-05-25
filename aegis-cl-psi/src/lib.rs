@@ -175,6 +175,19 @@ pub mod swarm_health;
 // Stable/Nominal/Elevated/Critical/Terminal. adaptive_permitted() blocks at Critical+.
 pub mod divergence_oracle;
 
+// Gate 239 — Resilience Watchdog: rolling-window constitutional stability tracker (T2)
+// Recovering/Stable/Oscillating/Degrading/Insufficient. oscillation_count ≥ 2 → intervention.
+pub mod resilience_watchdog;
+
+// Gate 240 — Constitutional Pulse: compact 3-byte epoch health signal (T2)
+// Green/Yellow/Red triad from HealthVerdict + ResilienceVerdict + DivergenceClass.
+// PulseChain hash-linked by SHA-256(prev ‖ pulse_bytes[3] ‖ epoch_be8).
+pub mod constitutional_pulse;
+
+// Gate 241 — Adaptive Threshold Engine: dynamic constitutional alert thresholds (T2)
+// ThresholdProfile derived from rolling baseline × 1/φ. Clear/EntropyAlert/CoherenceAlert/BothAlert.
+pub mod adaptive_threshold;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
