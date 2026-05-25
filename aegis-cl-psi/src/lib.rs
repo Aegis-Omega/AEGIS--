@@ -218,6 +218,11 @@ pub mod health_aggregator;
 // frame_hash = SHA-256(prev ‖ condition_byte ‖ trend_byte ‖ epoch_be8).
 pub mod health_dashboard;
 
+// Gate 249 — Epoch Health Ledger: tamper-evident running health record (T2)
+// HealthLedgerEntry per epoch; ledger_hash = SHA-256(prev ‖ frame_hash ‖ condition ‖ epoch).
+// worst_condition(), critical_epoch_count(), thriving_epoch_count(), verify_chain().
+pub mod epoch_health_ledger;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
