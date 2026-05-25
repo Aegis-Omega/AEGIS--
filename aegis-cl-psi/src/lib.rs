@@ -144,6 +144,10 @@ pub mod coherence_broadcaster;
 // SHA-256(epoch ‖ frame ‖ prev_hash). Breach detection. Terminal hash certification.
 pub mod epoch_coherence_chain;
 
+// Gate 231 — Constitutional Autonode: unified T2 state machine (resonance + cert + coherence + chain)
+// One tick() = full constitutional cycle. AdaptivePower(T) ≤ ReplayVerifiability(T) made concrete.
+pub mod constitutional_autonode;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
