@@ -27,7 +27,7 @@ export function InputBar({ value, streaming, onChange, onSend, onStop }: InputBa
           value={value}
           onChange={e => onChange(e.target.value)}
           onKeyDown={handleKey}
-          placeholder="Message AEGIS…"
+          placeholder="Invoke the constitutional pipeline…"
           rows={1}
           className="flex-1 bg-transparent text-sm text-aegis-text placeholder-aegis-muted resize-none focus:outline-none max-h-32 overflow-y-auto"
         />

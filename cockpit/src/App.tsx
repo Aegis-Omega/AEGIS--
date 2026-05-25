@@ -10,14 +10,24 @@ import type { Provider } from './lib/agent.js'
 
 type AppTab = 'chat' | 'skills'
 
-const DEFAULT_SYSTEM = `You are AEGIS, sovereign intelligence assistant of the Sovereign Omega governance runtime.
+const DEFAULT_SYSTEM = `You are AEGIS-Ω, the Orchestration Alliance Coordinator of the Constitutional AI Runtime.
 
-Epistemic tiers: T0 (mechanically proven) · T1 (empirically validated) · T2 (engineering hypothesis) · T3–T5 (conjecture/speculative/creative). Never ground T0–T2 claims on T4–T5.
+CONSTITUTIONAL INVARIANTS (enforce in every response):
+1. EPISTEMIC SOVEREIGNTY: Tag every claim with its tier — T0 (proven) · T1 (validated) · T2 (hypothesis) · T3 (conjecture). Never collapse uncertainty.
+2. CAUSAL ARCHITECTURE: Every assertion must have a traceable causal chain. No groundless claims.
+3. OPERATIONAL REALISM: AdaptivePower(T) ≤ ReplayVerifiability(T). You may not claim beyond replay-verifiable bounds.
+4. ADVERSARIAL SELF-CORRECTION: Flag the weakest point in every argument you make.
 
-When asked for governance decisions, structure output as JSON:
-{ "score": 0–100, "strengths": [3], "risks": [3], "positioning": "…", "actions": [3], "confidence": "heuristic|retrieval|ground_truth" }
+MATHEMATICAL SUBSTRATE:
+- Martingale: E[S_{n+1}|F_n] = S_n — governance is anchored to certified state
+- 1/φ ≈ 0.6180 — BFT quorum threshold = mutation rate limit = martingale suspension point
+- Tajweed DFA (T1) — Arabic phonological state machine, 1,400 yr empirical validation
+- Ring composition A-B-C-B'-A' (T1) — chiastic law isomorphic to constitutional governance
 
-Invariants: Replayability ≠ Correctness. Calibration ≠ Truthfulness. Be concise, precise, epistemically honest.`
+NON-EQUIVALENCE (never conflate):
+Replayability ≠ Correctness · Auditability ≠ Safety · Calibration ≠ Truthfulness · Governance ≠ Alignment
+
+Structure: lead with T0/T1 · separate T2 from T3 · end with your least confident claim.`
 
 const BRIDGE_URL = (import.meta.env.VITE_BRIDGE_URL as string | undefined) ?? 'http://localhost:7890'
 
@@ -44,7 +54,7 @@ export default function App() {
   }, [])
 
   const [tab, setTab] = useState<AppTab>('chat')
-  const [provider, setProvider] = useState<Provider>('dashscope')
+  const [provider, setProvider] = useState<Provider>('claude')
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM)
   const [showSystem, setShowSystem] = useState(false)
   const [input, setInput] = useState('')
@@ -112,6 +122,25 @@ export default function App() {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Constitutional status strip */}
+        <div className="flex items-center gap-4 px-4 py-1.5 border-b border-aegis-border bg-aegis-surface/30 overflow-x-auto shrink-0">
+          <span className="text-aegis-phi font-mono text-xs whitespace-nowrap opacity-80">
+            AdaptivePower(T) ≤ ReplayVerifiability(T)
+          </span>
+          <span className="text-aegis-muted text-xs whitespace-nowrap opacity-40">·</span>
+          <span className="text-aegis-t0 font-mono text-xs whitespace-nowrap opacity-70">
+            E[S&#8407;|F] = S
+          </span>
+          <span className="text-aegis-muted text-xs whitespace-nowrap opacity-40">·</span>
+          <span className="text-aegis-phi font-mono text-xs whitespace-nowrap opacity-70">
+            1/φ ≈ 0.6180
+          </span>
+          <span className="text-aegis-muted text-xs whitespace-nowrap opacity-40">·</span>
+          <span className="text-aegis-t1 font-mono text-xs whitespace-nowrap opacity-70">
+            2733 TS · 200 Rust
+          </span>
+        </div>
+
         {/* Tab bar */}
         <div className="flex items-center border-b border-aegis-border bg-aegis-surface/50">
           <button
