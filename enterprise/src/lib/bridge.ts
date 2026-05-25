@@ -5,6 +5,7 @@ export interface LiveState {
   network:   NetworkReport | null
   resonance: ResonanceData | null
   telemetry: TelemetryData | null
+  coherence: CoherenceData | null
 }
 
 export interface NodeDescriptor {
@@ -56,6 +57,22 @@ export interface TelemetryData {
   drift_index: number
 }
 
+export interface CoherenceData {
+  global_section_exists: boolean
+  satisfied_count: number
+  first_obstruction: number | null
+  coherence_score: number
+  epoch: number
+  levels: {
+    l0_ralph_frame: boolean
+    l1_mutation_authority: boolean
+    l2_resonance: boolean
+    l3_chord_unity: boolean
+    l4_autopoietic: boolean
+  }
+  frame_hex: string
+}
+
 async function safeFetch<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(`${BRIDGE}${path}`, { signal: AbortSignal.timeout(4_000) })
@@ -64,13 +81,14 @@ async function safeFetch<T>(path: string): Promise<T | null> {
 }
 
 export async function fetchLiveState(): Promise<LiveState> {
-  const [node, network, resonance, telemetry] = await Promise.all([
+  const [node, network, resonance, telemetry, coherence] = await Promise.all([
     safeFetch<NodeDescriptor>('/node'),
     safeFetch<NetworkReport>('/network'),
     safeFetch<ResonanceData>('/resonance'),
     safeFetch<TelemetryData>('/telemetry'),
+    safeFetch<CoherenceData>('/coherence'),
   ])
-  return { node, network, resonance, telemetry }
+  return { node, network, resonance, telemetry, coherence }
 }
 
 export function subscribeLiveState(

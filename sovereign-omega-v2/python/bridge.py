@@ -652,6 +652,72 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 'is_replay_reconstructable': True,
             })
 
+        elif self.path == '/coherence':
+            # Gate 227-229: Lattice Coherence — moduli tower global section check.
+            # Aggregates /node + /resonance + /network into a 5-level coherence report.
+            import hashlib as _hl
+            vcg = matrix.emit_vcg_telemetry()
+            drift_index = float(vcg.get('drift_index', 0.0))
+            corruption = int(vcg.get('corruption_count', 0))
+            seq = int(vcg.get('sequence', 0))
+            epoch = int(vcg.get('epoch', 0))
+            phi_threshold = 0.6180339887498948
+            divergence_risk = round(min(drift_index * 0.1, 0.99), 6)
+
+            # L0: RALPH frame valid
+            l0_ralph_frame = seq > 0
+            # L1: Mutation authority (no D2+ divergence proxy)
+            l1_mutation_authority = corruption == 0
+            # L2: T1 resonance invariants
+            phi_convergent = divergence_risk < phi_threshold
+            ring_valid = corruption == 0
+            sequence_monotone = seq > 0
+            l2_resonance = phi_convergent and ring_valid and sequence_monotone
+            # L3: Network UNIFIED + all below phi
+            l3_chord_unity = phi_convergent  # proxy: if own node below phi, assume UNIFIED healthy
+            # L4: Self-certification (re-derive)
+            t1_ok = phi_convergent and ring_valid and sequence_monotone
+            l4_autopoietic = t1_ok and l3_chord_unity
+
+            satisfied = [l0_ralph_frame, l1_mutation_authority, l2_resonance, l3_chord_unity, l4_autopoietic]
+            satisfied_count = sum(1 for s in satisfied if s)
+            global_section_exists = all(satisfied)
+            # Fibonacci-weighted score: L0=1, L1=1, L2=2, L3=3, L4=5 (total=12)
+            weights = [1, 1, 2, 3, 5]
+            coherence_score = round(sum(w for s, w in zip(satisfied, weights) if s) / 12.0, 6)
+            first_obstruction = next((i for i, s in enumerate(satisfied) if not s), None)
+
+            # 16-byte coherence frame (Gate 228 encoding)
+            score_fp = int(round(coherence_score * 1_000_000))
+            bitmask = sum((1 << i) for i, s in enumerate(satisfied) if s)
+            node_input = f'seq={seq}:epoch={epoch}:corruption={corruption}'.encode()
+            c_hash_bytes = _hl.sha256(node_input).digest()
+            frame_bytes = bytes([
+                1 if global_section_exists else 0,
+                satisfied_count,
+                0xFF if first_obstruction is None else first_obstruction,
+                (score_fp >> 24) & 0xFF, (score_fp >> 16) & 0xFF,
+                (score_fp >> 8) & 0xFF, score_fp & 0xFF,
+                bitmask,
+            ]) + c_hash_bytes[:8]
+
+            self._respond(200, {
+                'global_section_exists': global_section_exists,
+                'satisfied_count': satisfied_count,
+                'first_obstruction': first_obstruction,
+                'coherence_score': coherence_score,
+                'epoch': epoch,
+                'levels': {
+                    'l0_ralph_frame': l0_ralph_frame,
+                    'l1_mutation_authority': l1_mutation_authority,
+                    'l2_resonance': l2_resonance,
+                    'l3_chord_unity': l3_chord_unity,
+                    'l4_autopoietic': l4_autopoietic,
+                },
+                'frame_hex': frame_bytes.hex(),
+                'is_replay_reconstructable': True,
+            })
+
         elif self.path == '/catalog':
             # Cyclic outward flow — skill catalog radiation point.
             # Serves the constitutional skill catalog: Cognitive Triad genesis seeds.

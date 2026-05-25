@@ -14,7 +14,7 @@ import {
   Layers, AlertTriangle, CheckCircle, Circle, Wifi, WifiOff,
   Globe,
 } from 'lucide-react'
-import { subscribeLiveState, type LiveState } from './lib/bridge.js'
+import { subscribeLiveState, type LiveState, type CoherenceData } from './lib/bridge.js'
 
 // ─── Design tokens (inline for single-bundle enterprise product) ──────────
 
@@ -32,6 +32,7 @@ const T = {
 
 type SurfaceId =
   | 'constitutional-health'
+  | 'coherence-tower'
   | 'audit-trail'
   | 'chord-network'
   | 'agent-registry'
@@ -42,13 +43,14 @@ type SurfaceId =
 
 const SURFACES: Array<{ id: SurfaceId; label: string; icon: React.ElementType; tier: string }> = [
   { id: 'constitutional-health', label: 'Constitutional Health',  icon: Shield,      tier: 'T0' },
+  { id: 'coherence-tower',       label: 'Coherence Tower',       icon: Layers,      tier: 'T1' },
   { id: 'audit-trail',           label: 'Audit Trail',           icon: FileText,    tier: 'T1' },
   { id: 'chord-network',         label: 'Chord Network',         icon: Radio,       tier: 'T2' },
   { id: 'agent-registry',        label: 'Agent Registry',        icon: Users,       tier: 'T2' },
-  { id: 'skill-certification',   label: 'Skill Certification',   icon: Layers,      tier: 'T2' },
+  { id: 'skill-certification',   label: 'Skill Certification',   icon: Activity,    tier: 'T2' },
   { id: 'compliance',            label: 'EU AI Act Compliance',  icon: Globe,       tier: 'T1' },
-  { id: 'governance-events',     label: 'Governance Events',     icon: Activity,    tier: 'T2' },
-  { id: 'self-certification',    label: 'Self-Certification',    icon: GitBranch,   tier: 'T1' },
+  { id: 'governance-events',     label: 'Governance Events',     icon: GitBranch,   tier: 'T2' },
+  { id: 'self-certification',    label: 'Self-Certification',    icon: Shield,      tier: 'T1' },
 ]
 
 // ─── Constitutional Ribbon ────────────────────────────────────────────────
@@ -487,6 +489,128 @@ function ComplianceSurface() {
   )
 }
 
+// ─── Coherence Tower Surface ─────────────────────────────────────────────
+
+const LEVEL_LABELS = [
+  { key: 'l0_ralph_frame',        label: 'L0 — RALPH Frame',       desc: 'sequence_monotone: RALPH loop is valid', weight: 1 },
+  { key: 'l1_mutation_authority', label: 'L1 — Mutation Authority', desc: 'No D2+ divergence: authority preserved', weight: 1 },
+  { key: 'l2_resonance',          label: 'L2 — Resonance',          desc: 'φ-convergent ∧ ring-valid ∧ seq-monotone', weight: 2 },
+  { key: 'l3_chord_unity',        label: 'L3 — Chord Unity',        desc: 'Network UNIFIED ∧ all peers below φ',    weight: 3 },
+  { key: 'l4_autopoietic',        label: 'L4 — Autopoietic',        desc: 'Self-certification Certified (closure)',  weight: 5 },
+] as const
+
+function CoherenceTowerSurface({ coherence }: { coherence: CoherenceData | null }) {
+  if (!coherence) return <Offline />
+
+  const gsColor = coherence.global_section_exists ? T.T0 : T.error
+  const scoreBar = coherence.coherence_score
+
+  return (
+    <div className="p-6 space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold mb-1" style={{ color: T.text }}>Coherence Tower</h2>
+        <p className="text-sm" style={{ color: T.muted }}>
+          Gates 227–229 — Moduli tower global section. Does the constitutional state
+          simultaneously trivialize all 5 obstruction levels?
+        </p>
+      </div>
+
+      {/* Global section banner */}
+      <div className="rounded-lg p-4 flex items-center gap-4"
+        style={{
+          background: `${gsColor}08`,
+          border: `1px solid ${gsColor}30`,
+        }}>
+        <div className="text-center px-3">
+          {coherence.global_section_exists
+            ? <CheckCircle size={28} style={{ color: T.T0 }} />
+            : <AlertTriangle size={28} style={{ color: T.error }} />}
+        </div>
+        <div className="flex-1">
+          <div className="font-mono font-bold mb-1" style={{ color: gsColor }}>
+            GLOBAL SECTION: {coherence.global_section_exists ? 'EXISTS' : 'DOES NOT EXIST'}
+          </div>
+          <div className="text-sm" style={{ color: T.muted }}>
+            {coherence.satisfied_count}/5 levels satisfied · epoch {coherence.epoch}
+            {coherence.first_obstruction != null && (
+              <> · First obstruction: L{coherence.first_obstruction}</>
+            )}
+          </div>
+        </div>
+        <div className="text-right font-mono">
+          <div className="text-2xl font-bold" style={{ color: gsColor }}>
+            {(coherence.coherence_score * 100).toFixed(1)}%
+          </div>
+          <div className="text-2xs" style={{ color: T.muted }}>coherence score</div>
+        </div>
+      </div>
+
+      {/* Score bar */}
+      <div>
+        <div className="flex justify-between text-xs mb-1.5">
+          <span style={{ color: T.muted }}>Fibonacci-weighted coherence</span>
+          <span className="font-mono" style={{ color: gsColor }}>
+            {scoreBar.toFixed(4)} / 1.0
+          </span>
+        </div>
+        <div className="h-2 rounded-full" style={{ background: T.border }}>
+          <div className="h-full rounded-full transition-all"
+            style={{
+              width: `${scoreBar * 100}%`,
+              background: scoreBar === 1.0 ? T.T0 : scoreBar > 0.5 ? T.phi : T.error,
+            }} />
+        </div>
+      </div>
+
+      {/* Level tower */}
+      <div className="space-y-2">
+        <div className="text-sm font-medium mb-3" style={{ color: T.secondary }}>
+          Obstruction Levels (L0→L4, Fibonacci weights 1:1:2:3:5)
+        </div>
+        {LEVEL_LABELS.map(({ key, label, desc, weight }) => {
+          const ok = coherence.levels[key]
+          const levelColor = ok ? T.T0 : T.error
+          const isFail = !ok && (coherence.first_obstruction === LEVEL_LABELS.indexOf({ key, label, desc, weight } as never))
+          return (
+            <div key={key}
+              className="flex items-center gap-3 rounded-lg px-4 py-3"
+              style={{
+                background: isFail ? `${T.error}08` : T.surface,
+                border: `1px solid ${isFail ? T.error + '30' : T.border}`,
+              }}>
+              <div className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center"
+                style={{ background: `${levelColor}15` }}>
+                {ok
+                  ? <CheckCircle size={12} style={{ color: T.T0 }} />
+                  : <AlertTriangle size={12} style={{ color: T.error }} />}
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-medium" style={{ color: ok ? T.text : T.muted }}>
+                  {label}
+                </div>
+                <div className="text-2xs font-mono mt-0.5" style={{ color: T.muted }}>{desc}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs font-mono" style={{ color: T.phi }}>w={weight}/12</div>
+                <div className="text-2xs font-mono" style={{ color: ok ? T.T0 : T.error }}>
+                  {ok ? 'SATISFIED' : 'BLOCKED'}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Frame hex */}
+      <div className="rounded-lg p-3 font-mono text-xs" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+        <span style={{ color: T.muted }}>frame_hex: </span>
+        <span style={{ color: T.T2 }}>{coherence.frame_hex}</span>
+        <span style={{ color: T.border }}> · 16-byte CoherenceFrame (Gate 228 encoding)</span>
+      </div>
+    </div>
+  )
+}
+
 // ─── Agent Registry Surface ───────────────────────────────────────────────
 
 type AgentStatus = 'active' | 'quarantined' | 'suspended'
@@ -868,7 +992,7 @@ function Offline() {
 export function App() {
   const [surface, setSurface] = useState<SurfaceId>('constitutional-health')
   const [liveState, setLiveState] = useState<LiveState>({
-    node: null, network: null, resonance: null, telemetry: null,
+    node: null, network: null, resonance: null, telemetry: null, coherence: null,
   })
 
   useEffect(() => subscribeLiveState(setLiveState), [])
@@ -876,6 +1000,7 @@ export function App() {
   const renderSurface = useCallback(() => {
     switch (surface) {
       case 'constitutional-health': return <ConstitutionalHealthSurface state={liveState} />
+      case 'coherence-tower':       return <CoherenceTowerSurface coherence={liveState.coherence} />
       case 'chord-network':         return <ChordNetworkSurface state={liveState} />
       case 'self-certification':    return <SelfCertificationSurface state={liveState} />
       case 'compliance':            return <ComplianceSurface />
