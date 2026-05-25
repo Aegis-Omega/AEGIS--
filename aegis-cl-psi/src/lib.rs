@@ -164,6 +164,10 @@ pub mod entropy_budget;
 // DriftHistory: hash-linked records. D2+: mutation authority suspended.
 pub mod drift_classifier;
 
+// Gate 236 — Governance Pipeline: field-scale integration of all constitutional substrates (T2)
+// process() = entropy check → autonode tick → drift classify → budget → replay chain.
+pub mod governance_pipeline;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
