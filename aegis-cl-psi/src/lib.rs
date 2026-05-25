@@ -160,6 +160,10 @@ pub mod constitutional_replay;
 // Hash-linked BudgetEntry chain. consume_adaptive() blocked if balance < ADAPTIVE_EVENT_COST.
 pub mod entropy_budget;
 
+// Gate 235 — Drift Classifier: D0–D4 constitutional drift severity system (T2)
+// DriftHistory: hash-linked records. D2+: mutation authority suspended.
+pub mod drift_classifier;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
