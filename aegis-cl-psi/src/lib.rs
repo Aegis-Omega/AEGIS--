@@ -100,6 +100,12 @@ pub mod lattice_dag;
 // Genesis root verified at open(); divergence from expected root is rejected (not ignored).
 pub mod spsf;
 
+// Gate 221 — Constitutional Convergence Certifier (T1/T2)
+// 1/φ ≈ 0.6180339887 governs three scales: edge divergence (SUBATOMIC), path safety (MOLECULAR),
+// swarm quorum (ORGANISM). certify_path<P>() proves AdaptivePower(T) ≤ ReplayVerifiability(T).
+// RankSpan vortex classification: digital_root → Triadic {3,6,9} vs Hexadic {1,2,4,5,7,8}.
+pub mod phi_convergence;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
