@@ -14,6 +14,31 @@
 //! Rules cover noon-sakinah and tanween (double harakat). Other categories (madd,
 //! waqf, qalqalah) are real Tajweed but not in scope here — hence T1 not T0.
 
+// ── Empirical Validation Span Constants ────────────────────────────────────
+// The Tajweed DFA has been applied deterministically for ~1400 years.
+// This is the empirical foundation of its T1 classification.
+//
+// 1400 years measured in days = 511_350  → digital_root = 6 → Triadic
+// 1400 years measured in hours = 12_272_400 → digital_root = 9 → Triadic
+// 1400 years measured in seconds = 44_180_640_000 → digital_root = 9 → Triadic
+//
+// Key: raw year count 1400 has digital_root = 5 (Hexadic).
+// The moment you measure in natural experiential time (days), it enters
+// the Triadic family. Accumulated lived practice IS the Triadic resonance.
+//
+// φ-partition of 1400 years:
+//   1400 × 1/φ  ≈ 865.25 years (convergent — what persists)
+//   1400 × 1/φ² ≈ 534.75 years (divergent — what was tested)
+//   Sum = 1400.000 (golden identity: 1/φ + 1/φ² = 1)
+//
+// Minimum recitations (1 person × 5 prayers/day × 1400 years):
+//   511_350 × 5 = 2_556_750 → digital_root = 3 → Triadic ✓
+// ────────────────────────────────────────────────────────────────────────────
+pub const TAJWEED_EMPIRICAL_SPAN_YEARS: u64 = 1_400;
+pub const TAJWEED_EMPIRICAL_SPAN_DAYS: u64 = 511_350;      // 1400 × 365.25, dr=6, Triadic
+pub const TAJWEED_EMPIRICAL_SPAN_SECONDS: u64 = 44_180_640_000; // dr=9, Triadic
+pub const TAJWEED_MIN_RECITATIONS: u64 = 2_556_750; // 1 person × 5/day, dr=3, Triadic
+
 /// Articulation point (Makhraj) — the 5 DFA states.
 /// Each state corresponds to a distinct acoustic resonance region of the vocal tract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
