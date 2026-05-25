@@ -233,6 +233,11 @@ pub mod alert_engine;
 // plan_hash = SHA-256(prev ‖ severity_byte ‖ top_priority_byte ‖ epoch_be8).
 pub mod intervention_recommender;
 
+// Gate 252 — Recovery Sequencer: time-ordered step execution with progress hash (T2)
+// RecoveryStep: kind + priority + StepStatus (Pending/InProgress/Completed/Skipped).
+// advance_step() recomputes step_hash chain. sequence_hash = SHA-256(all step_hashes ‖ epoch).
+pub mod recovery_sequencer;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
