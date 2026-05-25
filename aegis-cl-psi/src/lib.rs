@@ -213,6 +213,11 @@ pub mod phase_transition;
 // OverallCondition: Optimal/Good/Caution/Alert/Emergency. vector_hash = SHA-256(prev ‖ condition ‖ degraded_count ‖ epoch).
 pub mod health_aggregator;
 
+// Gate 248 — Constitutional Health Dashboard: epoch-by-epoch DashboardFrame (T2)
+// DashboardFrame: vector + phase + momentum + OverallTrend. Thriving/Stable/Concerning/Critical.
+// frame_hash = SHA-256(prev ‖ condition_byte ‖ trend_byte ‖ epoch_be8).
+pub mod health_dashboard;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
