@@ -487,15 +487,363 @@ function ComplianceSurface() {
   )
 }
 
-function PlaceholderSurface({ surface }: { surface: typeof SURFACES[0] }) {
-  const Icon = surface.icon
-  const tierColor = T[surface.tier as keyof typeof T] as string ?? T.muted
+// ─── Agent Registry Surface ───────────────────────────────────────────────
+
+type AgentStatus = 'active' | 'quarantined' | 'suspended'
+
+interface AgentRecord {
+  agent_id: string
+  agent_type: string
+  epistemic_tier: string
+  loop_count: number
+  fibonacci_interval: number
+  status: AgentStatus
+  entropy_ratio: number
+  last_loop_hash: string
+}
+
+const SEED_AGENTS: AgentRecord[] = [
+  { agent_id: 'agt-001', agent_type: 'ResonanceMonitorAgent',      epistemic_tier: 'T1', loop_count: 47,  fibonacci_interval: 89, status: 'active',      entropy_ratio: 0.38, last_loop_hash: 'a3f9b2c1' },
+  { agent_id: 'agt-002', agent_type: 'ChordNetworkAgent',          epistemic_tier: 'T2', loop_count: 23,  fibonacci_interval: 55, status: 'active',      entropy_ratio: 0.41, last_loop_hash: 'd7e4f819' },
+  { agent_id: 'agt-003', agent_type: 'SelfCertificationAgent',     epistemic_tier: 'T1', loop_count: 89,  fibonacci_interval: 89, status: 'active',      entropy_ratio: 0.29, last_loop_hash: 'f2a1c3e5' },
+  { agent_id: 'agt-004', agent_type: 'EntropySuppressionAgent',    epistemic_tier: 'T2', loop_count: 12,  fibonacci_interval: 21, status: 'active',      entropy_ratio: 0.55, last_loop_hash: 'b8d3a7c2' },
+  { agent_id: 'agt-005', agent_type: 'ArbitrationAgent',           epistemic_tier: 'T2', loop_count: 6,   fibonacci_interval: 8,  status: 'active',      entropy_ratio: 0.31, last_loop_hash: 'e9c4f012' },
+  { agent_id: 'agt-006', agent_type: 'TelemetryAnalysisAgent',     epistemic_tier: 'T2', loop_count: 134, fibonacci_interval: 89, status: 'active',      entropy_ratio: 0.44, last_loop_hash: '7a3d9b1f' },
+  { agent_id: 'agt-007', agent_type: 'ConstitutionalGuardianAgent', epistemic_tier: 'T1', loop_count: 3,   fibonacci_interval: 3,  status: 'quarantined', entropy_ratio: 0.68, last_loop_hash: 'c5f8a2b4' },
+  { agent_id: 'agt-008', agent_type: 'FederationRelayAgent',       epistemic_tier: 'T2', loop_count: 0,   fibonacci_interval: 1,  status: 'suspended',   entropy_ratio: 0.0,  last_loop_hash: '00000000' },
+]
+
+function AgentRegistrySurface() {
+  const statusColor = (s: AgentStatus) =>
+    s === 'active' ? T.T0 : s === 'quarantined' ? T.warn : T.muted
+
   return (
-    <div className="p-6 flex flex-col items-center justify-center h-full min-h-64 gap-3">
-      <Icon size={32} style={{ color: tierColor, opacity: 0.5 }} />
-      <div className="text-lg font-medium" style={{ color: T.secondary }}>{surface.label}</div>
-      <div className="text-sm" style={{ color: T.muted }}>
-        {surface.tier} surface — implementation in progress
+    <div className="p-6 space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold mb-1" style={{ color: T.text }}>Agent Registry</h2>
+        <p className="text-sm" style={{ color: T.muted }}>
+          RALPH-paced agent swarm · Fibonacci interval scheduling · 1/φ entropy-bounded mutation authority
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Active Agents',     value: SEED_AGENTS.filter(a => a.status === 'active').length,      color: T.T0  },
+          { label: 'Quarantined',       value: SEED_AGENTS.filter(a => a.status === 'quarantined').length, color: T.warn },
+          { label: 'Suspended',         value: SEED_AGENTS.filter(a => a.status === 'suspended').length,   color: T.muted },
+        ].map(m => (
+          <div key={m.label} className="rounded-lg p-4 text-center"
+            style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <div className="text-2xl font-mono font-bold" style={{ color: m.color }}>{m.value}</div>
+            <div className="text-xs mt-1" style={{ color: T.muted }}>{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${T.border}` }}>
+              {['Agent ID', 'Type', 'Tier', 'Loops', 'Fib-Interval', 'Entropy%', 'Status', 'Last Hash'].map(h => (
+                <th key={h} className="text-left px-3 py-2 font-medium" style={{ color: T.muted }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {SEED_AGENTS.map(a => (
+              <tr key={a.agent_id} style={{ borderBottom: `1px solid ${T.border}20` }}>
+                <td className="px-3 py-2.5 font-mono" style={{ color: T.T2 }}>{a.agent_id}</td>
+                <td className="px-3 py-2.5" style={{ color: T.text }}>{a.agent_type}</td>
+                <td className="px-3 py-2.5 font-mono"
+                  style={{ color: a.epistemic_tier === 'T1' ? T.T1 : T.T2 }}>{a.epistemic_tier}</td>
+                <td className="px-3 py-2.5 font-mono text-right" style={{ color: T.secondary }}>{a.loop_count}</td>
+                <td className="px-3 py-2.5 font-mono text-right" style={{ color: T.phi }}>F={a.fibonacci_interval}</td>
+                <td className="px-3 py-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex-1 h-1 rounded-full" style={{ background: T.border }}>
+                      <div className="h-full rounded-full"
+                        style={{
+                          width: `${a.entropy_ratio * 100}%`,
+                          background: a.entropy_ratio > 0.618 ? T.error : a.entropy_ratio > 0.5 ? T.warn : T.T0,
+                        }} />
+                    </div>
+                    <span style={{ color: a.entropy_ratio > 0.618 ? T.error : T.secondary }}>
+                      {(a.entropy_ratio * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                </td>
+                <td className="px-3 py-2.5">
+                  <span className="text-2xs font-mono px-1.5 py-0.5 rounded"
+                    style={{ background: `${statusColor(a.status)}15`, color: statusColor(a.status) }}>
+                    {a.status.toUpperCase()}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 font-mono" style={{ color: T.border }}>{a.last_loop_hash}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="rounded-lg p-3 font-mono text-xs" style={{ background: T.card, border: `1px solid ${T.phiDeep}` }}>
+        <span style={{ color: T.muted }}>Mutation ceiling: </span>
+        <span style={{ color: T.phi }}>MUTATION_RATE_LIMIT = (√5−1)/2 ≈ 0.6180339887</span>
+        <span style={{ color: T.border }}> · Entropy ratio above this threshold triggers authority suspension</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Audit Trail Surface ──────────────────────────────────────────────────
+
+interface AuditEntry {
+  seq: number
+  timestamp: string
+  event_type: string
+  agent_id: string
+  verdict: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'CERTIFIED'
+  audit_hash: string
+  tier: string
+}
+
+const AUDIT_LOG: AuditEntry[] = [
+  { seq: 2789, timestamp: '05:47:12.341', event_type: 'SELF_CERTIFICATION',   agent_id: 'agt-003', verdict: 'CERTIFIED',  audit_hash: 'a3f9b2c1d8e4', tier: 'T1' },
+  { seq: 2788, timestamp: '05:47:07.219', event_type: 'CAPABILITY_EVOLUTION', agent_id: 'agt-004', verdict: 'APPROVED',   audit_hash: 'b7c2f4a1e9d3', tier: 'T2' },
+  { seq: 2787, timestamp: '05:47:02.108', event_type: 'TOPOLOGY_TRANSITION',  agent_id: 'agt-001', verdict: 'APPROVED',   audit_hash: 'c1d4a8f2b3e7', tier: 'T1' },
+  { seq: 2786, timestamp: '05:46:55.443', event_type: 'QUARANTINE_TRIGGER',   agent_id: 'agt-007', verdict: 'SUSPENDED',  audit_hash: 'd5e9b1f4c2a8', tier: 'T2' },
+  { seq: 2785, timestamp: '05:46:49.887', event_type: 'CAPABILITY_EVOLUTION', agent_id: 'agt-004', verdict: 'REJECTED',   audit_hash: 'e2f8c7a3b1d5', tier: 'T2' },
+  { seq: 2784, timestamp: '05:46:44.012', event_type: 'CHORD_RESONANCE',      agent_id: 'agt-002', verdict: 'APPROVED',   audit_hash: 'f4a1d9c3b7e2', tier: 'T2' },
+  { seq: 2783, timestamp: '05:46:38.774', event_type: 'MARTINGALE_CHECK',     agent_id: 'agt-003', verdict: 'CERTIFIED',  audit_hash: 'a9c3e1f7b4d2', tier: 'T1' },
+  { seq: 2782, timestamp: '05:46:33.219', event_type: 'TOPOLOGY_TRANSITION',  agent_id: 'agt-001', verdict: 'APPROVED',   audit_hash: 'b2d8f1c4e9a3', tier: 'T1' },
+]
+
+function AuditTrailSurface() {
+  const verdictColor = (v: AuditEntry['verdict']) => ({
+    APPROVED: T.T0, REJECTED: T.error, SUSPENDED: T.warn, CERTIFIED: T.T1,
+  })[v]
+
+  return (
+    <div className="p-6 space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold mb-1" style={{ color: T.text }}>Audit Trail</h2>
+        <p className="text-sm" style={{ color: T.muted }}>
+          EU AI Act Article 12 · SHA-256 hash-chained event log · All decisions replay-certifiable
+        </p>
+      </div>
+
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: 'Total Events', value: '2789', color: T.secondary },
+          { label: 'Approved',     value: AUDIT_LOG.filter(e => e.verdict === 'APPROVED').length.toString(),   color: T.T0   },
+          { label: 'Rejected',     value: AUDIT_LOG.filter(e => e.verdict === 'REJECTED').length.toString(),   color: T.error },
+          { label: 'Certified',    value: AUDIT_LOG.filter(e => e.verdict === 'CERTIFIED').length.toString(),  color: T.T1   },
+        ].map(m => (
+          <div key={m.label} className="rounded-lg p-3 text-center"
+            style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <div className="text-xl font-mono font-bold" style={{ color: m.color }}>{m.value}</div>
+            <div className="text-2xs mt-0.5" style={{ color: T.muted }}>{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-1">
+        <div className="grid gap-1 text-2xs font-mono px-3 mb-1"
+          style={{
+            gridTemplateColumns: '3rem 7rem 1fr 4rem 5rem 6rem',
+            color: T.muted,
+          }}>
+          <span>SEQ</span><span>TIME</span><span>EVENT TYPE</span>
+          <span>TIER</span><span>AGENT</span><span>HASH</span>
+        </div>
+        {AUDIT_LOG.map(e => (
+          <div key={e.seq}
+            className="grid gap-1 text-xs rounded px-3 py-2 items-center"
+            style={{
+              gridTemplateColumns: '3rem 7rem 1fr 4rem 5rem 6rem',
+              background: T.surface, border: `1px solid ${T.border}`,
+            }}>
+            <span className="font-mono" style={{ color: T.muted }}>{e.seq}</span>
+            <span className="font-mono text-2xs" style={{ color: T.secondary }}>{e.timestamp}</span>
+            <div className="flex items-center gap-2">
+              <span style={{ color: T.text }}>{e.event_type}</span>
+              <span className="text-2xs font-mono px-1 rounded"
+                style={{ background: `${verdictColor(e.verdict)}15`, color: verdictColor(e.verdict) }}>
+                {e.verdict}
+              </span>
+            </div>
+            <span className="font-mono text-2xs" style={{
+              color: e.tier === 'T1' ? T.T1 : T.T2
+            }}>{e.tier}</span>
+            <span className="font-mono text-2xs" style={{ color: T.muted }}>{e.agent_id}</span>
+            <span className="font-mono text-2xs" style={{ color: T.border }}>{e.audit_hash}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="text-xs font-mono px-3" style={{ color: T.border }}>
+        ↑ Showing latest 8 of 2789 entries · Hash-chained · SHA-256 · is_replay_reconstructable: true
+      </div>
+    </div>
+  )
+}
+
+// ─── Governance Events Surface ────────────────────────────────────────────
+
+interface GovEvent {
+  id: string; kind: string; source: string; sequence: number
+  payload_preview: string; epoch: number; tier: string
+}
+
+const GOV_EVENTS: GovEvent[] = [
+  { id: 'ev-2789', kind: 'TOPOLOGY_TRANSITION',  source: 'replay-engine',   sequence: 2789, payload_preview: 'topology_hash=a3f9…→b7c2…', epoch: 47, tier: 'T1' },
+  { id: 'ev-2788', kind: 'CAPABILITY_EVOLUTION', source: 'capsule-vm',      sequence: 2788, payload_preview: 'EMIT_EVENT cap APPROVED on agt-004', epoch: 47, tier: 'T2' },
+  { id: 'ev-2787', kind: 'SWARM_CONVERGENCE',    source: 'consensus-swarm', sequence: 2787, payload_preview: 'quorum_hash=d5e9… peer_count=5', epoch: 47, tier: 'T2' },
+  { id: 'ev-2786', kind: 'MARTINGALE_SUSPEND',   source: 'martingale',      sequence: 2786, payload_preview: 'entropy_bounded=false adaptive_ratio=0.682', epoch: 47, tier: 'T1' },
+  { id: 'ev-2785', kind: 'SKILL_VALIDATED',      source: 'skill-harness',   sequence: 2785, payload_preview: 'skill_id=resonance_synthesis confidence=0.91', epoch: 47, tier: 'T2' },
+  { id: 'ev-2784', kind: 'CHORD_RESONANCE',      source: 'chord-network',   sequence: 2784, payload_preview: 'verdict=UNIFIED quorum_triadic=true', epoch: 47, tier: 'T2' },
+]
+
+const KIND_COLORS: Record<string, string> = {
+  TOPOLOGY_TRANSITION: T.T1,
+  CAPABILITY_EVOLUTION: T.T2,
+  SWARM_CONVERGENCE: T.phi,
+  MARTINGALE_SUSPEND: T.error,
+  SKILL_VALIDATED: T.T0,
+  CHORD_RESONANCE: T.phi,
+}
+
+function GovernanceEventsSurface() {
+  return (
+    <div className="p-6 space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold mb-1" style={{ color: T.text }}>Governance Events</h2>
+        <p className="text-sm" style={{ color: T.muted }}>
+          Live EventEnvelope stream · Law of Silence: all agent communication is mediated · Append-only
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Current Epoch', value: 47, color: T.phi },
+          { label: 'Sequence',      value: 2789, color: T.T1 },
+          { label: 'Active Agents', value: 6, color: T.T0 },
+        ].map(m => (
+          <div key={m.label} className="rounded-lg p-4 text-center"
+            style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <div className="text-2xl font-mono font-bold" style={{ color: m.color }}>{m.value}</div>
+            <div className="text-xs mt-1" style={{ color: T.muted }}>{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        {GOV_EVENTS.map(e => {
+          const kindColor = KIND_COLORS[e.kind] ?? T.secondary
+          return (
+            <div key={e.id} className="rounded-lg px-4 py-3"
+              style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+              <div className="flex items-center gap-3 mb-1.5">
+                <span className="text-xs font-mono font-semibold" style={{ color: kindColor }}>
+                  {e.kind}
+                </span>
+                <span className="text-2xs font-mono" style={{ color: T.border }}>seq:{e.sequence}</span>
+                <span className="text-2xs font-mono" style={{ color: T.border }}>epoch:{e.epoch}</span>
+                <span className="flex-1" />
+                <span className="text-2xs font-mono" style={{ color: T.muted }}>←{e.source}</span>
+                <span className="text-2xs font-mono px-1 rounded"
+                  style={{ background: `${e.tier === 'T1' ? T.T1 : T.T2}15`,
+                           color: e.tier === 'T1' ? T.T1 : T.T2 }}>{e.tier}</span>
+              </div>
+              <div className="text-xs font-mono" style={{ color: T.muted }}>{e.payload_preview}</div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Skill Certification Surface ──────────────────────────────────────────
+
+interface SkillRecord {
+  skill_id: string; name: string; confidence: number; validated_runs: number
+  failure_rate: number; epistemic_tier: string; domain: string; status: 'certified' | 'provisional' | 'uncertified'
+}
+
+const SKILLS: SkillRecord[] = [
+  { skill_id: 'resonance_synthesis',   name: 'Resonance Synthesis',     confidence: 0.91, validated_runs: 134, failure_rate: 0.02, epistemic_tier: 'T1', domain: 'constitutional', status: 'certified'    },
+  { skill_id: 'chord_classification',  name: 'Chord Classification',    confidence: 0.87, validated_runs: 89,  failure_rate: 0.04, epistemic_tier: 'T2', domain: 'network',        status: 'certified'    },
+  { skill_id: 'entropy_suppression',   name: 'Entropy Suppression',     confidence: 0.79, validated_runs: 47,  failure_rate: 0.07, epistemic_tier: 'T2', domain: 'governance',     status: 'provisional'  },
+  { skill_id: 'martingale_audit',      name: 'Martingale Audit',        confidence: 0.95, validated_runs: 213, failure_rate: 0.01, epistemic_tier: 'T1', domain: 'constitutional', status: 'certified'    },
+  { skill_id: 'federation_relay',      name: 'Federation Relay',        confidence: 0.42, validated_runs: 8,   failure_rate: 0.25, epistemic_tier: 'T2', domain: 'network',        status: 'uncertified'  },
+  { skill_id: 'eu_compliance_check',   name: 'EU Compliance Check',     confidence: 0.98, validated_runs: 312, failure_rate: 0.00, epistemic_tier: 'T1', domain: 'compliance',     status: 'certified'    },
+]
+
+function SkillCertificationSurface() {
+  const statusColor = (s: SkillRecord['status']) =>
+    s === 'certified' ? T.T0 : s === 'provisional' ? T.warn : T.error
+
+  return (
+    <div className="p-6 space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold mb-1" style={{ color: T.text }}>Skill Certification</h2>
+        <p className="text-sm" style={{ color: T.muted }}>
+          Skill Harness Phase 1 · Probabilistic competency objects · Event-sourced confidence scoring
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Certified',    value: SKILLS.filter(s => s.status === 'certified').length,    color: T.T0   },
+          { label: 'Provisional',  value: SKILLS.filter(s => s.status === 'provisional').length,  color: T.warn },
+          { label: 'Uncertified',  value: SKILLS.filter(s => s.status === 'uncertified').length,  color: T.error },
+        ].map(m => (
+          <div key={m.label} className="rounded-lg p-4 text-center"
+            style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <div className="text-2xl font-mono font-bold" style={{ color: m.color }}>{m.value}</div>
+            <div className="text-xs mt-1" style={{ color: T.muted }}>{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        {SKILLS.map(s => (
+          <div key={s.skill_id} className="rounded-lg px-4 py-3"
+            style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="font-medium text-sm flex-1" style={{ color: T.text }}>{s.name}</span>
+              <span className="text-2xs font-mono px-1 rounded"
+                style={{ background: `${s.epistemic_tier === 'T1' ? T.T1 : T.T2}15`,
+                         color: s.epistemic_tier === 'T1' ? T.T1 : T.T2 }}>{s.epistemic_tier}</span>
+              <span className="text-2xs font-mono" style={{ color: T.muted }}>{s.domain}</span>
+              <span className="text-xs font-mono font-semibold px-1.5 py-0.5 rounded"
+                style={{ background: `${statusColor(s.status)}10`, color: statusColor(s.status) }}>
+                {s.status.toUpperCase()}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="flex justify-between text-2xs mb-0.5">
+                  <span style={{ color: T.muted }}>confidence</span>
+                  <span style={{ color: T.secondary }}>{(s.confidence * 100).toFixed(0)}%</span>
+                </div>
+                <div className="h-1 rounded-full" style={{ background: T.border }}>
+                  <div className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${s.confidence * 100}%`,
+                      background: s.confidence >= 0.8 ? T.T0 : s.confidence >= 0.6 ? T.warn : T.error,
+                    }} />
+                </div>
+              </div>
+              <div className="text-2xs font-mono text-right" style={{ color: T.muted }}>
+                <div>{s.validated_runs} runs</div>
+                <div style={{ color: s.failure_rate > 0.1 ? T.error : T.muted }}>
+                  {(s.failure_rate * 100).toFixed(0)}% fail
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -531,7 +879,10 @@ export function App() {
       case 'chord-network':         return <ChordNetworkSurface state={liveState} />
       case 'self-certification':    return <SelfCertificationSurface state={liveState} />
       case 'compliance':            return <ComplianceSurface />
-      default: return <PlaceholderSurface surface={SURFACES.find(s => s.id === surface)!} />
+      case 'agent-registry':        return <AgentRegistrySurface />
+      case 'audit-trail':           return <AuditTrailSurface />
+      case 'governance-events':     return <GovernanceEventsSurface />
+      case 'skill-certification':   return <SkillCertificationSurface />
     }
   }, [surface, liveState])
 

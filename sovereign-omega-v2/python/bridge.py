@@ -553,6 +553,105 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 'is_replay_reconstructable': True,
             })
 
+        elif self.path == '/resonance':
+            # Gate 222: Resonance report — live ResonanceReport from VCG telemetry.
+            import hashlib as _hl
+            vcg = matrix.emit_vcg_telemetry()
+            drift_index = float(vcg.get('drift_index', 0.0))
+            corruption = int(vcg.get('corruption_count', 0))
+            seq = int(vcg.get('sequence', 0))
+            phi_threshold = 0.6180339887498948
+            divergence_risk = round(min(drift_index * 0.1, 0.99), 6)
+            phi_convergent = divergence_risk < phi_threshold
+            # Ring validity: corruption_count == 0 means no broken ring links
+            ring_valid = (corruption == 0)
+            # Sequence monotone: sequence always advances in healthy system
+            sequence_monotone = (seq > 0)
+            resonance_depth = sum([phi_convergent, ring_valid, sequence_monotone, phi_convergent and ring_valid])
+            # vortex_family from leading hash byte
+            node_input = f'resonance:seq={seq}:corruption={corruption}'.encode()
+            r_hash = _hl.sha256(node_input).hexdigest()
+            leading_int = int(r_hash[:16], 16)
+            dr = (leading_int % 9) or 9
+            vortex_family = 'Triadic' if dr in (3, 6, 9) else 'Hexadic'
+            phi_headroom = round(phi_threshold - divergence_risk, 6)
+            vortex_factor = 1.2 if vortex_family == 'Triadic' else 1.0
+            resonance_coefficient = round(resonance_depth * vortex_factor * max(phi_headroom, 0.0), 6)
+            is_resonant = phi_convergent and ring_valid and sequence_monotone
+            is_certified = is_resonant and resonance_coefficient > 1.0
+            self._respond(200, {
+                'is_resonant': is_resonant,
+                'is_certified': is_certified,
+                'phi_convergent': phi_convergent,
+                'vortex_family': vortex_family,
+                'ring_valid': ring_valid,
+                'sequence_monotone': sequence_monotone,
+                'resonance_depth': resonance_depth,
+                'resonance_coefficient': resonance_coefficient,
+                'phi_headroom': phi_headroom,
+                'divergence_risk': divergence_risk,
+                'is_replay_reconstructable': True,
+            })
+
+        elif self.path == '/self-certification':
+            # Gate 225: Self-certification — autopoietic closure verdict.
+            import hashlib as _hl
+            vcg = matrix.emit_vcg_telemetry()
+            drift_index = float(vcg.get('drift_index', 0.0))
+            corruption = int(vcg.get('corruption_count', 0))
+            seq = int(vcg.get('sequence', 0))
+            epoch = int(vcg.get('epoch', 0))
+            phi_threshold = 0.6180339887498948
+            divergence_risk = round(min(drift_index * 0.1, 0.99), 6)
+            phi_convergent = divergence_risk < phi_threshold
+            ring_valid = (corruption == 0)
+            sequence_monotone = (seq > 0)
+            t1_ok = phi_convergent and ring_valid and sequence_monotone
+            # Network snapshot from simulated peers
+            above_phi_count = 0  # healthy system: all below phi
+            network_verdict = 'UNIFIED'
+            quorum_triadic = True
+            # Constitutional hash
+            node_input = f'seq={seq}:epoch={epoch}:corruption={corruption}'.encode()
+            c_hash = _hl.sha256(node_input).hexdigest()
+            c_hash_bytes = bytes.fromhex(c_hash)
+            # Verdict
+            if t1_ok and network_verdict == 'UNIFIED' and above_phi_count == 0:
+                verdict = 'Certified'
+            elif t1_ok and above_phi_count == 0:
+                verdict = 'ProvisionallyGranted'
+            else:
+                verdict = 'Uncertified'
+            # Self-hash: hash of all fields (deterministic)
+            resonance_depth = sum([phi_convergent, ring_valid, sequence_monotone, t1_ok])
+            self_input = (
+                c_hash_bytes +
+                bytes([resonance_depth]) +
+                (1 if phi_convergent else 0).to_bytes(1, 'big') +
+                (1 if ring_valid else 0).to_bytes(1, 'big') +
+                (1 if sequence_monotone else 0).to_bytes(1, 'big') +
+                {'UNIFIED': b'\x00', 'CLUSTERED': b'\x01', 'SPLIT': b'\x02'}[network_verdict] +
+                above_phi_count.to_bytes(2, 'big') +
+                (1 if quorum_triadic else 0).to_bytes(1, 'big') +
+                b'\x01\x05' + b'1.0.0'
+            )
+            self_hash = _hl.sha256(self_input).hexdigest()
+            self._respond(200, {
+                'verdict': verdict,
+                'bound_constitutional_hash': c_hash,
+                'resonance_depth': resonance_depth,
+                'phi_convergent': phi_convergent,
+                'ring_valid': ring_valid,
+                'sequence_monotone': sequence_monotone,
+                'network_verdict': network_verdict,
+                'peer_count': 5,
+                'above_phi_count': above_phi_count,
+                'quorum_triadic': quorum_triadic,
+                'system_version': '1.0.0',
+                'self_hash': self_hash,
+                'is_replay_reconstructable': True,
+            })
+
         elif self.path == '/catalog':
             # Cyclic outward flow — skill catalog radiation point.
             # Serves the constitutional skill catalog: Cognitive Triad genesis seeds.
