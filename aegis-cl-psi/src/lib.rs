@@ -152,6 +152,10 @@ pub mod constitutional_autonode;
 // Organism-scale layer. consensus_hash = SHA-256(all chain_entry_hashes, BTreeMap order).
 pub mod swarm_autonode;
 
+// Gate 233 — Constitutional Replay: State_t = Replay(Lineage_{0→t}) at organism scale (T2)
+// ReplayChain + ReplayProof: terminal_hash and replay_fingerprint are tamper-evident proofs.
+pub mod constitutional_replay;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
