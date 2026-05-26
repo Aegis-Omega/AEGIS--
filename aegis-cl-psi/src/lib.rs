@@ -792,6 +792,13 @@ pub mod compaction_momentum_tracker;
 // CompactionEpochReportLog: critical_epochs(), optimal_epochs(), declining_epochs(), verify_chain().
 pub mod compaction_epoch_report;
 
+// Gate 341 — Compaction Alert Classifier (T2)
+// Translates CompactionEpochReport signals into Green/Amber/Red alert levels with
+// hysteresis: Amber at consecutive_declining≥2, Red at critical condition or streak≥3.
+// alert_hash = SHA-256(prev[32]‖epoch_be8‖alert_byte‖joint_byte‖dir_byte‖consecutive_be4).
+// CompactionAlertLog: red_count(), amber_count(), green_count(), max_consecutive_declining(), verify_chain().
+pub mod compaction_alert_classifier;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
