@@ -341,6 +341,11 @@ pub mod spread_estimator;
 // FanoutLog: hash-chained FanoutDecisions; average_fanout(), max_fanout(), aggressive_epoch_count().
 pub mod fanout_controller;
 
+// Gate 274 — Backpressure Monitor: per-peer gossip rate tracking and backpressure decisions (T2)
+// Accept(≤70%) / Throttle(71–100%) / Drop(>100% capacity). BackpressureRegistry: BTreeMap<peer_id, PeerRateLog>.
+// global_drop_count(), global_throttle_count(), peer_decision(). PeerRateLog: hash-chained records.
+pub mod backpressure_monitor;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
