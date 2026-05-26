@@ -1109,6 +1109,12 @@ pub mod gossip_peer_score;
 // GossipEpochSealChain: seal(), latest(), seal_count(), verify_chain().
 pub mod gossip_epoch_seal;
 
+// Gate 384 — Gossip Frame Rate Monitor (T2)
+// Tracks frames-per-epoch throughput with spike detection (spike if count > rolling_avg * 2).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖frame_count_be4‖rolling_avg_be4‖is_spike_byte).
+// GossipFrameRateLog: record(), spike_count(), verify_chain().
+pub mod gossip_frame_rate;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
