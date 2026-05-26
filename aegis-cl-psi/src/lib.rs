@@ -472,6 +472,12 @@ pub mod message_deduplicator;
 // FanoutLog: hash-chained; increase_count(), decrease_count(), avg_fanout(), verify_chain().
 pub mod adaptive_fanout_controller;
 
+// Gate 297 — Gossip Epoch Boundary Detector: network-wide epoch transition coordination (T2)
+// BoundaryPhase: Stable / Transitioning (≥67% peers advanced) / Committed (all advanced).
+// BoundaryLog: hash-chained events; transition_count(), committed_count(), verify_chain().
+// EpochBoundaryDetector: report_peer_epoch(), evaluate(current_epoch), trigger_boundary().
+pub mod epoch_boundary_detector;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
