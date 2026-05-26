@@ -609,6 +609,12 @@ pub mod peer_address_book;
 // EpochRateLedger: seal_epoch() → Ok(status)|Err, total_sent/received/dropped, exceeded_epoch_count, verify_chain.
 pub mod epoch_rate_ledger;
 
+// Gate 317 — Gossip Peer Liveness Oracle: composite liveness classification from miss/latency/reputation (T2)
+// LivenessVerdict: Live/Degraded/Suspect/Dead. Deterministic rule hierarchy (Dead > Suspect > Degraded > Live).
+// classify_liveness() is stateless. LivenessLog: per-peer SHA-256 hash-chained records.
+// PeerLivenessOracle: assess(), latest_verdict(), dead/suspect/live_peers() sorted, get_log().
+pub mod peer_liveness_oracle;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
