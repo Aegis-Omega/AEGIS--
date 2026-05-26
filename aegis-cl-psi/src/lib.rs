@@ -291,6 +291,11 @@ pub mod node_state_machine;
 // FaultLog: hash-chained FaultReports; cascading_count(), max_degraded_count().
 pub mod fault_detector;
 
+// Gate 264 — Mesh Census: periodic peer mesh population snapshot (T2)
+// CensusRecord: epoch + node counts by state + capability counts + health_ratio_pct + SHA-256 chain.
+// CensusLog: hash-chained CensusRecords; min_health_pct(), trend(), verify_chain().
+pub mod mesh_census;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
