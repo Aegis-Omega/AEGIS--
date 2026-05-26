@@ -957,6 +957,14 @@ pub mod compaction_gossip_health_aggregator;
 // GossipMomentumLog: direction_count(), improving_epochs(), declining_epochs(), verify_chain().
 pub mod compaction_gossip_momentum_tracker;
 
+// Gate 362 — Compaction Gossip Epoch Report (T2)
+// Per-epoch summary unifying GossipHealthVector (Gate 360) + GossipMomentumRecord (Gate 361)
+// + telemetry percentages (Gate 359). Mirrors Gate 340 for the gossip subsystem.
+// report_hash = SHA-256(prev[32]‖epoch_be8‖joint_byte‖grade_byte‖total_delivered_be8
+//               ‖chains_valid_byte‖dir_byte‖momentum_int_be2‖window_size_be2‖red‖yellow‖green).
+// GossipEpochReportLog: critical_epochs(), optimal_epochs(), declining_epochs(), verify_chain().
+pub mod compaction_gossip_epoch_report;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
