@@ -510,6 +510,13 @@ pub mod routing_table;
 // HeartbeatTracker: beat(), tick_miss(), status(), suspect_peers(), dead_peers(), alive_peers().
 pub mod heartbeat_tracker;
 
+// Gate 303 — Gossip Token Bucket: integer token bucket rate-limiting per peer (T2)
+// BucketDecision: Allow/RateLimited. DEFAULT_CAPACITY=100, DEFAULT_REFILL_RATE=10.
+// TokenBucket: consume(), tick_refill(), tokens(), is_full(). Integer only, no f64.
+// BucketLog: hash-chained; allow_count, rate_limited_count, verify_chain.
+// TokenBucketRegistry: consume(peer, epoch), tick_refill_all(), tokens(), get_log().
+pub mod token_bucket;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
