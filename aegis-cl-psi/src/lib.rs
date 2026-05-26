@@ -1152,6 +1152,12 @@ pub mod gossip_topology_change;
 // GossipRetransmitLog: record(), total_retransmits(), max_retransmits(), peer_total(), verify_chain().
 pub mod gossip_retransmit;
 
+// Gate 391 — Gossip Ack Latency Tracker (T2)
+// Per-peer acknowledgment latency in epochs with rolling window average (size 4).
+// entry_hash = SHA-256(prev[32]‖peer_id_be8‖epoch_be8‖latency_epochs_be8‖rolling_avg_be8).
+// GossipAckLatencyLog: record(), avg_latency_for(), max_latency(), overall_avg(), verify_chain().
+pub mod gossip_ack_latency;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
