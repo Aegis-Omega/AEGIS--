@@ -423,6 +423,12 @@ pub mod epoch_auditor;
 // DecayEngine: BTreeMap<peer_id>; apply_decay(), bulk_decay(), peers_below(threshold).
 pub mod reputation_decay;
 
+// Gate 289 — Gossip Message Authenticator: epoch-keyed message integrity tagging (T2)
+// AuthTag = first 16 bytes of SHA-256(peer_be4‖epoch_be8‖session_key[16]‖msg_id_be8‖payload_hash[32]).
+// AuthLog: hash-chained valid/forgery records per peer; valid_count(), forgery_count(), verify_chain().
+// MessageAuthenticator: BTreeMap<peer_id>; tag_message(), verify_message(), total_forgeries().
+pub mod message_authenticator;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
