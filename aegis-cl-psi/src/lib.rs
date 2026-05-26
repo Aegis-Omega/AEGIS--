@@ -700,6 +700,14 @@ pub mod constitutional_synthesis;
 // CompactionLog: hash-chained audit trail. verify_chain(), total_pruned(), latest().
 pub mod spsf_compactor;
 
+// Gate 329 — SPSF Compaction Verifier (T2)
+// Verifies that a post-compaction SPSF suffix chain is validly anchored to a
+// CompactionAnchor. Enables independent auditors who hold only the anchor + retained
+// entries to certify proof-of-history without the pruned prefix.
+// Verdicts: Verified / AnchorGap / EmptySuffix / NonMonotone / Fail.
+// VerificationLog: hash-chained audit trail. verify_chain(), verified_count(), failed_count().
+pub mod spsf_verifier;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
