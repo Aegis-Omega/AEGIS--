@@ -435,6 +435,12 @@ pub mod message_authenticator;
 // EpochRateLimiter: BTreeMap<source_id>; consume(), seal_epoch(), sources_over_limit().
 pub mod epoch_rate_limiter;
 
+// Gate 291 — Gossip Peer Selector: topology-aware peer selection for gossip forwarding (T2)
+// SelectionCriteria: sender_id, max_fanout, min_score, max_latency_tier. Deterministic (no RNG).
+// select_peers(): score-descending sort, ties broken by peer_id asc; result sorted ascending.
+// SelectionLog: hash-chained records; avg_selected_count(), zero_selection_count(), verify_chain().
+pub mod peer_selector;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
