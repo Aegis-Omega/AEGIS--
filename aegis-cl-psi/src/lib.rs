@@ -807,6 +807,13 @@ pub mod compaction_alert_classifier;
 // RecoveryAdvisorLog: action_count_by(priority), chain_repair_count(), verify_chain().
 pub mod compaction_recovery_advisor;
 
+// Gate 343 — Compaction SLA Tracker (T2)
+// Per-epoch SLA compliance: joint_condition≤Nominal AND alert_level≤Amber AND chains_valid.
+// violation_mask bit-field: bit0=!joint_ok, bit1=!alert_ok, bit2=!chains_ok.
+// sla_hash = SHA-256(prev[32]‖epoch_be8‖compliant_byte‖violation_mask).
+// SlaTrackerLog: compliance_rate() per-mille, streak_compliant(), verify_chain().
+pub mod compaction_sla_tracker;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;

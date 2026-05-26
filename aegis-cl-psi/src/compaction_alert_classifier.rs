@@ -36,7 +36,7 @@ pub const ALERT_DECLINING_THRESHOLD: u32 = 3;
 
 // ─── AlertLevel ───────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum AlertLevel {
     Green = 0,
