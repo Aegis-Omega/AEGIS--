@@ -1134,6 +1134,12 @@ pub mod gossip_jitter;
 //   reachable_count(), unreachable_count(), verify_chain().
 pub mod gossip_reachability;
 
+// Gate 388 — Gossip Backpressure Signal (T2)
+// Per-epoch queue depth with backpressure detection (under_pressure = queue_depth > threshold).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖queue_depth_be4‖threshold_be4‖under_pressure_byte).
+// GossipBackpressureLog: record(), pressure_epoch_count(), max_queue_depth(), verify_chain().
+pub mod gossip_backpressure;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
