@@ -246,6 +246,11 @@ pub mod audit_certifier;
 // TelemetryPacket: epoch(8) ‖ condition(1) ‖ trend(1) ‖ severity(1) ‖ phase(1) ‖ dir(1) ‖ degraded(1) ‖ momentum(2) ‖ checksum(8) ‖ frame_hash_prefix(8).
 pub mod telemetry_encoder;
 
+// Gate 255 — Gossip Broadcaster: signed GossipMessage for peer broadcast (T2)
+// GossipMessage: node_id(4) ‖ sequence(8) ‖ TelemetryPacket(32) ‖ mac(8) = 52 bytes.
+// GossipLog: BTreeMap<node_id, highest_sequence>; append validates MAC + monotone sequence.
+pub mod gossip_broadcaster;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
