@@ -830,6 +830,13 @@ pub mod compaction_capacity_planner;
 // EpochComparatorLog: compare(prev, curr), improvement_count(), degradation_count(), verify_chain().
 pub mod compaction_epoch_comparator;
 
+// Gate 346 — Compaction Trend Analyzer (T2)
+// Classifies multi-epoch trends from a rolling window (TREND_WINDOW=4) of EpochDeltaRecords.
+// TrendClass: Improving(≥3 net-positive in window) / Degrading(≥3 net-negative) / Volatile(mixed) / Stable.
+// trend_hash = SHA-256(prev[32]‖epoch_be8‖trend_byte‖window_size_be2‖improvement_be4‖degradation_be4‖net_pruned_delta_be8).
+// TrendAnalyzerLog: append(delta), improving/degrading/volatile/stable_trend_count(), verify_chain().
+pub mod compaction_trend_analyzer;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
