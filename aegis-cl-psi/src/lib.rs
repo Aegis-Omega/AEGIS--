@@ -296,6 +296,11 @@ pub mod fault_detector;
 // CensusLog: hash-chained CensusRecords; min_health_pct(), trend(), verify_chain().
 pub mod mesh_census;
 
+// Gate 265 — Recovery Planner: ranked recovery action sequences for degraded mesh (T2)
+// RecoveryAction: kind (MonitorOnly/Isolate/Restart/ReduceLoad/ActivateSpare/PartialQuorum/Halt) + priority + target.
+// RecoveryPlan: epoch + fault_class + sorted actions + SHA-256 chain. PlanLog: hash-chained plans.
+pub mod recovery_planner;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
