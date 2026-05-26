@@ -917,6 +917,15 @@ pub mod compaction_gossip_health;
 // GossipHealthCompactionLog: append(), verify_chain(), total_pruned().
 pub mod compaction_gossip_health_compactor;
 
+// Gate 357 — Compaction Gossip Epoch Seal (T2)
+// Closes each gossip epoch with a tamper-evident seal binding the Gate 355 health
+// terminal hash + Gate 356 compaction terminal hash + aggregate counters.
+// seal_hash = SHA-256(prev[32]‖epoch_be8‖health_terminal[32]‖compaction_terminal[32]
+//                     ‖total_delivered_be8‖total_missed_be8
+//                     ‖red_epochs_be4‖yellow_epochs_be4‖green_epochs_be4).
+// GossipEpochSealChain: append(), terminal_hash(), seal_count(), verify_chain().
+pub mod compaction_gossip_epoch_seal;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
