@@ -361,6 +361,11 @@ pub mod latency_tracker;
 // GossipPriorityQueue: BTreeMap<(-score,id),msg>; dequeue_batch(), discard_expired(), peek_top().
 pub mod gossip_priority;
 
+// Gate 278 — Peer Reputation Scorer: integer 0–100 reputation tracking (T2)
+// ReputationTier: Blocked(0-19)/Suspicious/Neutral/Good/Trusted(80-100). Initial score=50.
+// ReputationLedger: BTreeMap<peer_id, PeerReputation>; trusted_peers(), blocked_peers(), weakest_peer().
+pub mod peer_reputation;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
