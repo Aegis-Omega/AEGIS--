@@ -1018,6 +1018,12 @@ pub mod compaction_gossip_trend_analyzer;
 // GossipDashboard: record(), thriving/stable/concerning/critical_count(), verify_chain().
 pub mod compaction_gossip_dashboard_aggregator;
 
+// Gate 370 — Compaction Gossip Epoch Ledger (T2)
+// Tamper-evident per-epoch ledger binding all gossip subsystem terminal hashes.
+// Mirrors Gate 348. entry_hash = SHA-256(prev‖epoch_be8‖report‖alert‖sla‖capacity‖delta‖trend‖dashboard).
+// GossipEpochLedger: append(), terminal_hash(), entry_count(), latest(), verify_chain().
+pub mod compaction_gossip_epoch_ledger;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
