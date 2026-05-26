@@ -784,6 +784,14 @@ pub mod compaction_health_aggregator;
 // CompactionMomentumLog: direction_count(), improving_epochs(), declining_epochs(), verify_chain().
 pub mod compaction_momentum_tracker;
 
+// Gate 340 — Compaction Epoch Report (T2)
+// Per-epoch summary unifying CompactionHealthVector (338) + CompactionMomentumRecord (339)
+// + telemetry percentages (337) into one hash-chained report per epoch.
+// report_hash = SHA-256(prev[32]‖epoch_be8‖joint‖grade‖total_pruned_be8‖chains_valid
+//                        ‖dir‖momentum_int_be2‖window_size_be2‖spsf_pct‖health_pct‖res_pct).
+// CompactionEpochReportLog: critical_epochs(), optimal_epochs(), declining_epochs(), verify_chain().
+pub mod compaction_epoch_report;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
