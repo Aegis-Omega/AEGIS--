@@ -1031,6 +1031,14 @@ pub mod compaction_gossip_epoch_ledger;
 // all_valid(), seal_count(), verify_chain().
 pub mod compaction_gossip_audit_seal;
 
+// Gate 372 — Compaction Gossip Broadcaster (T2)
+// Encodes GossipAuditSeal into 32-byte network frame. Mirrors Gate 350.
+// Frame: [0..8]=epoch_end_be8, [8..16]=epoch_count_be8, [16]=chains_valid,
+// [17..21]=seal_hash_prefix4, [21..25]=terminal_hash_prefix4, [25..32]=checksum7.
+// record_hash = SHA-256(prev‖frame[32]‖epoch_end_be8). GossipBroadcaster: encode(),
+// decode(), frame_count(), verify_chain().
+pub mod compaction_gossip_broadcaster;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
