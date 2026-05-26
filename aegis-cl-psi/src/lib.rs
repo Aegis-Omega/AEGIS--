@@ -761,6 +761,13 @@ pub mod compaction_epoch_seal;
 // CertifierLog: hash-chained certificates. all_valid(), verify_chain().
 pub mod compaction_audit_certifier;
 
+// Gate 337 — Compaction Telemetry Encoder (T2)
+// Encodes a CompactionAuditCertificate into a compact 24-byte gossip frame.
+// Frame: epoch_end(8)‖total_pruned(8)‖chains_valid(1)‖spsf/health/res_pct(3)‖cert_prefix(4).
+// CompactionTelemetryLog: hash-chained record_hash = SHA-256(prev‖frame[24]‖epoch_end_be8).
+// encode(), decode(), verify_chain(), frame_count(). Mirrors Gate 254.
+pub mod compaction_telemetry_encoder;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
