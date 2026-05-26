@@ -311,6 +311,11 @@ pub mod quorum_guard;
 // TickerLog: hash-chained TickerRecords; healthy_count(), alert_count(), verify_chain().
 pub mod health_ticker;
 
+// Gate 268 — Mesh Ledger: cross-module tamper-evident epoch ledger (T2)
+// MeshEntry: epoch + census/fault/plan/quorum/ticker hashes + SHA-256 chain.
+// MeshLedger: hash-chained MeshEntries; entry_count(), terminal_hash(), verify_chain().
+pub mod mesh_ledger;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
