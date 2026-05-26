@@ -799,6 +799,14 @@ pub mod compaction_epoch_report;
 // CompactionAlertLog: red_count(), amber_count(), green_count(), max_consecutive_declining(), verify_chain().
 pub mod compaction_alert_classifier;
 
+// Gate 342 — Compaction Recovery Advisor (T2)
+// Produces prioritized recovery recommendations from alert + epoch report signals.
+// Priorities (highest first): ChainRepair → PruneReduction → MomentumStabilize → MonitorOnly.
+// reason_code bit-field: bit0=!chains_valid, bit1=high_prune(≥500), bit2=declining_streak≥2.
+// action_hash = SHA-256(prev[32]‖epoch_be8‖alert_byte‖priority_byte‖reason_code‖recommendation_byte).
+// RecoveryAdvisorLog: action_count_by(priority), chain_repair_count(), verify_chain().
+pub mod compaction_recovery_advisor;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
