@@ -346,6 +346,11 @@ pub mod fanout_controller;
 // global_drop_count(), global_throttle_count(), peer_decision(). PeerRateLog: hash-chained records.
 pub mod backpressure_monitor;
 
+// Gate 275 — Dedup Cache: epoch-scoped gossip message deduplication (T2)
+// DedupCache: BTreeMap<(node_id,seq), seen_epoch>. New/Duplicate/EpochTooOld/EpochTooFuture.
+// advance_epoch() evicts entries older than current_epoch - max_epoch_lag. hit_rate_pct().
+pub mod dedup_cache;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
