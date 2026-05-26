@@ -603,6 +603,12 @@ pub mod subscription_filter;
 // PeerAddressBook: register() → Ok(Register|Update)|Err, remove() → bool, lookup(), all_peers() sorted.
 pub mod peer_address_book;
 
+// Gate 316 — Gossip Epoch Rate Ledger: per-epoch sent/received/dropped throughput accounting (T2)
+// EpochRateStatus: Normal/Exceeded (when sent+received > MAX_MESSAGES_PER_EPOCH=10_000).
+// Epochs strictly monotone (StaleEpoch). SHA-256 hash chain over all epoch summaries.
+// EpochRateLedger: seal_epoch() → Ok(status)|Err, total_sent/received/dropped, exceeded_epoch_count, verify_chain.
+pub mod epoch_rate_ledger;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
