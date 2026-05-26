@@ -66,7 +66,18 @@ export interface LedgerStats {
 }
 
 const LEDGER_KEY = 'aegis_proof_ledger_v3'  // v3: path-coherence model
+const LEGACY_KEYS = ['aegis_proof_ledger_v1', 'aegis_proof_ledger_v2']
 const MAX_TOKENS = 500
+
+// v1/v2 tokens used a different token_id derivation and cannot be structurally
+// migrated into the v3 path-coherence model. Remove them so stale data doesn't
+// accumulate in localStorage across sessions.
+function purgeLegacyLedgers(): void {
+  if (typeof localStorage === 'undefined') return
+  for (const key of LEGACY_KEYS) {
+    try { localStorage.removeItem(key) } catch { /* silent */ }
+  }
+}
 
 async function sha256hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input)
@@ -83,7 +94,9 @@ async function genesisId(): Promise<string> {
   return _genesisId
 }
 
+let _legacyPurged = false
 function readLedger(): ProofToken[] {
+  if (!_legacyPurged) { purgeLegacyLedgers(); _legacyPurged = true }
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(LEDGER_KEY) : null
     return raw ? (JSON.parse(raw) as ProofToken[]) : []
