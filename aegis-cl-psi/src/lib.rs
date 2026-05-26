@@ -1217,6 +1217,21 @@ pub mod gossip_dedup_window;
 // GossipNeighborScoreLog: record(), score_for(), elite_count(), weak_count(), verify_chain().
 pub mod gossip_neighbor_score;
 
+// Gate 401 — Gossip Fanout Epoch Log (T2)
+// Per-epoch mean fanout scaled x100 (integer). high_fanout: mean_x100>=600; low_fanout: <200.
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖total_forwards_be4‖total_messages_be4‖mean_fanout_x100_be4‖high_byte‖low_byte).
+// GossipFanoutEpochLog: record(), total_forwards_all(), total_messages_all(),
+//   high_fanout_count(), low_fanout_count(), max_mean_fanout_x100(), verify_chain().
+pub mod gossip_fanout_epoch;
+
+// Gate 402 — Gossip Epoch Bandwidth Log (T2)
+// Per-epoch byte-level accounting: sent, received, overhead bytes.
+// overhead_pct = bytes_overhead*100/(sent+received); high_overhead when >=20%.
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖bytes_sent_be8‖bytes_received_be8‖bytes_overhead_be8‖overhead_pct_be4‖high_overhead_byte).
+// GossipEpochBandwidthLog: record(), total_sent(), total_received(), total_overhead(),
+//   high_overhead_count(), max_overhead_pct(), verify_chain().
+pub mod gossip_epoch_bandwidth;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
