@@ -429,6 +429,12 @@ pub mod reputation_decay;
 // MessageAuthenticator: BTreeMap<peer_id>; tag_message(), verify_message(), total_forgeries().
 pub mod message_authenticator;
 
+// Gate 290 — Gossip Epoch Rate Limiter: token-bucket rate limiting per source per epoch (T2)
+// BUCKET_CAPACITY=200 tokens/source/epoch. Allowed/RateLimited. Refill at epoch boundary.
+// BucketLog: hash-chained per-source epoch records; total_allowed(), drop_rate_pct(), verify_chain().
+// EpochRateLimiter: BTreeMap<source_id>; consume(), seal_epoch(), sources_over_limit().
+pub mod epoch_rate_limiter;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
