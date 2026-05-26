@@ -865,6 +865,13 @@ pub mod compaction_audit_seal;
 // CompactionBroadcaster: encode(), decode() with checksum verification, verify_chain().
 pub mod compaction_broadcaster;
 
+// Gate 351 — Compaction Broadcast Validator (T2)
+// Validates incoming BroadcastFrames: checksum integrity, epoch monotonicity.
+// ValidationVerdict: Valid/ChecksumFail/EpochRegressed/ChecksumAndEpoch (u8 flags).
+// record_hash = SHA-256(prev[32]‖frame_epoch_end_be8‖verdict_byte‖frame[32]).
+// CompactionBroadcastValidator: validate(frame), count_verdict(), verify_chain().
+pub mod compaction_broadcast_validator;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
