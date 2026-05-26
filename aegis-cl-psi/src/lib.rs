@@ -1071,6 +1071,12 @@ pub mod gossip_peer_dispatcher;
 // GossipBroadcastSummaryLog: record(), total_valid(), total_failed(), verify_chain().
 pub mod gossip_broadcast_summary;
 
+// Gate 378 — Gossip Fanout Tracker (T2)
+// Per-epoch fanout metrics: total_peers, reached_peers, coverage_pct (floor integer).
+// entry_hash = SHA-256(prev‖epoch_end_be8‖total_peers_be4‖reached_peers_be4‖coverage_pct_be4).
+// GossipFanoutLog: record(), full_coverage_count(), average_coverage_pct(), verify_chain().
+pub mod gossip_fanout_tracker;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
