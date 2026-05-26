@@ -692,6 +692,14 @@ pub mod verdict_ledger;
 // ConstitutionalSynthesisMonitor: record(), latest(), t0_verdict(), health_class(), verify_chain().
 pub mod constitutional_synthesis;
 
+// Gate 328 — SPSF Epoch Compactor (T2)
+// Truncates SPSF entries older than a configurable retention window while preserving
+// the terminal hash as a cryptographic anchor. Proof-of-history is never destroyed:
+// the CompactionAnchor seals the pruned prefix with a sequential SHA-256 hash chain.
+// certificate_hash = SHA-256(epoch‖pruned_be8‖retained_be8‖anchor.terminal_hash‖anchor_seq_be8‖entry_count_be8).
+// CompactionLog: hash-chained audit trail. verify_chain(), total_pruned(), latest().
+pub mod spsf_compactor;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
