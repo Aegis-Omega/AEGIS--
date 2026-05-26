@@ -552,6 +552,13 @@ pub mod peer_blocklist;
 //   pending_count(peer), delivery_rate_pct(peer) = acked*100/(acked+timed_out).
 pub mod message_ack_tracker;
 
+// Gate 309 — Gossip Peer Connection Pool: connection lifecycle management (T2)
+// ConnectionState: Idle/Active/Draining/Closed. MAX_POOL_SIZE=64, MAX_IDLE_EPOCHS=20.
+// PoolLog: global hash-chained; transition_count_to(state), verify_chain.
+// PeerConnectionPool: connect(), release() Active→Idle, drain() →Draining,
+//   close() removes entry, evict_idle(epoch), active_count(), idle_count().
+pub mod peer_connection_pool;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
