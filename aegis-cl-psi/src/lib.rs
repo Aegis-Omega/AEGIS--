@@ -567,6 +567,13 @@ pub mod peer_connection_pool;
 //   peers_at_or_above(epoch) count.
 pub mod epoch_watermark;
 
+// Gate 311 — Gossip Message Retry Scheduler: exponential-backoff retry tracking (T2)
+// RetryStatus: Scheduled/Retried/Abandoned/Succeeded. BASE_RETRY_EPOCHS=2, MAX_RETRY_EPOCHS=32, MAX_RETRIES=5.
+// Backoff: interval = min(BASE * 2^attempt, MAX_RETRY_EPOCHS). Capped at 32 epochs.
+// RetryLog: global hash-chained; retried_count, abandoned_count, succeeded_count, verify_chain.
+// MessageRetryScheduler: schedule(), succeed() → bool, tick(epoch) → Vec<(peer,msg)> due for retry.
+pub mod message_retry_scheduler;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
