@@ -256,6 +256,11 @@ pub mod gossip_broadcaster;
 // route() → Forward(peer_ids) | Drop(AlreadySeen|TtlExpired|NoPeers|SelfMessage).
 pub mod gossip_router;
 
+// Gate 257 — Peer Manifest: signed peer identity + capability advertisement (T2)
+// PeerManifest: node_id + epoch + capabilities(bitmask) + phase + manifest_hash.
+// PeerRegistry: BTreeMap<node_id, manifest>; register validates hash + monotone epoch.
+pub mod peer_manifest;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
