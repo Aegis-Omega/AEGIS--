@@ -1058,6 +1058,12 @@ pub mod compaction_gossip_sync_state_machine;
 // GossipPeerRegistry: admit(), evict(), contains(), get(), peer_count(), verify_chain().
 pub mod compaction_gossip_peer_registry;
 
+// Gate 376 — Gossip Peer Dispatcher (T2)
+// Dispatches GossipBroadcastFrames to all registered gossip peers.
+// Mirrors Gate 354. record_hash = SHA-256(prev[32]‖epoch_end_be8‖peer_count_be4‖delivered_count_be4).
+// GossipPeerDispatcher: dispatch(), total_delivered(), total_missed(), verify_chain().
+pub mod gossip_peer_dispatcher;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
