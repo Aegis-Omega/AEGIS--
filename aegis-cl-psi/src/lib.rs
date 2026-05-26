@@ -1146,6 +1146,12 @@ pub mod gossip_backpressure;
 // GossipTopologyChangeLog: record(), change_count(), max_peer_count(), verify_chain().
 pub mod gossip_topology_change;
 
+// Gate 390 — Gossip Retransmit Counter (T2)
+// Per-epoch per-peer retransmit attempt counter. BTreeMap for cumulative peer totals.
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖peer_id_be8‖retransmit_count_be4).
+// GossipRetransmitLog: record(), total_retransmits(), max_retransmits(), peer_total(), verify_chain().
+pub mod gossip_retransmit;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
