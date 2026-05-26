@@ -447,6 +447,13 @@ pub mod peer_selector;
 // IntegrationChain: hash-chained records; healthy_epoch_count(), avg_health_score(), verify_chain().
 pub mod epoch_integrator;
 
+// Gate 293 — Gossip Session Tracker: per-peer session lifecycle management (T2)
+// SessionState: Open→Active→Suspended→Closed. Illegal transitions rejected with InvalidTransition.
+// SessionRecord: hash-chained (peer_id, session_id, epoch, from_state, to_state).
+// SessionHistory: transition(), current_state(), suspended_count(), verify_chain().
+// SessionRegistry: BTreeMap<(peer_id, session_id)>; open_session(), active_sessions(), closed_session_count().
+pub mod session_tracker;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
