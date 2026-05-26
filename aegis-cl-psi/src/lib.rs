@@ -777,6 +777,13 @@ pub mod compaction_telemetry_encoder;
 // CompactionHealthLog: critical_count(), optimal_count(), joint_condition_count(), verify_chain().
 pub mod compaction_health_aggregator;
 
+// Gate 339 — Compaction Momentum Tracker (T2)
+// Rolling directional trend signal for JointCondition (Gate 338) across MOMENTUM_WINDOW=4 observations.
+// CompactionMomentumDir: Improving/Stable/Declining from signed score delta (latest − earliest).
+// record_hash = SHA-256(prev[32]‖epoch_be8‖score_byte‖dir_byte‖momentum_int_be2‖window_size_be2).
+// CompactionMomentumLog: direction_count(), improving_epochs(), declining_epochs(), verify_chain().
+pub mod compaction_momentum_tracker;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
