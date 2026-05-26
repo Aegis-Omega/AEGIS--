@@ -965,6 +965,13 @@ pub mod compaction_gossip_momentum_tracker;
 // GossipEpochReportLog: critical_epochs(), optimal_epochs(), declining_epochs(), verify_chain().
 pub mod compaction_gossip_epoch_report;
 
+// Gate 363 — Compaction Gossip Alert Classifier (T2)
+// Translates GossipEpochReport (Gate 362) into GossipAlertLevel (Green/Amber/Red) with
+// hysteresis. Mirrors Gate 341. GOSSIP_ALERT_DECLINING_THRESHOLD=3.
+// alert_hash = SHA-256(prev[32]‖epoch_be8‖alert_byte‖joint_byte‖dir_byte‖consecutive_be4).
+// GossipAlertLog: red_count(), amber_count(), green_count(), max_consecutive_declining().
+pub mod compaction_gossip_alert_classifier;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
