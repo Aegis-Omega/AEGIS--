@@ -729,6 +729,13 @@ pub mod spsf_manager;
 // HealthCompactionLog: hash-chained audit trail. total_pruned(), verify_chain().
 pub mod gossip_health_compactor;
 
+// Gate 333 — Resonance Chain Compactor (T2)
+// Applies proof-preserving compaction (Gate 328 pattern) to the ResonanceChain (Gate 321).
+// ResonanceAnchor seals pruned resonance records with terminal_hash + certified_count + any_resonant.
+// certificate_hash = SHA-256(epoch_be8‖pruned_be8‖retained_be8‖terminal_hash‖anchor_seq_be8‖certified_be8‖any_resonant_byte).
+// ResonanceCompactionLog: hash-chained audit trail. total_pruned(), verify_chain().
+pub mod resonance_compactor;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
