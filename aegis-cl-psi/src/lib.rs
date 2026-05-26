@@ -1102,6 +1102,13 @@ pub mod gossip_health_snapshot;
 // GossipPeerScoreLog: record_hit(), record_miss(), score_for(), verify_chain().
 pub mod gossip_peer_score;
 
+// Gate 383 — Gossip Epoch Seal (T2)
+// Final immutable seal committing all gossip epoch signals into one hash-chained record.
+// seal_hash = SHA-256(prev[32]‖epoch_end_be8‖coverage_pct_be4‖avg_latency_be8
+//                      ‖window_avg_pct_be4‖window_state_byte‖peer_score_pct_be4).
+// GossipEpochSealChain: seal(), latest(), seal_count(), verify_chain().
+pub mod gossip_epoch_seal;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
