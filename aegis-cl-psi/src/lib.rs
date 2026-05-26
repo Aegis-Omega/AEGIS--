@@ -376,6 +376,12 @@ pub mod mesh_supervisor;
 // GossipEpochChain: append(), terminal_hash(), seal_count(), verify_chain().
 pub mod gossip_epoch_finalizer;
 
+// Gate 281 — Mesh Convergence Certifier: multi-epoch gossip stability proof (T2)
+// CONVERGENCE_WINDOW_SIZE=3 epochs. EpochSnapshot::satisfies_convergence() checks 4 conditions.
+// ConvergenceCertifier: sliding window → ConvergenceCertificate per full window.
+// consecutive_converged_count(), verify_chain(). Chain via SHA-256(prev‖fields).
+pub mod convergence_certifier;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
