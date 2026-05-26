@@ -1096,6 +1096,12 @@ pub mod gossip_epoch_window;
 // GossipHealthLog: record(), healthy/degraded/critical_count(), verify_chain().
 pub mod gossip_health_snapshot;
 
+// Gate 382 — Gossip Peer Score Tracker (T2)
+// Per-peer delivery reliability score: score_pct = floor(hits * 100 / max(total,1)).
+// event_hash = SHA-256(prev[32]‖peer_id_be8‖epoch_be8‖is_hit_byte‖hits_be8‖total_be8‖score_pct_be4).
+// GossipPeerScoreLog: record_hit(), record_miss(), score_for(), verify_chain().
+pub mod gossip_peer_score;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
