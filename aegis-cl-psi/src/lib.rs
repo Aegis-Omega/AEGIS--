@@ -1190,6 +1190,12 @@ pub mod gossip_pipeline_summary;
 // GossipBackpressureEpochLog: record(), total_pressure_events(), high_pressure_count(), max_pressure_events(), verify_chain().
 pub mod gossip_backpressure_epoch;
 
+// Gate 397 — Gossip Frame Size Histogram (T2)
+// Per-epoch bucket counts: small(<256B), medium(256..1024B), large(>=1024B). Dominant bucket query.
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖small_be4‖medium_be4‖large_be4‖total_be4).
+// GossipFrameSizeHistogramLog: record(), total_small(), total_medium(), total_large(), dominant_bucket(), verify_chain().
+pub mod gossip_frame_size_histogram;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
