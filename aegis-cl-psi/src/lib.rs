@@ -301,6 +301,11 @@ pub mod mesh_census;
 // RecoveryPlan: epoch + fault_class + sorted actions + SHA-256 chain. PlanLog: hash-chained plans.
 pub mod recovery_planner;
 
+// Gate 266 — Quorum Guard: real-time quorum health monitoring with alert levels (T2)
+// QuorumLevel: Healthy(≥70%) / AtThreshold(≥1/φ) / BelowQuorum / NoNodes.
+// QuorumGuard: hash-chained QuorumStatus records; alert_epochs(), longest_outage(), latest_delta().
+pub mod quorum_guard;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
