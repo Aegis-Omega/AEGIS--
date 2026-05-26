@@ -1312,6 +1312,22 @@ pub mod gossip_round_trip_time;
 //   max_fill_pct(), verify_chain().
 pub mod gossip_window_fill;
 
+// Gate 413 — Gossip Epoch Convergence Log (T2)
+// Per-epoch peer convergence: peers_converged/peers_total → convergence_pct.
+// not_converged: convergence_pct < CONVERGENCE_FLOOR (75%).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖peers_total_be4‖peers_converged_be4‖conv_pct_be4‖not_conv_byte).
+// GossipEpochConvergenceLog: record(), not_converged_count(), min_convergence_pct(),
+//   mean_convergence_pct(), verify_chain().
+pub mod gossip_epoch_convergence;
+
+// Gate 414 — Gossip Peer Diversity Log (T2)
+// Per-epoch peer zone diversity: distinct_zones/total_peers → diversity_score (capped at 100).
+// low_diversity: diversity_score < DIVERSITY_FLOOR (20%).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖zones_be4‖peers_be4‖score_be4‖low_byte).
+// GossipPeerDiversityLog: record(), low_diversity_count(), max_diversity_score(),
+//   mean_diversity_score(), verify_chain().
+pub mod gossip_peer_diversity;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
