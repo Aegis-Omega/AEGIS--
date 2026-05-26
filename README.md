@@ -493,4 +493,4 @@ Free to use, study, modify, and distribute. Derivative works must release source
 
 *A finite automaton is a machine that remembers its state.*  
 *A hash-chained automaton is a machine that can prove it remembered correctly.*  
-*321 of them, watching each other — that is the organism.*
+*136 of them, watching each other — that is the organism.*
