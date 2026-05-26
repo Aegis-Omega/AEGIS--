@@ -898,6 +898,16 @@ pub mod compaction_peer_registry;
 // CompactionGossipDispatcher: dispatch(frame, registry), total_delivered(), verify_chain().
 pub mod compaction_gossip_dispatcher;
 
+// Gate 355 — Compaction Gossip Health Report (T2)
+// Synthesises the compaction broadcast layer (Gates 350–354) into a single
+// per-epoch health verdict: Green / Yellow / Red.
+// Red: diverged_peers≥1 OR checksum_fails≥3 OR (admitted_peers>0 AND delivered_count==0).
+// Yellow: lagging_peers≥1 OR epoch_regressions≥1 OR missed_count≥1.
+// report_hash = SHA-256(prev[32]‖epoch_be8‖class_byte‖checksum_fails_be4‖epoch_regressions_be4
+//                        ‖delivered_be8‖missed_be8‖lagging_be4‖diverged_be4‖admitted_be4).
+// CompactionGossipHealthMonitor: record(), verify_chain(), red_count(), yellow_count(), green_count().
+pub mod compaction_gossip_health;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
