@@ -1064,6 +1064,13 @@ pub mod compaction_gossip_peer_registry;
 // GossipPeerDispatcher: dispatch(), total_delivered(), total_missed(), verify_chain().
 pub mod gossip_peer_dispatcher;
 
+// Gate 377 — Gossip Broadcast Summary (T2)
+// Per-epoch summary combining dispatch stats + validator verdicts into a hash-chained record.
+// summary_hash = SHA-256(prev‖epoch_end_be8‖dispatched_be4‖delivered_be4‖valid_be4
+//                          ‖checksum_fail_be4‖epoch_regressed_be4‖checksum_and_epoch_be4).
+// GossipBroadcastSummaryLog: record(), total_valid(), total_failed(), verify_chain().
+pub mod gossip_broadcast_summary;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
