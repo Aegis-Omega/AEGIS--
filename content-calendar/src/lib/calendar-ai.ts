@@ -1,5 +1,4 @@
 import { callConstitutional } from '@shared/lib/constitutional-ai'
-import { mintToken } from '@shared/lib/proof-ledger'
 
 export interface CalendarInput {
   niche: string
@@ -58,7 +57,6 @@ Content pillar 3: ${input.pillar3}
     systemPrompt: SYSTEM_PROMPT,
     userMessage,
   })
-  await mintToken(result.audit, 'content-calendar')
   const parsed = result.data
   return Array.isArray(parsed) ? parsed : (parsed.weeks ?? [])
 }

@@ -1,5 +1,4 @@
 import { callConstitutional } from '@shared/lib/constitutional-ai'
-import { mintToken } from '@shared/lib/proof-ledger'
 
 export type Platform = 'TikTok' | 'YouTube Shorts' | 'Instagram Reels' | 'All platforms'
 export type Tone = 'Entertaining' | 'Educational' | 'Controversial' | 'Inspirational' | 'Relatable'
@@ -50,7 +49,6 @@ Tone: ${input.tone}
 `.trim()
 
   const result = await callConstitutional<unknown>({ systemPrompt: SYSTEM_PROMPT, userMessage })
-  await mintToken(result.audit, 'hook-generator')
   const parsed = result.data
   const arr: unknown[] = Array.isArray(parsed)
     ? parsed

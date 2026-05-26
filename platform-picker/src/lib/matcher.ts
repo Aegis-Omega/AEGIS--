@@ -1,5 +1,4 @@
 import { callConstitutional } from '@shared/lib/constitutional-ai'
-import { mintToken } from '@shared/lib/proof-ledger'
 
 const PLATFORMS = ['TikTok', 'YouTube Shorts', 'Instagram Reels', 'Snapchat Spotlight'] as const
 
@@ -41,7 +40,6 @@ Current following size: ${input.current_following}
 `.trim()
 
   const result = await callConstitutional<unknown>({ systemPrompt: SYSTEM_PROMPT, userMessage })
-  await mintToken(result.audit, 'platform-picker')
   const parsed = result.data
   const arr: unknown[] = Array.isArray(parsed)
     ? parsed

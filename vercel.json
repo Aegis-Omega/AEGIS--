@@ -2,9 +2,6 @@
   "buildCommand": "bash build.sh",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/platform-picker/(.*)", "destination": "/platform-picker/index.html" },
-    { "source": "/hook-generator/(.*)",  "destination": "/hook-generator/index.html"  },
-    { "source": "/content-calendar/(.*)", "destination": "/content-calendar/index.html" },
-    { "source": "/((?!platform-picker|hook-generator|content-calendar).*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
