@@ -530,6 +530,13 @@ pub mod message_fragmenter;
 //   topics_for(peer) sorted, peers_for_topic(topic) sorted.
 pub mod topic_subscription;
 
+// Gate 306 — Gossip Nonce Cache: replay-attack prevention via sliding window nonce tracking (T2)
+// NonceDecision: Fresh/Replay. WINDOW_EPOCHS=8. BTreeMap<epoch, BTreeSet<(peer, nonce)>>.
+// Evicts epochs older than current - WINDOW_EPOCHS on advance.
+// NonceLog: hash-chained; fresh_count, replay_count, verify_chain.
+// NonceCache: check(peer, epoch, nonce), advance_epoch(), window_size().
+pub mod nonce_cache;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
