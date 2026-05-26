@@ -935,6 +935,13 @@ pub mod compaction_gossip_epoch_seal;
 // GossipCertifierLog: certify_window(), all_valid(), verify_chain().
 pub mod compaction_gossip_audit_certifier;
 
+// Gate 359 — Compaction Gossip Telemetry Encoder (T2)
+// Encodes a GossipAuditCertificate (Gate 358) into a compact 24-byte gossip frame.
+// Frame: epoch_end(8)‖total_delivered(8)‖chains_valid(1)‖red/yellow/green_pct(3)‖cert_prefix(4).
+// record_hash = SHA-256(prev[32]‖frame[24]‖epoch_end_be8).
+// GossipTelemetryLog: push(), verify_chain(), frame_count(). Mirrors Gate 337.
+pub mod compaction_gossip_telemetry_encoder;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
