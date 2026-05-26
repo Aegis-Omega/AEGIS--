@@ -574,6 +574,13 @@ pub mod epoch_watermark;
 // MessageRetryScheduler: schedule(), succeed() → bool, tick(epoch) → Vec<(peer,msg)> due for retry.
 pub mod message_retry_scheduler;
 
+// Gate 312 — Gossip Peer Capability Tracker: per-peer capability bitmask management (T2)
+// CAP_GOSSIP=0x01, CAP_CONSENSUS=0x02, CAP_RELAY=0x04, CAP_AUDIT=0x08, CAP_STORAGE=0x10, CAP_EDGE=0x20.
+// Updates monotone by epoch (StaleEpoch error if not advancing).
+// CapabilityLog: global hash-chained; update_count (changed caps), verify_chain.
+// PeerCapabilityTracker: update() → Ok(changed?), has_capability(), peers_with_capability() sorted, remove().
+pub mod peer_capability_tracker;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
