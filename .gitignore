@@ -1,54 +1,48 @@
-# ── Dependencies ────────────────────────────────────────────────
-node_modules/
+```
+# Compiled and build artifacts
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
+# Dependencies
+target/
+**/target/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Editors
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python specific
 __pycache__/
 *.pyc
 *.pyo
-.venv/
-venv/
-
-# ── Secrets ─────────────────────────────────────────────────────
-.env
-free-claude-code/.env
-
-# ── IDE / Agent state ───────────────────────────────────────────
-.claude/worktrees/
-.memory/
-.kilocode/
-.kilocodemodes
-
-# ── Forge ephemeral (backups reset on restart) ──────────────────
-.forge/state.backup.*
-.forge/sentinel-events/
-.forge/sentinel.log
-.forge/bot.lock
-
-# ── Large data dumps (not source code) ──────────────────────────
-chat.html
-chat_data.json
-final_data.json
-line_with_data.txt
-script_7_data.txt
-extracted_text.txt
-
-# ── Godot editor cache ──────────────────────────────────────────
-game/.godot/
-
-# ── Product builds / secrets ────────────────────────────────────
-cockpit/dist/
-cockpit/.env
-platform-picker/dist/
-platform-picker/.env
-hook-generator/dist/
-hook-generator/.env
-
-# ── OS / build ──────────────────────────────────────────────────
-.DS_Store
-Thumbs.db
-*.log
-content-calendar/dist/
-content-calendar/.env
-hub/dist/
-hub/.env
-
-# Rust build artifacts
-crates/*/target/
+*.pyd
+.Python
+*.so
+*.egg-info/
+.eggs/
+.mypy_cache/
+.pytest_cache/
+.tox/
+.coverage
+nosetests.xml
+```

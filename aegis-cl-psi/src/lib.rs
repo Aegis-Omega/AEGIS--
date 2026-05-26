@@ -56,6 +56,11 @@ pub mod causal_arbiter;
 // Gate 207 — Adaptive Lineage Compaction Engine (T2, reduces memory footprint while preserving audit trail)
 pub mod lineage_compactor;
 
+// Gate 207 — Pyramidal Stack Engine (T2, computes cumulative causal capacity using square pyramidal numbers)
+pub mod pyramidal_stack;
+
+// Gate 207 — Dodecagonal Mesh Engine (T2, transforms pyramid into 12-fold quasicrystalline lattice)
+pub mod dodecagonal_mesh;
 // Gate 208 — Geometric Variance Engine (T2, replaces scalar sums with tensor-alignment metrics)
 pub mod geometric_variance;
 
