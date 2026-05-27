@@ -1443,3 +1443,5 @@ pub mod gossip_broadcast_peer_drift;
 pub mod gossip_broadcast_epoch_stall;
 // Gate 447 — Gossip Broadcast Rebroadcast Monitor (T2)
 pub mod gossip_broadcast_rebroadcast;
+// Gate 448 — Gossip Broadcast Partial Delivery Monitor (T2)
+pub mod gossip_broadcast_partial_delivery;
