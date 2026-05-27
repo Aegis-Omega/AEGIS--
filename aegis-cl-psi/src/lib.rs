@@ -1477,3 +1477,5 @@ pub mod gossip_broadcast_fragmentation_e3;
 pub mod gossip_broadcast_loss_e3;
 // Gate 464 — Gossip Broadcast Congestion E3 Monitor (T2)
 pub mod gossip_broadcast_congestion_e3;
+// Gate 465 — Gossip Broadcast Fanout E3 Monitor (T2)
+pub mod gossip_broadcast_fanout_e3;
