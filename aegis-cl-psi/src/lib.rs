@@ -1531,3 +1531,5 @@ pub mod gossip_broadcast_flood_rate_e3;
 pub mod gossip_broadcast_dedup_miss_e3;
 // Gate 491 — Gossip Broadcast Capacity Breach E3 Monitor (T2)
 pub mod gossip_broadcast_capacity_breach_e3;
+// Gate 492 — Gossip Broadcast Peer Timeout E3 Monitor (T2)
+pub mod gossip_broadcast_peer_timeout_e3;
