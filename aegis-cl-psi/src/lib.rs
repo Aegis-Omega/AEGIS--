@@ -1447,3 +1447,5 @@ pub mod gossip_broadcast_rebroadcast;
 pub mod gossip_broadcast_partial_delivery;
 // Gate 449 — Gossip Broadcast Peer Rejection Monitor (T2)
 pub mod gossip_broadcast_peer_rejection;
+// Gate 450 — Gossip Broadcast Msg Ordering Monitor (T2)
+pub mod gossip_broadcast_msg_ordering;
