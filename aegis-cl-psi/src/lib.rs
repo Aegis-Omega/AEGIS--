@@ -1493,3 +1493,5 @@ pub mod gossip_broadcast_backpressure_e3;
 pub mod gossip_broadcast_window_miss_e3;
 // Gate 472 — Gossip Broadcast Epoch Gap E3 Monitor (T2)
 pub mod gossip_broadcast_epoch_gap_e3;
+// Gate 473 — Gossip Broadcast Ack Timeout E3 Monitor (T2)
+pub mod gossip_broadcast_ack_timeout_e3;
