@@ -1473,3 +1473,5 @@ pub mod gossip_broadcast_peer_latency_e3;
 pub mod gossip_broadcast_retry_e3;
 // Gate 462 — Gossip Broadcast Fragmentation E3 Monitor (T2)
 pub mod gossip_broadcast_fragmentation_e3;
+// Gate 463 — Gossip Broadcast Loss E3 Monitor (T2)
+pub mod gossip_broadcast_loss_e3;
