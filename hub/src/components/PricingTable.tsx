@@ -6,13 +6,22 @@ function captureEvent(event: string, props?: Record<string, unknown>): void {
   if (typeof ph?.capture === 'function') ph.capture(event, props)
 }
 
-// Set VITE_STRIPE_LINK_SINGLE / _STARTER / _FULL in Vercel env vars.
-// Each Stripe Payment Link must redirect to:
-//   https://yourdomain.com/success?plan=single (or starter / full)
-const STRIPE_LINKS = {
-  single:  import.meta.env.VITE_STRIPE_LINK_SINGLE  ?? '#pricing',
-  starter: import.meta.env.VITE_STRIPE_LINK_STARTER ?? '#pricing',
-  full:    import.meta.env.VITE_STRIPE_LINK_FULL    ?? '#pricing',
+// Lemon Squeezy checkout links (works globally including Bosnia/Balkans).
+// Set VITE_LS_LINK_SINGLE / _STARTER / _FULL in Vercel env vars.
+//
+// Setup (5 min):
+//   1. Create account at app.lemonsqueezy.com
+//   2. Create a store → add 3 products ($19 / $29 / $39)
+//   3. For each product: Settings → Checkout → Redirect URL:
+//        https://<hub-domain>/success?plan=single  (or starter / full)
+//   4. Copy the checkout URL and set it as the env var below.
+//
+// Lemon Squeezy is a Merchant of Record — they handle VAT/tax globally.
+// No Stripe account needed. Works in 100+ countries.
+const LS_LINKS = {
+  single:  import.meta.env.VITE_LS_LINK_SINGLE  ?? '#pricing',
+  starter: import.meta.env.VITE_LS_LINK_STARTER ?? '#pricing',
+  full:    import.meta.env.VITE_LS_LINK_FULL    ?? '#pricing',
 }
 
 interface Tier {
@@ -114,7 +123,7 @@ export function PricingTable() {
             ))}
           </ul>
           <a
-            href={STRIPE_LINKS[tier.id]}
+            href={LS_LINKS[tier.id]}
             onClick={() => captureEvent('checkout_click', { plan: tier.id, price: tier.price })}
             className={`flex items-center justify-center gap-2 text-sm font-semibold py-3 rounded-xl transition-all ${
               tier.highlight
