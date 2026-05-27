@@ -1,6 +1,6 @@
 // Lemon Squeezy webhook → purchase record
-// Deploy: supabase functions deploy ls-webhook
-// Env vars required: LS_WEBHOOK_SECRET, LS_PLAN_MAP (JSON variant_id→plan)
+// Deploy: supabase functions deploy ls-webhook --no-verify-jwt
+// Env vars: LS_WEBHOOK_SECRET, LS_PLAN_MAP (JSON variant_id→plan)
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { CORS } from '../_shared/cors.ts'
 
@@ -23,7 +23,7 @@ async function verifySignature(secret: string, body: string, sig: string): Promi
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS })
 
-  const sig = req.headers.get('x-signature') ?? ''
+  const sig  = req.headers.get('x-signature') ?? ''
   const body = await req.text()
 
   if (!(await verifySignature(LS_WEBHOOK_SECRET, body, sig))) {
@@ -35,11 +35,11 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: true }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 
-  const attrs      = event.data?.attributes ?? {}
-  const email      = (attrs.user_email ?? '').toLowerCase().trim()
-  const orderId    = String(event.data?.id ?? '')
-  const variantId  = String(attrs.first_order_item?.variant_id ?? '')
-  const plan       = LS_PLAN_MAP[variantId] ?? 'single'
+  const attrs     = event.data?.attributes ?? {}
+  const email     = (attrs.user_email ?? '').toLowerCase().trim()
+  const orderId   = String(event.data?.id ?? '')
+  const variantId = String(attrs.first_order_item?.variant_id ?? '')
+  const plan      = LS_PLAN_MAP[variantId] ?? 'single'
 
   if (!email) {
     return new Response(JSON.stringify({ error: 'No email in payload' }), { status: 400, headers: CORS })
@@ -51,12 +51,12 @@ Deno.serve(async (req) => {
   )
 
   const { error } = await supabase.from('purchases').upsert({
-    email,
-    order_id: orderId,
-    variant_id: variantId,
+    customer_email: email,
+    ls_order_id:    orderId,
+    ls_variant_id:  variantId,
     plan,
     updated_at: new Date().toISOString(),
-  }, { onConflict: 'order_id' })
+  }, { onConflict: 'ls_order_id' })
 
   if (error) {
     console.error('DB upsert failed:', error)

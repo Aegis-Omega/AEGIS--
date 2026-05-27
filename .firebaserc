@@ -1,9 +1,9 @@
 {
   "projects": {
-    "default": "YOUR_GCP_PROJECT_ID"
+    "default": "aegisomegav1"
   },
   "targets": {
-    "YOUR_GCP_PROJECT_ID": {
+    "aegisomegav1": {
       "hosting": {
         "hub":      ["aegisomega-hub"],
         "platform": ["aegisomega-platform"],

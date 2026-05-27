@@ -4,9 +4,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { CORS } from '../_shared/cors.ts'
 
-const HUB_URL = Deno.env.get('HUB_URL') ?? 'https://aegisomega.com'
-
-// Rank plans so we return the best one the user purchased
+const HUB_URL   = Deno.env.get('HUB_URL') ?? 'https://aegisomega.com'
 const PLAN_RANK: Record<string, number> = { single: 1, starter: 2, full: 3 }
 
 Deno.serve(async (req) => {
@@ -28,21 +26,18 @@ Deno.serve(async (req) => {
   const { data, error } = await supabase
     .from('purchases')
     .select('plan')
-    .eq('email', email.toLowerCase().trim())
+    .eq('customer_email', email.toLowerCase().trim())
 
   if (error || !data?.length) {
     return new Response(JSON.stringify({ found: false }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
   }
 
-  // Pick the highest-tier plan the user has purchased
   const bestPlan = data.reduce((best, row) => {
     return (PLAN_RANK[row.plan] ?? 0) > (PLAN_RANK[best] ?? 0) ? row.plan : best
   }, 'single')
 
-  const restoreUrl = `${HUB_URL}/success?plan=${bestPlan}`
-
   return new Response(
-    JSON.stringify({ found: true, restore_url: restoreUrl, plan: bestPlan }),
+    JSON.stringify({ found: true, restore_url: `${HUB_URL}/success?plan=${bestPlan}`, plan: bestPlan }),
     { headers: { ...CORS, 'Content-Type': 'application/json' } },
   )
 })
