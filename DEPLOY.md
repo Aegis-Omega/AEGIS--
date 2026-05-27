@@ -1,91 +1,93 @@
 # AEGIS Ω — Deployment Guide
 
-**Status:** All products build clean. Vercel deployment requires your local machine.
+**Status:** Products ARE deployed on Vercel at these URLs.
 **Branch:** `claude/aegis-setup-Lx7Ji`
 
 ---
 
-## Option A — One-Command Deploy (from your local machine)
+## CRITICAL: Disable IP Allowlisting (Products are Live but Blocked)
 
-```bash
-# 1. Clone / pull the repo on your local machine
-git pull origin claude/aegis-setup-Lx7Ji
+All 3 products return 403 `host_not_allowed`. This means IP allowlisting is active.
 
-# 2. Install Vercel CLI and log in
-npm i -g vercel
-vercel login    # opens browser to authenticate
+**Fix for each project:**
+1. Go to vercel.com → select the project (platform-picker / hook-generator / content-calendar)
+2. **Settings** → **Security** → **IP Allowlist** → **Remove all IP restrictions** (or disable the feature)
+3. Also check: **Settings** → **Deployment Protection** → set to **Disabled** (for public access)
+4. Redeploy or wait for the change to propagate (~30 seconds)
 
-# 3. Set your DashScope API key (get from dashscope.aliyun.com → API Keys)
-export DASHSCOPE_KEY="sk-XXXXXXXXXXXXXXXX"
-
-# 4. Deploy everything
-bash scripts/deploy-products.sh
-```
-
-Done. Script deploys all 4 products and prints the URLs.
+**Test:** Open `https://platform-picker.vercel.app` in your browser. You should see the app.
 
 ---
 
-## Option B — Manual Vercel Dashboard
+## Products — Current Deployment URLs
 
-Go to **vercel.com/new** → Import Git Repository → `tarikskalic33/AEGIS--`
-
-Create 4 separate projects:
-
-| Project name | Root Directory | Environment Variables |
+| Product | URL | Status |
 |---|---|---|
-| `aegis-hub` | `hub` | *(none needed)* |
-| `aegis-platform-picker` | `platform-picker` | `VITE_DASHSCOPE_API_KEY=sk-...` + `VITE_DASHSCOPE_MODEL=qwen-plus` |
-| `aegis-hook-generator` | `hook-generator` | `VITE_DASHSCOPE_API_KEY=sk-...` + `VITE_DASHSCOPE_MODEL=qwen-plus` |
-| `aegis-content-calendar` | `content-calendar` | `VITE_DASHSCOPE_API_KEY=sk-...` + `VITE_DASHSCOPE_MODEL=qwen-plus` |
-
-For each project: **Framework Preset = Vite**, **Install Command = npm install**, **Build Command = npm run build**, **Output Directory = dist**
+| Platform Picker | https://platform-picker.vercel.app | 403 (IP blocked) |
+| Hook Generator | https://hook-generator.vercel.app | 403 (IP blocked) |
+| Content Calendar | https://content-calendar.vercel.app | 403 (IP blocked) |
+| Hub | https://myapp.vercel.app or https://aegis-hub.vercel.app | 403 (IP blocked) |
 
 ---
 
-## Step 2 — Set Up Gumroad Products
+## Step 2 — Set the DashScope API Key
 
-Go to **gumroad.com** → Products → New Product for each:
+Each product needs `VITE_DASHSCOPE_API_KEY` to make AI calls.
 
-| Product | Permalink (EXACT — must match) | Price |
+**For each project in Vercel:**
+1. Settings → Environment Variables
+2. Add: `VITE_DASHSCOPE_API_KEY` = your DashScope sk- key
+3. Add: `VITE_DASHSCOPE_MODEL` = `qwen-plus`
+4. Redeploy (Deployments → Redeploy)
+
+**Get your DashScope sk- key:** dashscope.aliyun.com → Console → API Keys
+Format: `sk-XXXXXXXXXXXXXXXX` (must start with `sk-`, NOT `LTAI...`)
+
+---
+
+## Step 3 — Set Up Gumroad Products
+
+Create these 4 products on **gumroad.com** with EXACT permalink slugs:
+
+| Product | Permalink | Price |
 |---|---|---|
 | Platform Picker | `aegis-platform-picker` | $19 |
 | Hook Generator | `aegis-hook-generator` | $19 |
 | Content Calendar | `aegis-content-calendar` | $19 |
-| Full Toolkit (bundle) | `aegis-full-toolkit` | $39 |
+| Full Toolkit bundle | `aegis-full-toolkit` | $39 |
 
-The `api/verify-license.ts` in each product hits `https://api.gumroad.com/v2/licenses/verify` with these exact permalinks. **They must match exactly.**
+The permalink MUST match exactly — the license verification API uses these to validate keys.
 
----
-
-## Step 3 — Update Hub with Product URLs
-
-After deploying, update `hub/src/App.tsx` to link directly to each product's Vercel URL (the deployed URL, not the Gumroad URL — the Gumroad links already point to the right places).
-
----
-
-## What Each Product Does
-
-| Product | Features | Tech |
-|---|---|---|
-| **Platform Picker** | Scores TikTok/YT Shorts/IG Reels/Snapchat for your niche + goals | DashScope/Qwen AI, radar chart, one-click share |
-| **Hook Generator** | 10 viral hooks ranked by viral potential | DashScope/Qwen AI, type-coded badges, export |
-| **Content Calendar** | 4-week content calendar with daily hooks | DashScope/Qwen AI, CSV/TXT export |
-| **Hub** | Landing page for all 3 products + enterprise | Static React, PostHog analytics |
+**For each Gumroad product:**
+- Product type: Digital product
+- Content: The Vercel deployment URL (so buyers can access the tool)
+- License key: Enable "Generate a unique license key per sale"
 
 ---
 
-## DashScope API Key
+## Step 4 — Update Hub Links (Optional)
 
-Get from: **dashscope.aliyun.com** → Console → API Keys → Create API Key
-Format: `sk-XXXXXXXXXXXXXXXX` (starts with `sk-`)
-Cost: ~$0.001–0.003 per AI call (very cheap, Qwen models)
-Set `VITE_DASHSCOPE_MODEL=qwen-plus` (default model, fast + capable)
+The hub already links to the Gumroad URLs. Once Gumroad + Vercel are connected, the full flow works:
+1. Buyer clicks "Buy" on hub → goes to Gumroad
+2. Buys for $19 → gets email with license key
+3. Goes to the product Vercel URL → enters license key → unlocked!
+
+---
+
+## Redeploy from Latest Branch (if needed)
+
+If you need to push new code to Vercel:
+```bash
+# On your local machine:
+git pull origin claude/aegis-setup-Lx7Ji
+cd platform-picker && vercel --prod
+cd ../hook-generator && vercel --prod
+cd ../content-calendar && vercel --prod
+cd ../hub && vercel --prod
+```
 
 ---
 
 ## Pricing
-- Platform Picker: **$19**
-- Hook Generator: **$19**  
-- Content Calendar: **$19**
+- Platform Picker: **$19** | Hook Generator: **$19** | Content Calendar: **$19**
 - Any 2: **$29** | All 3 (Full Creator AI Toolkit): **$39**
