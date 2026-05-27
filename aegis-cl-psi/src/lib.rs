@@ -1410,3 +1410,8 @@ pub use rwkv_state::RWKVStateCache;
 pub use lyapunov::LyapunovMonitor;
 pub use audit::AuditLogger;
 pub use orchestrator::Phase1Orchestrator;
+
+// Gate 425 — Gossip Broadcast Fragmentation Monitor (T2)
+pub mod gossip_broadcast_fragmentation;
+// Gate 426 — Gossip Broadcast Loss Monitor (T2)
+pub mod gossip_broadcast_loss;

@@ -349,7 +349,16 @@ def main():
     parser.add_argument("--gate", type=int, help="Specific gate number to start from")
     args = parser.parse_args()
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not api_key:
+        # Fall back to settings.local.json
+        settings_path = os.path.join(REPO_ROOT, ".claude", "settings.local.json")
+        try:
+            with open(settings_path) as f:
+                settings = json.load(f)
+            api_key = settings.get("env", {}).get("ANTHROPIC_API_KEY", "").strip()
+        except Exception:
+            pass
     if not api_key:
         print("ERROR: ANTHROPIC_API_KEY not set")
         sys.exit(1)
