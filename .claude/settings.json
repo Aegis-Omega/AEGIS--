@@ -23,5 +23,28 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "mcp__github__pull_request_read",
+      "mcp__github__list_pull_requests",
+      "mcp__github__list_branches",
+      "mcp__github__issue_read",
+      "mcp__github__get_commit",
+      "mcp__github__list_commits",
+      "mcp__github__search_code",
+      "mcp__github__search_issues",
+      "mcp__github__search_pull_requests",
+      "mcp__github__get_file_contents",
+      "mcp__github__list_tags",
+      "mcp__github__list_releases",
+      "mcp__d9cdfe21-5413-4025-9cf9-6ed482558dd0__list_projects",
+      "mcp__d9cdfe21-5413-4025-9cf9-6ed482558dd0__get_project",
+      "mcp__d9cdfe21-5413-4025-9cf9-6ed482558dd0__list_deployments",
+      "mcp__d9cdfe21-5413-4025-9cf9-6ed482558dd0__get_deployment",
+      "mcp__d9cdfe21-5413-4025-9cf9-6ed482558dd0__get_runtime_logs",
+      "mcp__d9cdfe21-5413-4025-9cf9-6ed482558dd0__list_teams",
+      "mcp__d9cdfe21-5413-4025-9cf9-6ed482558dd0__search_vercel_documentation"
+    ]
   }
 }
