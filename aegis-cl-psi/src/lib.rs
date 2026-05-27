@@ -1395,6 +1395,15 @@ pub mod gossip_broadcast_batch;
 //   mean_dup_rate_pct(), verify_chain().
 pub mod gossip_broadcast_duplicate;
 
+// Gate 423 — Gossip Broadcast Peer Latency Monitor (T2)
+// Per-epoch high-latency peer rate: high_latency_peers, total_peers,
+// latency_rate_pct = (high_latency_peers*100)/max(total_peers,1) capped 100.
+// excessive_latency: latency_rate_pct > LATENCY_THRESHOLD (20).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖high_latency_peers_be4‖total_peers_be4‖latency_rate_pct_be4‖excessive_latency_byte).
+// GossipBroadcastPeerLatencyLog: record(), excessive_latency_count(), total_high_latency_peers(),
+//   mean_latency_rate_pct(), verify_chain().
+pub mod gossip_broadcast_peer_latency;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
