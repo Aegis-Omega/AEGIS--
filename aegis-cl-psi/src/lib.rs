@@ -1515,3 +1515,5 @@ pub mod gossip_broadcast_epoch_stall_e3;
 pub mod gossip_broadcast_rebroadcast_e3;
 // Gate 483 — Gossip Broadcast Partial Delivery E3 Monitor (T2)
 pub mod gossip_broadcast_partial_delivery_e3;
+// Gate 484 — Gossip Broadcast Peer Rejection E3 Monitor (T2)
+pub mod gossip_broadcast_peer_rejection_e3;
