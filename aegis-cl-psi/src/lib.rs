@@ -1441,3 +1441,5 @@ pub mod gossip_broadcast_bandwidth_exceed;
 pub mod gossip_broadcast_peer_drift;
 // Gate 446 — Gossip Broadcast Epoch Stall Monitor (T2)
 pub mod gossip_broadcast_epoch_stall;
+// Gate 447 — Gossip Broadcast Rebroadcast Monitor (T2)
+pub mod gossip_broadcast_rebroadcast;
