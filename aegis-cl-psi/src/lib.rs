@@ -1519,3 +1519,5 @@ pub mod gossip_broadcast_partial_delivery_e3;
 pub mod gossip_broadcast_peer_rejection_e3;
 // Gate 485 — Gossip Broadcast Msg Ordering E3 Monitor (T2)
 pub mod gossip_broadcast_msg_ordering_e3;
+// Gate 486 — Gossip Broadcast Epoch Overlap E3 Monitor (T2)
+pub mod gossip_broadcast_epoch_overlap_e3;
