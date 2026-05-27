@@ -1344,6 +1344,22 @@ pub mod gossip_broadcast_fanout;
 //   mean_retry_rate_pct(), verify_chain().
 pub mod gossip_broadcast_retry;
 
+// Gate 417 — Gossip Broadcast Drop Log (T2)
+// Per-epoch message drop tracking: drop_count, total_sent, drop_rate_pct = (drop*100)/max(sent,1) capped 100.
+// critical_drop: drop_rate_pct > DROP_THRESHOLD (10).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖drop_count_be4‖total_sent_be4‖drop_rate_pct_be4‖critical_byte).
+// GossipBroadcastDropLog: record(), critical_drop_count(), total_drops(),
+//   mean_drop_rate_pct(), verify_chain().
+pub mod gossip_broadcast_drop;
+
+// Gate 418 — Gossip Broadcast Acknowledgement Log (T2)
+// Per-epoch ack tracking: ack_count, expected, ack_rate_pct = (ack*100)/max(expected,1) capped 100.
+// under_ack: ack_rate_pct < ACK_FLOOR (80).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖ack_count_be4‖expected_be4‖ack_rate_pct_be4‖under_byte).
+// GossipBroadcastAckLog: record(), under_ack_count(), mean_ack_rate_pct(),
+//   min_ack_rate_pct(), verify_chain().
+pub mod gossip_broadcast_ack;
+
 pub use sgm_gate::SGMGate;
 pub use lut_kan::LUTKANRouter;
 pub use rwkv_state::RWKVStateCache;
