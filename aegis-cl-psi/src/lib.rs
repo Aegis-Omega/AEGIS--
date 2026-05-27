@@ -1449,3 +1449,5 @@ pub mod gossip_broadcast_partial_delivery;
 pub mod gossip_broadcast_peer_rejection;
 // Gate 450 — Gossip Broadcast Msg Ordering Monitor (T2)
 pub mod gossip_broadcast_msg_ordering;
+// Gate 451 — Gossip Broadcast Epoch Overlap Monitor (T2)
+pub mod gossip_broadcast_epoch_overlap;
