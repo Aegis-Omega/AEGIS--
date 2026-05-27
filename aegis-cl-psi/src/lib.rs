@@ -1523,3 +1523,5 @@ pub mod gossip_broadcast_msg_ordering_e3;
 pub mod gossip_broadcast_epoch_overlap_e3;
 // Gate 487 — Gossip Broadcast Peer Isolation E3 Monitor (T2)
 pub mod gossip_broadcast_peer_isolation_e3;
+// Gate 488 — Gossip Broadcast Ttl Exceeded E3 Monitor (T2)
+pub mod gossip_broadcast_ttl_exceeded_e3;
