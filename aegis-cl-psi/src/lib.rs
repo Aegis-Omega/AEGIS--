@@ -2114,3 +2114,25 @@ pub mod gossip_broadcast_phi_convergence_e7;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖drifted_epochs_be4‖total_epochs_be4‖deviation_rate_pct_be4‖phi_drifted_byte).
 // GossipPhiDeviationE7Log: record(), phi_drifted_e7_count(), total_drifted_epochs(), mean_deviation_rate_pct(), verify_chain().
 pub mod gossip_broadcast_phi_deviation_e7;
+
+// Gate 602 — Gossip Broadcast Phi Squared E7 Log (T2)
+// Per-epoch φ²=φ+1 self-similarity: squared_aligned_epochs, total_epochs,
+// squared_rate_pct = (squared_aligned_epochs*100)/max(total_epochs,1) capped 100.
+// phi_squared_e7: squared_rate_pct > PHI_SQUARED_E7_THRESHOLD (61).
+// The growth identity — a system satisfying φ²=φ+1 scales non-destructively at every level.
+// Test structure: 1+6+2+3+6+1=19 (evolved viability ring).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖squared_aligned_epochs_be4‖total_epochs_be4‖squared_rate_pct_be4‖phi_squared_byte).
+// GossipPhiSquaredE7Log: record(), phi_squared_e7_count(), total_squared_aligned_epochs(), mean_squared_rate_pct(), verify_chain().
+pub mod gossip_broadcast_phi_squared_e7;
+
+// Gate 603 — Gossip Broadcast Phi Reciprocal E7 Log (T2)
+// Per-epoch 1/φ=φ−1 identity: reciprocal_aligned_epochs, total_epochs,
+// reciprocal_rate_pct = (reciprocal_aligned_epochs*100)/max(total_epochs,1) capped 100.
+// phi_reciprocal_e7: reciprocal_rate_pct > PHI_RECIPROCAL_E7_THRESHOLD (61).
+// The proportion identity — complement of Gate 602. Gates 602+603 certify full φ-self-definition:
+// growth (φ²=φ+1) and proportion (1/φ=φ−1). Both satisfied = constitutionally φ-stable.
+// Test structure: 1+6+2+3+6+1=19 (evolved viability ring).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖reciprocal_aligned_epochs_be4‖total_epochs_be4‖reciprocal_rate_pct_be4‖phi_reciprocal_byte).
+// GossipPhiReciprocalE7Log: record(), phi_reciprocal_e7_count(), total_reciprocal_aligned_epochs(), mean_reciprocal_rate_pct(), verify_chain().
+pub mod gossip_broadcast_phi_reciprocal_e7;
+
