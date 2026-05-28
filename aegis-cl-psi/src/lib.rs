@@ -1646,3 +1646,15 @@ pub mod gossip_broadcast_flood_rate_e4;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖misses_be4‖lookups_be4‖rate_be4‖flag_byte).
 // GossipDedupMissE4Log: record(), high_dedup_miss_e4_count(), total_dedup_misses(), mean_dedup_miss_rate_pct(), verify_chain().
 pub mod gossip_broadcast_dedup_miss_e4;
+// Gate 526 — Gossip Broadcast Capacity Breach E4 Monitor (T2)
+// Per-epoch capacity breach rate: breached_slots, total_slots, breach_rate_pct = (breached*100)/max(total,1) capped 100.
+// high_capacity_breach_e4: breach_rate_pct > HIGH_CAPACITY_BREACH_E4_THRESHOLD (5).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖breached_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipCapacityBreachE4Log: record(), high_capacity_breach_e4_count(), total_breached_slots(), mean_breach_rate_pct(), verify_chain().
+pub mod gossip_broadcast_capacity_breach_e4;
+// Gate 527 — Gossip Broadcast Peer Timeout E4 Monitor (T2)
+// Per-epoch peer timeout rate: timed_out_peers, total_peers, timeout_rate_pct = (timed_out*100)/max(total,1) capped 100.
+// high_peer_timeout_e4: timeout_rate_pct > HIGH_PEER_TIMEOUT_E4_THRESHOLD (8).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖timed_out_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipPeerTimeoutE4Log: record(), high_peer_timeout_e4_count(), total_timed_out_peers(), mean_timeout_rate_pct(), verify_chain().
+pub mod gossip_broadcast_peer_timeout_e4;
