@@ -1766,3 +1766,15 @@ pub mod gossip_broadcast_header_corrupt_e5;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖dropped_be4‖total_be4‖rate_be4‖flag_byte).
 // GossipRelayDropE5Log: record(), high_relay_drop_e5_count(), total_dropped_relays(), mean_drop_rate_pct(), verify_chain().
 pub mod gossip_broadcast_relay_drop_e5;
+// Gate 546 — Gossip Broadcast Topology Stale E5 Monitor (T2)
+// Per-epoch stale topology rate: stale_topology_views, total_topology_views, stale_rate_pct = (stale*100)/max(total,1) capped 100.
+// high_topology_stale_e5: stale_rate_pct > HIGH_TOPOLOGY_STALE_E5_THRESHOLD (14).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖stale_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipTopologyStaleE5Log: record(), high_topology_stale_e5_count(), total_stale_topology_views(), mean_stale_rate_pct(), verify_chain().
+pub mod gossip_broadcast_topology_stale_e5;
+// Gate 547 — Gossip Broadcast Link Fail E5 Monitor (T2)
+// Per-epoch link failure rate: failed_links, total_links, fail_rate_pct = (failed*100)/max(total,1) capped 100.
+// high_link_fail_e5: fail_rate_pct > HIGH_LINK_FAIL_E5_THRESHOLD (7).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖failed_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipLinkFailE5Log: record(), high_link_fail_e5_count(), total_failed_links(), mean_fail_rate_pct(), verify_chain().
+pub mod gossip_broadcast_link_fail_e5;
