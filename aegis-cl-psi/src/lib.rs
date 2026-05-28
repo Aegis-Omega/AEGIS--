@@ -1634,3 +1634,15 @@ pub mod gossip_broadcast_peer_isolation_e4;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖ttl_exceeded_be4‖total_be4‖rate_be4‖flag_byte).
 // GossipTtlExceededE4Log: record(), high_ttl_exceeded_e4_count(), total_ttl_exceeded_msgs(), mean_ttl_exceeded_rate_pct(), verify_chain().
 pub mod gossip_broadcast_ttl_exceeded_e4;
+// Gate 524 — Gossip Broadcast Flood Rate E4 Monitor (T2)
+// Per-epoch flood-rate violations: flooded_msgs, total_msgs, flood_rate_pct = (flooded*100)/max(total,1) capped 100.
+// high_flood_rate_e4: flood_rate_pct > HIGH_FLOOD_RATE_E4_THRESHOLD (20).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖flooded_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipFloodRateE4Log: record(), high_flood_rate_e4_count(), total_flooded_msgs(), mean_flood_rate_pct(), verify_chain().
+pub mod gossip_broadcast_flood_rate_e4;
+// Gate 525 — Gossip Broadcast Dedup Miss E4 Monitor (T2)
+// Per-epoch dedup cache miss rate: dedup_misses, total_lookups, dedup_miss_rate_pct = (misses*100)/max(lookups,1) capped 100.
+// high_dedup_miss_e4: dedup_miss_rate_pct > HIGH_DEDUP_MISS_E4_THRESHOLD (11).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖misses_be4‖lookups_be4‖rate_be4‖flag_byte).
+// GossipDedupMissE4Log: record(), high_dedup_miss_e4_count(), total_dedup_misses(), mean_dedup_miss_rate_pct(), verify_chain().
+pub mod gossip_broadcast_dedup_miss_e4;
