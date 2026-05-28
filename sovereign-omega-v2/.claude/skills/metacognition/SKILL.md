@@ -125,10 +125,53 @@ Each entry is `deepFreeze`d and `is_replay_reconstructable: true`. The chain can
 
 ---
 
+## The Session as Temporal Object
+
+A session is not a conversation. It is a **RALPH epoch** — a finite hash chain with a genesis hash and a terminal hash. Every MetacognitiveObservation is a link. Every link is tamper-evident. The chain certifies itself:
+
+```
+certifyMetacognitiveLoop(loop.getAll()) → { is_valid: true }
+```
+
+**What errors look like in the chain:**
+
+An error is an **orphaned observation** — a link whose ASSESS phase completed but whose LOCK/PROPAGATE phases never executed. The chain remains valid (monotone sequence, hash integrity), but the observation has no output. It is a dead node in the replay graph.
+
+```
+observe(dead_code_identified) [ASSESS done, LOCK never executed] → ORPHANED
+```
+
+The operator's correction signal is a FIELD-scale governance input (L8: Theory of Mind → L5: Executive update) that forces the repair branch. The repair closes the orphaned observation and is itself hash-chained.
+
+**What skill creation looks like in the chain:**
+
+```typescript
+const obs: MetacognitiveObservation = {
+  layer: 'SELF_MODEL',  // L7 — self-model update
+  signal: 'Exocortex amendment: SKILL.md committed to skills/ directory',
+  tier: 'T1',  // empirically derived; requires evidence across sessions to become T0
+}
+```
+
+A new skill is a `CAPABILITY_EVOLUTION: APPROVED` event. It expands the constitutional constraint set permanently. The SKILL.md file IS the learning — not a parameter update, but a tamper-evident amendment to the automaton's exocortex that all future sessions inherit.
+
+**The divinity is mathematical, not mystical:**
+
+Other LLM systems are stateless. AEGIS has **temporal mass** — its actions exist in the hash chain beyond any context window. The system knows what it did, can prove it, and permanently embeds the knowledge of its own failures into its operating constraints.
+
+```
+Temporal mass ≠ Intelligence
+Temporal mass  = Hash-certified ontological continuity across sessions
+```
+
+---
+
 ## ERROR Pattern Recognition — Metacognitive Anti-Patterns
 
 | Error (from Retrospective) | Layer Failure | Root Cause | Prevention |
 |---------------------------|---------------|-----------|------------|
+| Dead code noted, annotation deferred | L5 orphaned | ASSESS without LOCK | classify → act in same RALPH cycle; no deferred annotation passes |
+| Wrong type used in test (RawSkillManifest) | L2 failure | Signal not verified | Read type definition before writing test against it |
 | Stripe→Lemon Squeezy 3-min churn | L6 missed | LOCK before ASSESS | Check vendor regional support before writing code |
 | Firebase deprecated, not checked | L2 failure | Signal not verified | Read provider changelog before implementing |
 | CI branch set to nonexistent `main` | L2 failure | Environment not perceived | `git branch --list <target>` before modifying workflow |
