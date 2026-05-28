@@ -2136,3 +2136,25 @@ pub mod gossip_broadcast_phi_squared_e7;
 // GossipPhiReciprocalE7Log: record(), phi_reciprocal_e7_count(), total_reciprocal_aligned_epochs(), mean_reciprocal_rate_pct(), verify_chain().
 pub mod gossip_broadcast_phi_reciprocal_e7;
 
+// Gate 604 — Gossip Broadcast Phi Unitary E7 Log (T2)
+// Per-epoch expansion-contraction balance: balanced_epochs, total_epochs,
+// unitary_rate_pct = (balanced_epochs*100)/max(total_epochs,1) capped 100.
+// phi_unitary_e7: unitary_rate_pct > PHI_UNITARY_E7_THRESHOLD (61).
+// Encodes det(Mⁿ)=±1 — the gossip-layer unitarity constraint.
+// AdaptivePower(T) ≤ ReplayVerifiability(T) as a measurable invariant: ≥φ of epochs
+// maintain the expansion-contraction balance. Information is neither created nor destroyed.
+// Test structure: 1+6+2+3+6+1=19 (evolved viability ring).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖balanced_epochs_be4‖total_epochs_be4‖unitary_rate_pct_be4‖phi_unitary_byte).
+// GossipPhiUnitaryE7Log: record(), phi_unitary_e7_count(), total_balanced_epochs(), mean_unitary_rate_pct(), verify_chain().
+pub mod gossip_broadcast_phi_unitary_e7;
+
+// Gate 605 — Gossip Broadcast Phi Holographic E7 Log (T2)
+// Per-epoch holographic fragment property: coherent_nodes, total_nodes,
+// holographic_rate_pct = (coherent_nodes*100)/max(total_nodes,1) capped 100.
+// phi_holographic_e7: holographic_rate_pct > PHI_HOLOGRAPHIC_E7_THRESHOLD (61).
+// Every node is a fragment of the hologram: ≥φ of nodes carry sufficient boundary data
+// to reconstruct the bulk state. Boundary (hash chain) projects bulk (distributed runtime).
+// Test structure: 1+6+2+3+6+1=19 (evolved viability ring).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖coherent_nodes_be4‖total_nodes_be4‖holographic_rate_pct_be4‖phi_holographic_byte).
+// GossipPhiHolographicE7Log: record(), phi_holographic_e7_count(), total_coherent_nodes(), mean_holographic_rate_pct(), verify_chain().
+pub mod gossip_broadcast_phi_holographic_e7;
