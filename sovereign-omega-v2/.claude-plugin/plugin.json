@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "aegis-sovereign",
+  "displayName": "AEGIS Sovereign Runtime",
+  "version": "0.5.3",
+  "description": "Constitutional governance runtime — skills, agents, and telemetry monitors for AEGIS-Ω",
+  "author": {
+    "name": "Tarik Skalić",
+    "email": "tarikskalic33@gmail.com",
+    "url": "https://github.com/tarikskalic33/AEGIS--"
+  },
+  "repository": "https://github.com/tarikskalic33/AEGIS--",
+  "license": "MIT",
+  "keywords": ["aegis", "constitutional", "governance", "replay", "martingale", "epistemic"],
+  "skills": "../.claude/skills/",
+  "agents": "../.claude/agents/",
+  "experimental": {
+    "monitors": "./monitors/monitors.json"
+  }
+}

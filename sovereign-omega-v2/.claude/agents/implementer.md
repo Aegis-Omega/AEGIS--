@@ -1,8 +1,10 @@
 ---
 name: implementer
 description: Invoke for writing new source files, completing a build gate, implementing a module from the spec, or translating a spec section into TypeScript. The implementer executes against frozen contracts with zero architectural reinterpretation.
-tools: [read, write, bash]
-isolation: none
+model: opus
+effort: high
+maxTurns: 40
+isolation: worktree
 ---
 
 # Implementer Agent — Deterministic Contract Execution
