@@ -2078,3 +2078,19 @@ pub mod gossip_broadcast_priority_drop_e6;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖skipped_be4‖total_be4‖rate_be4‖flag_byte).
 // GossipEpochSkipE6Log: record(), high_epoch_skip_e6_count(), total_skipped_epochs(), mean_epoch_skip_rate_pct(), verify_chain().
 pub mod gossip_broadcast_epoch_skip_e6;
+// Gate 598 — Gossip Broadcast Phi Angular Balance E7 Log (T2)
+// Per-epoch angular balance of gossip links: balanced_links, total_links,
+// balance_rate_pct = (balanced_links*100)/max(total_links,1) capped 100.
+// phi_balanced_e7: balance_rate_pct > PHI_ANGULAR_BALANCE_E7_THRESHOLD (61).
+// Threshold 61 ≈ φ×100 (golden ratio × 100) — Penrose/pentagonal equilibrium baseline.
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖balanced_links_be4‖total_links_be4‖balance_rate_pct_be4‖phi_balanced_byte).
+// GossipPhiAngularE7Log: record(), phi_balanced_e7_count(), total_balanced_links(), mean_balance_rate_pct(), verify_chain().
+pub mod gossip_broadcast_phi_angular_e7;
+// Gate 599 — Gossip Broadcast Phi Fibonacci Alignment E7 Log (T2)
+// Per-epoch Fibonacci alignment of active peer count: fibonacci_epochs, total_epochs,
+// fib_align_pct = (fibonacci_epochs*100)/max(total_epochs,1) capped 100.
+// phi_fibonacci_aligned_e7: fib_align_pct > PHI_FIBONACCI_ALIGN_E7_THRESHOLD (55).
+// Threshold 55 = F(10) — target fraction of epochs where peer count ≈ F(n) (φ-spread topology).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖fibonacci_epochs_be4‖total_epochs_be4‖fib_align_pct_be4‖phi_fibonacci_aligned_byte).
+// GossipPhiFibonacciE7Log: record(), phi_fibonacci_aligned_e7_count(), total_fibonacci_epochs(), mean_fib_align_pct(), verify_chain().
+pub mod gossip_broadcast_phi_fibonacci_e7;
