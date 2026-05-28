@@ -1694,3 +1694,15 @@ pub mod gossip_broadcast_backpressure_e5;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖lagged_be4‖total_be4‖rate_be4‖flag_byte).
 // GossipSyncLagE5Log: record(), high_sync_lag_e5_count(), total_lagged_peers(), mean_sync_lag_rate_pct(), verify_chain().
 pub mod gossip_broadcast_sync_lag_e5;
+// Gate 534 — Gossip Broadcast Epoch Drift E5 Monitor (T2)
+// Per-epoch drift rate: drifted_epochs, total_epochs, drift_rate_pct = (drifted*100)/max(total,1) capped 100.
+// high_epoch_drift_e5: drift_rate_pct > HIGH_EPOCH_DRIFT_E5_THRESHOLD (8).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖drifted_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipEpochDriftE5Log: record(), high_epoch_drift_e5_count(), total_drifted_epochs(), mean_drift_rate_pct(), verify_chain().
+pub mod gossip_broadcast_epoch_drift_e5;
+// Gate 535 — Gossip Broadcast Partition Detect E5 Monitor (T2)
+// Per-epoch partition detection rate: partitioned_peers, total_peers, partition_rate_pct = (partitioned*100)/max(total,1) capped 100.
+// high_partition_detect_e5: partition_rate_pct > HIGH_PARTITION_DETECT_E5_THRESHOLD (5).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖partitioned_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipPartitionDetectE5Log: record(), high_partition_detect_e5_count(), total_partitioned_peers(), mean_partition_rate_pct(), verify_chain().
+pub mod gossip_broadcast_partition_detect_e5;
