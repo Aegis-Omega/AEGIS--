@@ -1670,3 +1670,15 @@ pub mod gossip_broadcast_fanout_e5;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖spiked_be4‖total_be4‖rate_be4‖flag_byte).
 // GossipLatencySpikeE5Log: record(), high_latency_spike_e5_count(), total_spiked_msgs(), mean_spike_rate_pct(), verify_chain().
 pub mod gossip_broadcast_latency_spike_e5;
+// Gate 530 — Gossip Broadcast Drop Cascade E5 Monitor (T2)
+// Per-epoch cascading drop rate: cascaded_drops, total_msgs, cascade_rate_pct = (drops*100)/max(total,1) capped 100.
+// high_drop_cascade_e5: cascade_rate_pct > HIGH_DROP_CASCADE_E5_THRESHOLD (9).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖drops_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipDropCascadeE5Log: record(), high_drop_cascade_e5_count(), total_cascaded_drops(), mean_cascade_rate_pct(), verify_chain().
+pub mod gossip_broadcast_drop_cascade_e5;
+// Gate 531 — Gossip Broadcast Quorum Miss E5 Monitor (T2)
+// Per-epoch quorum miss rate: quorum_misses, total_epochs, quorum_miss_rate_pct = (misses*100)/max(epochs,1) capped 100.
+// high_quorum_miss_e5: quorum_miss_rate_pct > HIGH_QUORUM_MISS_E5_THRESHOLD (7).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖misses_be4‖epochs_be4‖rate_be4‖flag_byte).
+// GossipQuorumMissE5Log: record(), high_quorum_miss_e5_count(), total_quorum_misses(), mean_quorum_miss_rate_pct(), verify_chain().
+pub mod gossip_broadcast_quorum_miss_e5;
