@@ -1599,3 +1599,15 @@ pub mod gossip_broadcast_epoch_stall_e4;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖rebroadcast_be4‖total_be4‖rate_be4‖flag_byte).
 // GossipRebroadcastE4Log: record(), high_rebroadcast_e4_count(), total_rebroadcast_count(), mean_rate_pct(), verify_chain().
 pub mod gossip_broadcast_rebroadcast_e4;
+// Gate 518 — Gossip Broadcast Partial Delivery E4 Monitor (T2)
+// Per-epoch partial delivery rate: partial_deliveries, total_delivered, partial_deliveries_rate_pct = (partial*100)/max(total,1) capped 100.
+// high_partial_rate_e4: partial_deliveries_rate_pct > HIGH_PARTIAL_RATE_E4_THRESHOLD (8).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖partial_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipPartialDeliveryE4Log: record(), high_partial_rate_e4_count(), total_partial_deliveries(), mean_rate_pct(), verify_chain().
+pub mod gossip_broadcast_partial_delivery_e4;
+// Gate 519 — Gossip Broadcast Peer Rejection E4 Monitor (T2)
+// Per-epoch peer rejection rate: rejected_peers, total_peers, rejected_rate_pct = (rejected*100)/max(total,1) capped 100.
+// high_rejection_e4: rejected_rate_pct > HIGH_REJECTION_E4_THRESHOLD (10).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖rejected_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipPeerRejectionE4Log: record(), high_rejection_e4_count(), total_rejected_peers(), mean_rate_pct(), verify_chain().
+pub mod gossip_broadcast_peer_rejection_e4;
