@@ -183,6 +183,37 @@ describe('CapabilityGuard: isAuthorized returns true (L104 arm 1)', () => {
   })
 })
 
+import { MutationRejectedError } from '../../src/environment/types.js'
+
+describe('CapabilityGuard: assertAuthorized throws when not authorized (L104 arm 0)', () => {
+  it('throws MutationRejectedError when no grant exists', () => {
+    const guard = createCapabilityGuard()
+    const mutation = makeMutation('cap-test', 5)
+    expect(() => guard.assertAuthorized(mutation)).toThrow(MutationRejectedError)
+  })
+
+  it('error message includes mutation_id and capability', () => {
+    const guard = createCapabilityGuard()
+    const mutation = makeMutation('cap-test', 7)
+    expect(() => guard.assertAuthorized(mutation)).toThrow(/cap-test/)
+  })
+})
+
+describe('CapabilityGuard: assertAuthorized does not throw when authorized (L104 arm 1)', () => {
+  it('does not throw when active grant matches', () => {
+    const guard0 = createCapabilityGuard()
+    const guard1 = guard0.register(makeCapability())
+    const { guard: guard2 } = guard1.grant({
+      capability_id: 'cap-test',
+      granted_to: 'agent-1',
+      scope: [],
+      sequence_granted: 5,
+    })
+    const mutation = makeMutation('cap-test', 10)
+    expect(() => guard2.assertAuthorized(mutation)).not.toThrow()
+  })
+})
+
 // ─── Extension Registry ──────────────────────────────────
 
 import { ExtensionRegistry } from '../../src/extensions/registry/registry.js'
