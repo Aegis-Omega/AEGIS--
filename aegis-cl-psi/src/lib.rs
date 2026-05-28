@@ -1622,3 +1622,15 @@ pub mod gossip_broadcast_msg_ordering_e4;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖overlapping_be4‖total_be4‖rate_be4‖flag_byte).
 // GossipEpochOverlapE4Log: record(), high_overlap_e4_count(), total_overlapping_msgs(), mean_overlap_rate_pct(), verify_chain().
 pub mod gossip_broadcast_epoch_overlap_e4;
+// Gate 522 — Gossip Broadcast Peer Isolation E4 Monitor (T2)
+// Per-epoch isolated peer rate: isolated_peers, total_peers, isolation_rate_pct = (isolated*100)/max(total,1) capped 100.
+// high_isolation_e4: isolation_rate_pct > HIGH_ISOLATION_E4_THRESHOLD (6).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖isolated_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipPeerIsolationE4Log: record(), high_isolation_e4_count(), total_isolated_peers(), mean_isolation_rate_pct(), verify_chain().
+pub mod gossip_broadcast_peer_isolation_e4;
+// Gate 523 — Gossip Broadcast TTL Exceeded E4 Monitor (T2)
+// Per-epoch TTL-expired message drop rate: ttl_exceeded_msgs, total_msgs, ttl_exceeded_rate_pct = (exceeded*100)/max(total,1) capped 100.
+// high_ttl_exceeded_e4: ttl_exceeded_rate_pct > HIGH_TTL_EXCEEDED_E4_THRESHOLD (9).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖ttl_exceeded_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipTtlExceededE4Log: record(), high_ttl_exceeded_e4_count(), total_ttl_exceeded_msgs(), mean_ttl_exceeded_rate_pct(), verify_chain().
+pub mod gossip_broadcast_ttl_exceeded_e4;
