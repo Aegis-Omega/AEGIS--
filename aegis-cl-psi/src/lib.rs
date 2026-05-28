@@ -1718,3 +1718,15 @@ pub mod gossip_broadcast_route_flap_e5;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖exhausted_be4‖total_be4‖rate_be4‖flag_byte).
 // GossipWindowExhaustE5Log: record(), high_window_exhaust_e5_count(), total_exhausted_windows(), mean_exhaust_rate_pct(), verify_chain().
 pub mod gossip_broadcast_window_exhaust_e5;
+// Gate 538 — Gossip Broadcast Message Loss E5 Monitor (T2)
+// Per-epoch message loss rate: lost_msgs, total_msgs, loss_rate_pct = (lost*100)/max(total,1) capped 100.
+// high_msg_loss_e5: loss_rate_pct > HIGH_MSG_LOSS_E5_THRESHOLD (11).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖lost_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipMsgLossE5Log: record(), high_msg_loss_e5_count(), total_lost_msgs(), mean_loss_rate_pct(), verify_chain().
+pub mod gossip_broadcast_msg_loss_e5;
+// Gate 539 — Gossip Broadcast Peer Churn E5 Monitor (T2)
+// Per-epoch peer churn rate: churned_peers, total_peers, churn_rate_pct = (churned*100)/max(total,1) capped 100.
+// high_peer_churn_e5: churn_rate_pct > HIGH_PEER_CHURN_E5_THRESHOLD (20).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖churned_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipPeerChurnE5Log: record(), high_peer_churn_e5_count(), total_churned_peers(), mean_churn_rate_pct(), verify_chain().
+pub mod gossip_broadcast_peer_churn_e5;
