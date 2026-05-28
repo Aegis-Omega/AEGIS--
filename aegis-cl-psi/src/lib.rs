@@ -1742,3 +1742,15 @@ pub mod gossip_broadcast_rebroadcast_e5;
 // entry_hash = SHA-256(prev[32]‖epoch_end_be8‖collided_be4‖total_be4‖rate_be4‖flag_byte).
 // GossipNonceCollisionE5Log: record(), high_nonce_collision_e5_count(), total_collided_nonces(), mean_collision_rate_pct(), verify_chain().
 pub mod gossip_broadcast_nonce_collision_e5;
+// Gate 542 — Gossip Broadcast Sequence Gap E5 Monitor (T2)
+// Per-epoch sequence gap rate: gapped_seqs, total_seqs, gap_rate_pct = (gapped*100)/max(total,1) capped 100.
+// high_seq_gap_e5: gap_rate_pct > HIGH_SEQ_GAP_E5_THRESHOLD (8).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖gapped_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipSeqGapE5Log: record(), high_seq_gap_e5_count(), total_gapped_seqs(), mean_gap_rate_pct(), verify_chain().
+pub mod gossip_broadcast_seq_gap_e5;
+// Gate 543 — Gossip Broadcast ACK Delay E5 Monitor (T2)
+// Per-epoch ACK delay rate: delayed_acks, total_acks, delay_rate_pct = (delayed*100)/max(total,1) capped 100.
+// high_ack_delay_e5: delay_rate_pct > HIGH_ACK_DELAY_E5_THRESHOLD (15).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖delayed_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipAckDelayE5Log: record(), high_ack_delay_e5_count(), total_delayed_acks(), mean_delay_rate_pct(), verify_chain().
+pub mod gossip_broadcast_ack_delay_e5;
