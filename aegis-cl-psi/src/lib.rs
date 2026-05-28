@@ -1575,3 +1575,15 @@ pub mod gossip_broadcast_queue_overflow_e4;
 pub mod gossip_broadcast_sync_lag_e4;
 // Gate 513 — Gossip Broadcast Nack Rate E4 Monitor (T2)
 pub mod gossip_broadcast_nack_rate_e4;
+// Gate 514 — Gossip Broadcast Bandwidth Exceed E4 Monitor (T2)
+// Per-epoch bandwidth-exceeded rate: over_limit_epochs, total_epochs, over_limit_rate_pct = (over_limit*100)/max(total,1) capped 100.
+// bandwidth_exceeded_e4: over_limit_rate_pct > BANDWIDTH_EXCEEDED_E4_THRESHOLD (20).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖over_limit_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipBandwidthExceedE4Log: record(), bandwidth_exceeded_e4_count(), total_over_limit_epochs(), mean_rate_pct(), verify_chain().
+pub mod gossip_broadcast_bandwidth_exceed_e4;
+// Gate 515 — Gossip Broadcast Peer Drift E4 Monitor (T2)
+// Per-epoch peer-drift rate: drifted_peers, total_peers, drifted_rate_pct = (drifted*100)/max(total,1) capped 100.
+// high_peer_drift_e4: drifted_rate_pct > HIGH_PEER_DRIFT_E4_THRESHOLD (15).
+// entry_hash = SHA-256(prev[32]‖epoch_end_be8‖drifted_be4‖total_be4‖rate_be4‖flag_byte).
+// GossipPeerDriftE4Log: record(), high_peer_drift_e4_count(), total_drifted_peers(), mean_rate_pct(), verify_chain().
+pub mod gossip_broadcast_peer_drift_e4;
