@@ -170,7 +170,7 @@ jobs:
         run: python python/tests/test_constitutional.py
 
       - name: Run ledger persistence tests
-        run: python -m unittest python.tests.test_ledger_persist -v
+        run: python python/tests/test_ledger_persist.py
 
 # ── INFORMATIONAL — TS coverage thresholds (not in BFT ceremony) ─────────────
   coverage-ts:
