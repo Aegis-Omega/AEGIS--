@@ -78,17 +78,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: aegis-cl-psi -> target
+          save-if: "true"
 
       - name: Run gate suite (never --all-features)
         id: run
         env:
           CARGO_INCREMENTAL: "0"
           CARGO_NET_RETRY: "3"
+          RUSTFLAGS: "-C opt-level=0"
         run: |
           set -eo pipefail
           cd aegis-cl-psi
-          echo "Rust: $(rustc --version)  Mem: $(free -m | awk '/^Mem/{print $2}')MB"
-          cargo test --jobs 1 2>&1 | tee /tmp/cl-psi.txt || {
+          echo "Rust: $(rustc --version)  Mem: $(free -m | awk '/^Mem/{print $2}')MB  Disk: $(df -h . | awk 'NR==2{print $4}') free"
+          cargo test --jobs 1 -- --test-threads 1 2>&1 | tee /tmp/cl-psi.txt || {
             echo "=== CARGO TEST FAILED — last 80 lines ===" >&2
             tail -80 /tmp/cl-psi.txt >&2
             exit 1
