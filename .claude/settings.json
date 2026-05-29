@@ -5,9 +5,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /home/user/AEGIS-- && node sovereign-omega-v2/scripts/verify-hashes.mjs 2>&1 | tail -5",
+            "command": "cd /home/user/AEGIS--/sovereign-omega-v2 && node scripts/verify-hashes.mjs 2>&1 | tail -5",
             "timeout": 15,
             "statusMessage": "L7: verifying constitutional membrane..."
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs'); const base='/home/user/AEGIS--/sovereign-omega-v2/.claude/skills'; const read=f=>fs.readFileSync(base+'/'+f+'/SKILL.md','utf8'); const ctx=[read('automaton-workflow'),read('autopoiesis'),read('metacognition')].join('\\n\\n---\\n\\n'); console.log(JSON.stringify({hookSpecificOutput:{hookEventName:'SessionStart',additionalContext:ctx}}))\"",
+            "timeout": 10,
+            "statusMessage": "Loading automaton manifold (autopoiesis + metacognition + workflow)..."
           }
         ]
       }
@@ -35,6 +41,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"STOP: run /evening-seal — Gate 8, frozen files, commit, push.\"}'",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   },
   "permissions": {
@@ -43,6 +60,33 @@
       "Edit(.claude/hooks/*)",
       "Write(.claude/settings.json)",
       "Edit(.claude/settings.json)",
+      "Bash(cd /home/user/AEGIS--/sovereign-omega-v2 && npm run test*)",
+      "Bash(cd /home/user/AEGIS--/sovereign-omega-v2 && npm run typecheck*)",
+      "Bash(cd /home/user/AEGIS--/sovereign-omega-v2 && npm run build*)",
+      "Bash(cd sovereign-omega-v2 && npm run test*)",
+      "Bash(cd sovereign-omega-v2 && npm run typecheck*)",
+      "Bash(cd sovereign-omega-v2 && npm run build*)",
+      "Bash(npm run test*)",
+      "Bash(npm run typecheck*)",
+      "Bash(npm run build*)",
+      "Bash(cargo test*)",
+      "Bash(cargo build*)",
+      "Bash(cd aegis-cl-psi && cargo*)",
+      "Bash(cd aegis-runtime && cargo*)",
+      "Bash(node scripts/verify-hashes.mjs*)",
+      "Bash(node sovereign-omega-v2/scripts/verify-hashes.mjs*)",
+      "Bash(cd /home/user/AEGIS--/sovereign-omega-v2 && node scripts/verify-hashes.mjs*)",
+      "Bash(curl -s http://localhost:7890/*)",
+      "Bash(python python/tests/*)",
+      "Bash(python -m pytest*)",
+      "Bash(find /home/user/AEGIS--*)",
+      "Bash(ls /home/user/AEGIS--*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push*)",
       "mcp__github__pull_request_read",
       "mcp__github__list_pull_requests",
       "mcp__github__list_branches",
