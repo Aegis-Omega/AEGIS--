@@ -7,10 +7,10 @@
 
 ## CRITICAL: Disable IP Allowlisting (Products are Live but Blocked)
 
-All 3 products return 403 `host_not_allowed`. This means IP allowlisting is active.
+The public product URLs may return 403 `host_not_allowed` when IP allowlisting is active.
 
 **Fix for each project:**
-1. Go to vercel.com → select the project (platform-picker / hook-generator / content-calendar)
+1. Go to vercel.com → select the project (platform-picker / hook-generator / content-calendar / hub)
 2. **Settings** → **Security** → **IP Allowlist** → **Remove all IP restrictions** (or disable the feature)
 3. Also check: **Settings** → **Deployment Protection** → set to **Disabled** (for public access)
 4. Redeploy or wait for the change to propagate (~30 seconds)
@@ -27,6 +27,91 @@ All 3 products return 403 `host_not_allowed`. This means IP allowlisting is acti
 | Hook Generator | https://hook-generator.vercel.app | 403 (IP blocked) |
 | Content Calendar | https://content-calendar.vercel.app | 403 (IP blocked) |
 | Hub | https://myapp.vercel.app or https://aegis-hub.vercel.app | 403 (IP blocked) |
+
+---
+
+
+## Public Access Verification (Required Before Launch Announcement)
+
+Complete this checklist for **every production deployment** before saying any product is launched, live, public, released, or ready for customers. This section is mandatory because Vercel can show a successful deployment while public visitors still receive an IP block, authentication wall, or deployment protection page.
+
+### 1. Confirm Vercel Public Access Settings
+
+For each Vercel project (`platform-picker`, `hook-generator`, `content-calendar`, and `hub`), verify both settings below in the Vercel dashboard:
+
+1. **IP Allowlist dashboard path:** Vercel Dashboard → Project → **Settings** → **Security** → **IP Allowlist**.
+   - Expected setting: no active IP restrictions for production public access.
+2. **Deployment Protection dashboard path:** Vercel Dashboard → Project → **Settings** → **Deployment Protection**.
+   - Expected setting: production deployment protection is disabled for public access, with no Vercel authentication, password, SSO, or preview-protection gate shown to visitors.
+
+### 2. Verify Production HTTP Results
+
+Run the HTTP checks from a network that is **not** logged in to Vercel and is not allowlisted. Each production URL must return a public success response.
+
+| App | Production URL | Expected HTTP result | Failure results that block launch |
+|---|---|---|---|
+| `platform-picker` | `https://platform-picker.vercel.app` | `200 OK` with the Platform Picker app HTML | `403`, Vercel authentication wall, password wall, SSO wall, or deployment protection page |
+| `hook-generator` | `https://hook-generator.vercel.app` | `200 OK` with the Hook Generator app HTML | `403`, Vercel authentication wall, password wall, SSO wall, or deployment protection page |
+| `content-calendar` | `https://content-calendar.vercel.app` | `200 OK` with the Content Calendar app HTML | `403`, Vercel authentication wall, password wall, SSO wall, or deployment protection page |
+| `hub` | `https://myapp.vercel.app` | `200 OK` with the Hub app HTML | `403`, Vercel authentication wall, password wall, SSO wall, or deployment protection page |
+| `hub` | `https://aegis-hub.vercel.app` | `200 OK` with the Hub app HTML, if this alias is configured for production | `403`, Vercel authentication wall, password wall, SSO wall, deployment protection page, or unexpected unconfigured-domain page |
+
+Suggested command:
+
+```bash
+for url in \
+  https://platform-picker.vercel.app \
+  https://hook-generator.vercel.app \
+  https://content-calendar.vercel.app \
+  https://myapp.vercel.app \
+  https://aegis-hub.vercel.app
+do
+  printf '\n%s\n' "$url"
+  curl -I -L --max-time 20 "$url" | sed -n '1,12p'
+done
+```
+
+### 3. Browser Smoke Tests
+
+Use a private/incognito browser window, signed out of Vercel, with extensions disabled if possible. Perform the smoke test for each product URL after the HTTP status is correct.
+
+#### `platform-picker`
+
+1. Open `https://platform-picker.vercel.app`.
+2. Confirm the Platform Picker page loads without a 403, Vercel login, password prompt, SSO prompt, or deployment protection screen.
+3. Confirm the main product UI renders and is not a blank page.
+4. Start the primary platform-selection flow and verify the first user action works.
+5. If a license gate is expected, confirm the app-owned license screen appears instead of any Vercel-owned access wall.
+
+#### `hook-generator`
+
+1. Open `https://hook-generator.vercel.app`.
+2. Confirm the Hook Generator page loads without a 403, Vercel login, password prompt, SSO prompt, or deployment protection screen.
+3. Confirm the main product UI renders and is not a blank page.
+4. Start the primary hook-generation flow and verify the first user action works.
+5. If a license gate is expected, confirm the app-owned license screen appears instead of any Vercel-owned access wall.
+
+#### `content-calendar`
+
+1. Open `https://content-calendar.vercel.app`.
+2. Confirm the Content Calendar page loads without a 403, Vercel login, password prompt, SSO prompt, or deployment protection screen.
+3. Confirm the main product UI renders and is not a blank page.
+4. Start the primary calendar/planning flow and verify the first user action works.
+5. If a license gate is expected, confirm the app-owned license screen appears instead of any Vercel-owned access wall.
+
+#### `hub`
+
+1. Open `https://myapp.vercel.app`.
+2. If `https://aegis-hub.vercel.app` is configured, open it too.
+3. Confirm each configured Hub URL loads without a 403, Vercel login, password prompt, SSO prompt, or deployment protection screen.
+4. Confirm the Hub page renders and is not a blank page.
+5. Click each product link from the Hub and confirm it opens the intended product or purchase page.
+
+### 4. HALT Rule
+
+**HALT: Do not announce launch, publish customer-facing launch copy, mark the product as live, or claim public availability while any app returns `403`, an authentication wall, a password/SSO wall, a deployment protection page, or any other Vercel-owned access block.**
+
+Launch may only be announced after every configured production URL above returns the expected public HTTP result and passes its browser smoke test.
 
 ---
 
