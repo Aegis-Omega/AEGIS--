@@ -17,10 +17,24 @@ struct Uniforms {
 @compute @workgroup_size(8, 8)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   if (gid.x >= u.width || gid.y >= u.height) { return; }
-  let coord  = vec2<i32>(gid.xy);
-  let sigma  = textureLoad(sigma_in,  coord, 0).r;
-  let lambda = textureLoad(lambda_in, coord, 0).r;
-  // σ' = σ + dt * (sin(σ + λ) + cos(λ)) + scroll perturbation
-  let next = sigma + u.dt * (sin(sigma + lambda) + cos(lambda)) + u.sigma_perturb;
-  textureStore(sigma_out, coord, vec4<f32>(next, 0.0, 0.0, 1.0));
+  let c    = vec2<i32>(gid.xy);
+  let dims = vec2<i32>(i32(u.width) - 1, i32(u.height) - 1);
+
+  let sigma  = textureLoad(sigma_in, c, 0).r;
+  let lambda = textureLoad(lambda_in, c, 0).r;
+
+  // Spatial Laplacian — drives beautiful wave-like diffusion
+  let r = textureLoad(sigma_in, clamp(c + vec2<i32>( 1,  0), vec2<i32>(0), dims), 0).r;
+  let l = textureLoad(sigma_in, clamp(c + vec2<i32>(-1,  0), vec2<i32>(0), dims), 0).r;
+  let t = textureLoad(sigma_in, clamp(c + vec2<i32>( 0,  1), vec2<i32>(0), dims), 0).r;
+  let b = textureLoad(sigma_in, clamp(c + vec2<i32>( 0, -1), vec2<i32>(0), dims), 0).r;
+  let lap = r + l + t + b - 4.0 * sigma;
+
+  // σ' = σ + dt*(reaction_diffusion + diffusion) + scroll perturbation
+  let reaction = sin(sigma + lambda) + cos(lambda) * 0.8;
+  let next = sigma + u.dt * (reaction + 0.18 * lap) + u.sigma_perturb;
+
+  // Soft clamp to keep field bounded without hard discontinuities
+  let clamped = next / (1.0 + abs(next) * 0.04);
+  textureStore(sigma_out, c, vec4<f32>(clamped, 0.0, 0.0, 1.0));
 }
