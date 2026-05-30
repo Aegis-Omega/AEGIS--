@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { SuccessPage } from './components/SuccessPage.js'
 import { ChatWidget } from './components/ChatWidget.js'
 import { ToolsPage } from './components/ToolsPage.js'
@@ -22,6 +22,13 @@ export default function App() {
 
 function Landing() {
   const { chain, certificate, activeLayer, totalObserved, bridge } = useSubstrate()
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768)
+
+  useEffect(() => {
+    const handler = () => setMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
 
   const stars = useMemo(() =>
     Array.from({ length: 120 }, (_, i) => ({
@@ -70,14 +77,14 @@ function Landing() {
             <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #7C3AED, #F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: 'white' }}>Ω</div>
             <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '0.08em', color: '#F1F5F9' }}>AEGIS OMEGA</span>
           </div>
-          <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-            {[['Consciousness', '#consciousness'], ['Cognition', '#cognition'], ['The Company', '#company']].map(([l, h]) => (
+          <div style={{ display: 'flex', gap: mobile ? 12 : 32, alignItems: 'center' }}>
+            {!mobile && [['Consciousness', '#consciousness'], ['Cognition', '#cognition'], ['The Company', '#company']].map(([l, h]) => (
               <a key={l} href={h} style={{ color: '#64748B', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}
                 onMouseEnter={e => (e.currentTarget.style.color = '#CBD5E1')}
                 onMouseLeave={e => (e.currentTarget.style.color = '#64748B')}
               >{l}</a>
             ))}
-            <a href="#enter" style={{ background: 'linear-gradient(135deg, #7C3AED, #4F46E5)', color: 'white', padding: '8px 18px', borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>Enter the System</a>
+            <a href="#enter" style={{ background: 'linear-gradient(135deg, #7C3AED, #4F46E5)', color: 'white', padding: '8px 18px', borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: 'none', whiteSpace: 'nowrap' }}>Enter the System</a>
           </div>
         </nav>
 
@@ -113,10 +120,11 @@ function Landing() {
                 { label: 'self-model', value: `t0_verdict: ${bridge.node?.t0_verdict ?? true}`, ok: bridge.node?.t0_verdict ?? true },
                 { label: 'integrity', value: `corruption: ${bridge.node?.corruption_count ?? 0}`, ok: (bridge.node?.corruption_count ?? 0) === 0 },
                 { label: 'observations', value: `${totalObserved}`, ok: true },
-              ].map((s, i) => (
-                <div key={i} style={{ padding: '12px 18px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.08)' : 'none', background: 'rgba(8,9,12,0.6)' }}>
+                { label: 'terminal hash', value: certificate.terminal_hash ? `…${certificate.terminal_hash.slice(-8)}` : 'genesis', ok: true },
+              ].map((s, i, arr) => (
+                <div key={i} style={{ padding: '12px 18px', borderRight: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none', background: 'rgba(8,9,12,0.6)' }}>
                   <div style={{ fontSize: 9, color: '#475569', letterSpacing: '0.05em', marginBottom: 4 }}>{s.label}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: s.ok ? '#34D399' : '#F87171' }}>{s.value}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: s.ok ? '#34D399' : '#F87171' }} className={s.label === 'terminal hash' ? 'animate-hash-flicker' : ''}>{s.value}</div>
                 </div>
               ))}
             </div>
