@@ -27,39 +27,35 @@ const INV_PHI: f32 = 0.61803398875;
 
 @fragment
 fn fs_main(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
-  let st = (pos.xy - u.resolution * 0.5) / min(u.resolution.x, u.resolution.y);
-  let t  = u.time * 0.3;
+  // Centre and scale: maps screen to ±10 substrate-space units
+  let st = (pos.xy / u.resolution - vec2<f32>(0.5, 0.5)) * 2.0 * 10.0;
+  let t  = u.time * 0.18;
 
-  // Expansion eigenvector (φ scale)
-  let ex = vec2<f32>(
-    cos(st.x * PHI     + st.y * INV_PHI + t),
-    sin(st.y * PHI     - st.x * INV_PHI + t * 0.7)
-  );
+  // Expansion axis — driven by φ (manages global scale and epoch progression)
+  let wave_x1 = cos(st.x * PHI     + st.y * INV_PHI + t);
+  let wave_y1 = sin(st.y * PHI     - st.x * INV_PHI + t * 0.73);
 
-  // Contraction eigenvector (INV_PHI scale)
-  let cx = vec2<f32>(
-    cos(st.x * INV_PHI - st.y * PHI     - t * 0.5),
-    sin(st.y * INV_PHI + st.x * PHI     + t * 1.1)
-  );
+  // Contraction axis — driven by −1/φ (manages boundary conditions and micro-scale)
+  let wave_x2 = cos(st.x * INV_PHI - st.y * PHI     - t * 0.51);
+  let wave_y2 = sin(st.y * INV_PHI + st.x * PHI     + t * 1.09);
 
-  // Superposition — interference amplitude
-  let psi = ex + cx;
-  let amp = length(psi);          // ∈ [0, 2√2]
+  // Superposition of both eigenvalue definitions in wave space
+  let interference = (wave_x1 + wave_y1 + wave_x2 + wave_y2) / 4.0;
 
-  // Interference fringes — two nested smoothstep rings
-  let edge = fract(amp * INV_PHI);
-  let fringe = smoothstep(0.2, 0.25, edge) * (1.0 - smoothstep(0.25, 0.3, edge));
+  // High-contrast fringe at the interference boundary
+  let intensity = intensity_map(interference);
 
-  // φ-channel separation
-  let macro_ch = dot(ex, ex) * 0.5;   // R — φ dominant
-  let micro_ch = dot(cx, cx) * 0.5;   // G — INV_PHI dominant
-  let intensity = fringe * (0.6 + 0.4 * sin(amp * PHI + t));
+  // φ-channel separation: R = macro (φ dominant), G = micro (INV_PHI dominant)
+  let r = abs(wave_x1 + wave_y1) * 0.5;
+  let g = abs(wave_x2 + wave_y2) * 0.5;
+  let b = intensity;
 
-  return vec4<f32>(
-    macro_ch * intensity,
-    micro_ch * intensity,
-    intensity * INV_PHI,
-    1.0
-  );
+  return vec4<f32>(r, g, b, 1.0);
+}
+
+// Maps interference amplitude to a high-contrast edge ring at ≈ 0.225
+fn intensity_map(val: f32) -> f32 {
+  let edge = abs(val);
+  return smoothstep(0.2, 0.25, edge) * (1.0 - smoothstep(0.25, 0.3, edge));
 }
 `,D=64,O=8;function he(){let e=(0,l.useRef)(null),t=typeof navigator<`u`&&`gpu`in navigator;return(0,l.useEffect)(()=>{if(!t)return;let n=e.current;if(!n)return;let r,i=!1;return(async()=>{let e=navigator.gpu,t=await e.requestAdapter();if(!t||i)return;let a=await t.requestDevice();if(i){a.destroy();return}let o=n.getContext(`webgpu`);if(!o)return;let s=e.getPreferredCanvasFormat();o.configure({device:a,format:s});let c=a.createShaderModule({code:me}),l=a.createRenderPipeline({layout:`auto`,vertex:{module:c,entryPoint:`vs_main`},fragment:{module:c,entryPoint:`fs_main`,targets:[{format:s}]},primitive:{topology:`triangle-strip`,stripIndexFormat:`uint32`}}),u=a.createBuffer({size:16,usage:D|O}),d=a.createBindGroup({layout:l.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:u}}]}),f=new Float32Array(4),p=performance.now(),m=()=>{if(i)return;let e=n.clientWidth||n.width,t=n.clientHeight||n.height;(n.width!==e||n.height!==t)&&(n.width=e,n.height=t,o.configure({device:a,format:s})),f[0]=(performance.now()-p)/1e3,f[1]=e,f[2]=t,f[3]=0,a.queue.writeBuffer(u,0,f);let c=a.createCommandEncoder(),h=c.beginRenderPass({colorAttachments:[{view:o.getCurrentTexture().createView(),clearValue:{r:0,g:0,b:0,a:1},loadOp:`clear`,storeOp:`store`}]});h.setPipeline(l),h.setBindGroup(0,d),h.draw(4),h.end(),a.queue.submit([c.finish()]),r=requestAnimationFrame(m)};r=requestAnimationFrame(m)})(),()=>{i=!0,cancelAnimationFrame(r)}},[t]),t?(0,h.jsx)(`canvas`,{ref:e,className:`w-full h-full block`,style:{background:`#000`}}):(0,h.jsx)(`div`,{className:`flex items-center justify-center h-full text-aegis-muted font-mono text-xs`,children:`WebGPU not supported in this browser`})}var ge=[{id:`replay`,label:`Replay`},{id:`epoch`,label:`Epoch`},{id:`divergence`,label:`Divergence`},{id:`rollback`,label:`Rollback`},{id:`lineage`,label:`Lineage`},{id:`topology`,label:`Topology`},{id:`ownership`,label:`Ownership`},{id:`capsule`,label:`Capsule`},{id:`observability`,label:`Observability`},{id:`governance`,label:`Governance`},{id:`swarm`,label:`Swarm`},{id:`holographic`,label:`Holographic`}];function _e(){let[e,t]=(0,l.useState)(`replay`),{snapshot:n,error:r}=p();return(0,h.jsxs)(`div`,{className:`min-h-screen bg-aegis-void text-aegis-text flex flex-col font-sans`,children:[(0,h.jsxs)(`header`,{className:`border-b border-aegis-border px-5 py-3 flex items-center gap-4 flex-shrink-0 bg-aegis-deep`,children:[(0,h.jsxs)(`div`,{className:`flex items-baseline gap-2.5`,children:[(0,h.jsx)(`span`,{className:`font-mono font-semibold tracking-[0.2em] text-sm text-aegis-phi`,children:`AEGIS-Ω`}),(0,h.jsx)(`span`,{className:`font-mono text-[10px] tracking-widest uppercase text-aegis-muted opacity-60`,children:`Studio`})]}),(0,h.jsx)(`div`,{className:`h-3.5 w-px bg-aegis-border`}),(0,h.jsx)(`span`,{className:`text-[11px] text-aegis-muted`,children:`Constitutional Observability · Projection Only`}),(0,h.jsx)(`div`,{className:`ml-auto flex items-center gap-2`,children:r?(0,h.jsx)(`span`,{className:`text-[10px] font-mono bg-aegis-T4/10 text-aegis-T4 border border-aegis-T4/20 px-2.5 py-1 rounded-lg`,children:`bridge offline`}):n?(0,h.jsxs)(h.Fragment,{children:[(0,h.jsxs)(`span`,{className:`text-[10px] font-mono bg-aegis-T0/10 text-aegis-T0 border border-aegis-T0/20 px-2.5 py-1 rounded-lg flex items-center gap-1.5`,children:[(0,h.jsx)(`span`,{className:`w-1.5 h-1.5 rounded-full bg-aegis-T0 animate-pulse-slow`}),`live · epoch `,n.epoch_sequence]}),(0,h.jsx)(`span`,{className:`text-[10px] font-mono px-2.5 py-1 rounded-lg border ${n.pgcs_passes?`bg-aegis-T0/10 text-aegis-T0 border-aegis-T0/20`:`bg-aegis-T4/10 text-aegis-T4 border-aegis-T4/20`}`,children:n.pgcs_passes?`PGCS PASS`:`PGCS FAIL`})]}):(0,h.jsx)(`span`,{className:`text-[10px] font-mono text-aegis-disabled px-2.5 py-1`,children:`awaiting bridge…`})})]}),(0,h.jsxs)(`div`,{className:`flex flex-1 min-h-0`,children:[(0,h.jsx)(`nav`,{className:`w-40 border-r border-aegis-border flex-shrink-0 py-3 bg-aegis-deep flex flex-col gap-0.5 px-2`,children:ge.map(({id:n,label:r})=>(0,h.jsxs)(`button`,{onClick:()=>t(n),className:`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors font-mono tracking-wide ${e===n?`bg-aegis-surface text-aegis-text border border-aegis-border-medium`:`text-aegis-muted hover:text-aegis-text hover:bg-aegis-bg`}`,children:[e===n&&(0,h.jsx)(`span`,{className:`inline-block w-1 h-1 rounded-full bg-aegis-phi mr-2 mb-0.5`}),r]},n))}),(0,h.jsxs)(`main`,{className:`flex-1 overflow-auto bg-aegis-bg`,children:[e===`replay`&&(0,h.jsx)(v,{snapshot:n}),e===`epoch`&&(0,h.jsx)(y,{snapshot:n}),e===`divergence`&&(0,h.jsx)(ee,{snapshot:n}),e===`rollback`&&(0,h.jsx)(S,{snapshot:n}),e===`lineage`&&(0,h.jsx)(te,{snapshot:n}),e===`topology`&&(0,h.jsx)(ne,{snapshot:n}),e===`ownership`&&(0,h.jsx)(w,{snapshot:n}),e===`capsule`&&(0,h.jsx)(ae,{snapshot:n}),e===`observability`&&(0,h.jsx)(se,{snapshot:n}),e===`governance`&&(0,h.jsx)(le,{snapshot:n}),e===`swarm`&&(0,h.jsx)(pe,{snapshot:n}),e===`holographic`&&(0,h.jsx)(he,{})]})]})]})}(0,u.createRoot)(document.getElementById(`root`)).render((0,h.jsx)(l.StrictMode,{children:(0,h.jsx)(_e,{})}));
