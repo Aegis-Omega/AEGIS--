@@ -31,6 +31,9 @@ concurrency:
   group: automaton-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 # ── SUBATOMIC — Constitutional membrane ──────────────────────────────────────
 jobs:
   membrane:
