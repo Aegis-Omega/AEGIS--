@@ -14,7 +14,9 @@ export class App {
   private nav!: Navigation
   private overlay!: StateOverlay
   private canvasSection!: HTMLElement
+  private pauseEl!: HTMLElement
   private running = false
+  private paused  = false
   private rafId   = 0
 
   async init(): Promise<void> {
@@ -25,6 +27,7 @@ export class App {
     this.nav     = new Navigation()
     this.overlay = new StateOverlay()
     this.canvasSection = document.getElementById('canvas-section') ?? document.body
+    this.pauseEl = document.getElementById('pause-indicator') ?? document.createElement('div')
 
     const view = new ShaderView((w, h) => {
       if (this.sim) resizeCanvas(ctx, view.canvas, w, h)
@@ -34,6 +37,24 @@ export class App {
     this.sim = await SimulationEngine.create(ctx)
 
     this.wireMouseEvents(view.canvas)
+    this.wireKeyEvents()
+  }
+
+  private wireKeyEvents(): void {
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault()
+        this.paused = !this.paused
+        if (this.paused) {
+          this.pauseEl.removeAttribute('hidden')
+        } else {
+          this.pauseEl.setAttribute('hidden', '')
+        }
+      }
+      if (e.code === 'KeyR') {
+        this.sim.reset()
+      }
+    })
   }
 
   private wireMouseEvents(canvas: HTMLCanvasElement): void {
@@ -81,7 +102,7 @@ export class App {
     const loop = (): void => {
       const params   = this.scroll.getParams()
       const fraction = this.scroll.getScrollFraction()
-      this.sim.tick(params)
+      if (!this.paused) this.sim.tick(params)
       const state  = this.sim.getFrameState()
       const fields = this.sim.getFieldValues()
       this.panel.update(state, fraction, fields)

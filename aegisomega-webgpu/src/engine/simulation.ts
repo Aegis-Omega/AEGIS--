@@ -166,6 +166,17 @@ export class SimulationEngine {
     )
   }
 
+  reset(): void {
+    seedSigmaTexture(this.device, this.sigmaField.a)
+    zeroTexture(this.device, this.sigmaField.b)
+    seedLambdaTexture(this.device, this.lambdaField.a)
+    zeroTexture(this.device, this.lambdaField.b)
+    zeroTexture(this.device, this.rhoField.a)
+    zeroTexture(this.device, this.rhoField.b)
+    this.frame  = 0
+    this.parity = 0
+  }
+
   // Hover encoding: mouseY = -(y+1) ∈ [-2,-1] so render shader shows a dim glow
   // without triggering the energy injection in sigma shader (which requires mouseY ≥ 0).
   // Press encoding: mouseY = y ∈ [0,1] — normal press with full glow + injection.

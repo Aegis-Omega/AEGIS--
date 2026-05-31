@@ -118,6 +118,25 @@ html, body {
 #overlay-content .ok  { color: var(--accent); }
 #overlay-content .key { color: var(--text); margin-right: 8px; }
 
+/* Pause indicator — centered fixed badge when simulation is paused */
+#pause-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 400;
+  background: rgba(10,11,16,0.88);
+  border: 1px solid var(--accent2);
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 13px;
+  color: var(--accent2);
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+#pause-indicator[hidden] { display: none; }
+
 /* Scroll spacer so page is scrollable below the canvas */
 body::after {
   content: '';

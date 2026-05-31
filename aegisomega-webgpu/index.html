@@ -15,7 +15,7 @@
     <main id="main">
       <section id="hero">
         <h1>Deterministic Field Simulation</h1>
-        <p>σ/ρ/λ dynamics executing through a hash-chained frame graph. Scroll to amplify λ memory. Click and drag to inject σ energy. Press D for debug overlay.</p>
+        <p>σ/ρ/λ dynamics executing through a hash-chained frame graph. Scroll to amplify λ memory. Click and drag to inject σ energy. Space to pause · R to reset · D for debug.</p>
       </section>
       <section id="canvas-section">
         <canvas id="gpu-canvas"></canvas>
@@ -32,6 +32,7 @@
       <div class="panel-row"><span class="label">dt</span><span id="val-dt">0.016</span></div>
       <div class="panel-row"><span class="label">scroll→λ</span><span id="val-scroll">0.50</span></div>
     </div>
+    <div id="pause-indicator" hidden>⏸ PAUSED</div>
     <div id="state-overlay" hidden>
       <div class="overlay-title">Frame Graph State</div>
       <div id="overlay-content"></div>
