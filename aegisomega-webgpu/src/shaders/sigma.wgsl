@@ -30,9 +30,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let b = textureLoad(sigma_in, clamp(c + vec2<i32>( 0, -1), vec2<i32>(0), dims), 0).r;
   let lap = r + l + t + b - 4.0 * sigma;
 
-  // Mouse splash — Gaussian kick centred on pointer when pressed (mouse_x >= 0)
+  // Mouse splash — Gaussian kick only when pressing (mouse_y >= 0 = press encoding;
+  // hover uses mouse_y = -(y+1) which is negative, so hover never injects energy).
   var mouse_kick = 0.0;
-  if (u.mouse_x >= 0.0) {
+  if (u.mouse_x >= 0.0 && u.mouse_y >= 0.0) {
     let mx = u.mouse_x * f32(u.width);
     let my = u.mouse_y * f32(u.height);
     let dx = f32(c.x) - mx;

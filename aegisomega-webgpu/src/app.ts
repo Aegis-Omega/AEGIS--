@@ -55,17 +55,24 @@ export class App {
     })
 
     canvas.addEventListener('pointermove', (e) => {
-      if (!pressed) return
       const [x, y] = toNorm(e)
-      this.sim.setMouse(x, y, true)
+      this.sim.setMouse(x, y, pressed)  // hover glow when not pressed
     })
 
-    const release = (): void => {
+    canvas.addEventListener('pointerup', (e) => {
       pressed = false
-      this.sim.setMouse(0, 0, false)
-    }
-    canvas.addEventListener('pointerup',     release)
-    canvas.addEventListener('pointercancel', release)
+      const [x, y] = toNorm(e)
+      this.sim.setMouse(x, y, false)  // stay hovering at release point
+    })
+
+    canvas.addEventListener('pointercancel', () => {
+      pressed = false
+      this.sim.clearMouse()
+    })
+
+    canvas.addEventListener('pointerleave', () => {
+      if (!pressed) this.sim.clearMouse()
+    })
   }
 
   start(): void {

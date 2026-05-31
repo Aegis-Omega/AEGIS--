@@ -137,12 +137,17 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
   let iridescent = vec3<f32>(0.40, 0.95, 0.90) * rim * 0.45;
 
   // ── Mouse cursor glow ─────────────────────────────────────────────────────
+  // mouse_y < 0 → hover encoding: actual_y = -(mouse_y + 1); glow at 40% intensity
+  // mouse_y ≥ 0 → press encoding: actual_y = mouse_y; glow at full intensity
   var cursor_glow = vec3<f32>(0.0);
   if (u.mouse_x >= 0.0) {
-    let m_uv = vec2<f32>(u.mouse_x, 1.0 - u.mouse_y);
+    let hover      = u.mouse_y < 0.0;
+    let actual_y   = select(u.mouse_y, -(u.mouse_y + 1.0), hover);
+    let intensity  = select(1.0, 0.40, hover);
+    let m_uv   = vec2<f32>(u.mouse_x, 1.0 - actual_y);
     let m_dist = length(uv - m_uv);
-    let inner = exp(-m_dist * m_dist * 800.0);
-    let outer = exp(-m_dist * m_dist * 80.0) * 0.3;
+    let inner  = exp(-m_dist * m_dist * 800.0) * intensity;
+    let outer  = exp(-m_dist * m_dist * 80.0) * 0.3 * intensity;
     cursor_glow = vec3<f32>(1.00, 0.85, 0.50) * (inner + outer);
   }
 

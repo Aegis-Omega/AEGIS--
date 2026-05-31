@@ -166,9 +166,17 @@ export class SimulationEngine {
     )
   }
 
+  // Hover encoding: mouseY = -(y+1) ∈ [-2,-1] so render shader shows a dim glow
+  // without triggering the energy injection in sigma shader (which requires mouseY ≥ 0).
+  // Press encoding: mouseY = y ∈ [0,1] — normal press with full glow + injection.
   setMouse(x: number, y: number, pressed: boolean): void {
-    this.mouseX = pressed ? x : -1
-    this.mouseY = y
+    this.mouseX = x
+    this.mouseY = pressed ? y : -(y + 1.0)
+  }
+
+  clearMouse(): void {
+    this.mouseX = -1
+    this.mouseY = 0
   }
 
   tick(params: SimParams): void {
