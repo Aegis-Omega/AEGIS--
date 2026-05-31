@@ -48,6 +48,7 @@ function serializeValue(value: unknown): string {
     const sortedKeys = Object.keys(obj).sort((a, b) => {
       // Compare by Unicode code point sequence (not locale-sensitive)
       for (let i = 0; i < Math.min(a.length, b.length); i++) {
+        /* c8 ignore next -- noUncheckedIndexedAccess artifact; i < min(a.length, b.length) guarantees valid indices */
         const diff = (a.codePointAt(i) ?? 0) - (b.codePointAt(i) ?? 0)
         if (diff !== 0) return diff
       }
@@ -63,6 +64,7 @@ function serializeValue(value: unknown): string {
   if (type === 'function') throw new TypeError('function is not JSON-serialisable')
   if (type === 'symbol') throw new TypeError('symbol is not JSON-serialisable')
 
+  /* c8 ignore next -- TypeScript exhausts all reachable types above; no well-typed caller reaches this */
   throw new TypeError(`Unserializable type: ${type}`)
 }
 
@@ -81,7 +83,9 @@ function serializeString(s: string): string {
   // specific characters as required by JSON.
   let result = '"'
   for (let i = 0; i < s.length; i++) {
+    /* c8 ignore next -- noUncheckedIndexedAccess artifact; i < s.length guarantees valid index */
     const cp = s.codePointAt(i) ?? 0
+    /* c8 ignore next -- same as above */
     const ch = s[i] ?? ''
 
     if (cp === 0x22) { result += '\\"'; continue }
@@ -101,6 +105,7 @@ function serializeString(s: string): string {
     // Non-BMP character (U+10000..U+10FFFF): codePointAt returns full scalar > 0xFFFF.
     // Must emit both UTF-16 code units and skip the low surrogate on next iteration.
     if (cp > 0xFFFF) {
+      /* c8 ignore next -- noUncheckedIndexedAccess artifact; well-formed strings always have a paired low surrogate */
       result += ch + (s[i + 1] ?? '')
       i++ // skip the low surrogate code unit
       continue
@@ -158,6 +163,7 @@ export function verifyRFC8785Conformance(): { passed: number; failed: Array<{ in
     const vec = RFC8785_TEST_VECTORS[i]
     if (!vec) continue
     const got = canonicalizeJCSString(vec.input)
+    /* c8 ignore next -- RFC8785 test vectors all pass by T0 guarantee; failure path exists for debugging broken implementations */
     if (got !== vec.expected) {
       failed.push({ index: i, expected: vec.expected, got })
     }

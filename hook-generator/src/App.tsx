@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Zap, Download, Star } from 'lucide-react'
 import { initAnalytics, trackEvent } from '@shared/lib/analytics'
+import { AccessGate } from '@shared/components/AccessGate'
 import { generateHooks, type HookInput, type HookResult, type Platform, type Tone } from './lib/hooks-ai.js'
 import { HookCard } from './components/HookCard.js'
 import { useAsyncForm } from '@shared/hooks/useAsyncForm'
@@ -73,6 +74,7 @@ export default function App() {
   const favCount = allResults.filter(h => favs.has(h.hook)).length
 
   return (
+    <AccessGate product="hook-generator" accentColor="#D97706">
     <div className="min-h-screen bg-hook-bg text-hook-text">
       <div className="max-w-2xl mx-auto px-4 py-16">
 
@@ -214,5 +216,6 @@ export default function App() {
         glowClass="text-hook-muted hover:text-hook-glow"
       />
     </div>
+    </AccessGate>
   )
 }

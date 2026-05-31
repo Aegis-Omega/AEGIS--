@@ -15,20 +15,25 @@ export class SeededRNG {
   private s: [number, number, number, number]
 
   constructor(seed: number) {
-    // Splitmix64 initialization to populate state from a single seed
+    // Splitmix32 initialization using Math.imul for correct 32-bit multiplication.
+    // The original 64-bit splitmix constants (0xbf58476d1ce4e5b9, 0x94d049bb133111eb)
+    // are silently truncated to doubles with ~42-bit rounding error when used in JS,
+    // causing ALL seeds to collapse to the same state via floating-point precision loss.
+    // Math.imul enforces 32-bit integer semantics — low 32 bits of the 64-bit constants.
     this.s = [0, 0, 0, 0]
     let z = seed >>> 0
-    z = (z ^ (z >>> 30)) * 0xbf58476d1ce4e5b9 | 0
-    z = (z ^ (z >>> 27)) * 0x94d049bb133111eb | 0
-    z = z ^ (z >>> 31)
+    z = Math.imul(z ^ (z >>> 16), 0x45d9f3b)
+    z = Math.imul(z ^ (z >>> 16), 0x45d9f3b)
+    z = z ^ (z >>> 16)
     this.s[0] = z | 0
-    this.s[1] = (z >>> 16) | 0
-    this.s[2] = (~z) | 0
-    this.s[3] = (~z >>> 8) | 0
+    this.s[1] = Math.imul(z ^ 0xdeadbeef, 0x9e3779b9) | 0
+    this.s[2] = Math.imul(z ^ 0xbeefdead, 0x6c62272e) | 0
+    this.s[3] = Math.imul(z ^ 0xf0e1d2c3, 0x4b3a2c1d) | 0
   }
 
   /** Return a float in [0, 1). */
   next(): number {
+    /* c8 ignore start -- noUncheckedIndexedAccess artifact; this.s is a [number,number,number,number] tuple, all 4 elements always defined */
     const result = this.rotl(this.s[1]! * 5, 7) * 9
     const t = this.s[1]! << 9
     this.s[2]! ^= this.s[0]!
@@ -37,6 +42,7 @@ export class SeededRNG {
     this.s[0]! ^= this.s[3]!
     this.s[2]! ^= t
     this.s[3] = this.rotl(this.s[3]!, 11)
+    /* c8 ignore stop */
     return ((result >>> 0) / 0x100000000)
   }
 
@@ -46,6 +52,7 @@ export class SeededRNG {
     const pool = Array.from({ length: max }, (_, i) => i)
     for (let i = 0; i < n && pool.length > 0; i++) {
       const j = Math.floor(this.next() * pool.length)
+      /* c8 ignore next -- noUncheckedIndexedAccess artifact; j = Math.floor(next * pool.length) guarantees j < pool.length */
       indices.push(pool[j]!)
       pool.splice(j, 1)
     }

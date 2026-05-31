@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { CalendarDays, Download } from 'lucide-react'
 import { initAnalytics, trackEvent } from '@shared/lib/analytics'
+import { AccessGate } from '@shared/components/AccessGate'
 import { generateCalendar, calendarToText, type CalendarInput, type WeekPlan } from './lib/calendar-ai.js'
 import { WeekTable } from './components/WeekTable.js'
 import { useAsyncForm } from '@shared/hooks/useAsyncForm'
@@ -90,6 +91,7 @@ export default function App() {
   const pillars: [string, string, string] = [form.pillar1, form.pillar2, form.pillar3]
 
   return (
+    <AccessGate product="content-calendar" accentColor="#16A34A">
     <div className="min-h-screen bg-cal-bg text-cal-text">
       <div className="max-w-2xl mx-auto px-4 py-16">
 
@@ -190,5 +192,6 @@ export default function App() {
         glowClass="text-cal-muted hover:text-cal-glow"
       />
     </div>
+    </AccessGate>
   )
 }

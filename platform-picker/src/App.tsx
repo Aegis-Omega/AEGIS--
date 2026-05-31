@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Sparkles, TrendingUp, Share2, Check, ShieldCheck } from 'lucide-react'
 import { initAnalytics, trackEvent } from '@shared/lib/analytics'
+import { AccessGate } from '@shared/components/AccessGate'
 import { rankPlatforms, type MatcherInput, type RankedResult } from './lib/matcher.js'
 import { ResultCard } from './components/ResultCard.js'
 import { RadarChart } from './components/RadarChart.js'
@@ -91,6 +92,7 @@ export default function App() {
   }
 
   return (
+    <AccessGate product="platform-picker" accentColor="#7C3AED">
     <div className="min-h-screen bg-brand-bg text-brand-text">
       <div className="max-w-2xl mx-auto px-4 py-16">
         <div className="text-center mb-12">
@@ -187,5 +189,6 @@ export default function App() {
         glowClass="text-brand-muted hover:text-brand-glow"
       />
     </div>
+    </AccessGate>
   )
 }

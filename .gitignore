@@ -25,6 +25,10 @@ target/
 .env
 .env.local
 *.env.*
+!*.env.example
+
+# Auto-gate crash recovery checkpoint (never commit)
+scripts/.auto-gate-checkpoint.json
 
 # Coverage
 coverage/
@@ -45,4 +49,5 @@ __pycache__/
 .tox/
 .coverage
 nosetests.xml
-```
+```.claude/settings.local.json
+.vercel
