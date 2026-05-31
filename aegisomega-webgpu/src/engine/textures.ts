@@ -33,13 +33,25 @@ export function createPingPongField(device: GPUDevice, label: string): PingPongF
   })
 }
 
-// Seed σ with deterministic standing-wave pattern
+// Seed σ with multi-frequency deterministic pattern — overlapping waves at
+// different scales and orientations generate rich nucleation sites, so the
+// reaction-diffusion field reaches interesting steady states much faster.
 export function seedSigmaTexture(device: GPUDevice, texture: GPUTexture): void {
   const data = new Float32Array(SIM_WIDTH * SIM_HEIGHT * 4)
+  const cx = SIM_WIDTH  / 2
+  const cy = SIM_HEIGHT / 2
   for (let y = 0; y < SIM_HEIGHT; y++) {
     for (let x = 0; x < SIM_WIDTH; x++) {
-      const i = (y * SIM_WIDTH + x) * 4
-      data[i]     = Math.sin(x * 0.05) * Math.cos(y * 0.05)
+      const i  = (y * SIM_WIDTH + x) * 4
+      const dx = x - cx
+      const dy = y - cy
+      // Three spatial frequencies + one radial component
+      const f0 = Math.sin(x * 0.050) * Math.cos(y * 0.050)
+      const f1 = Math.sin(x * 0.130 + 1.21) * Math.cos(y * 0.110 + 0.73) * 0.45
+      const f2 = Math.sin(x * 0.037 + y * 0.024 + 2.1) * 0.25
+      const r  = Math.sqrt(dx * dx + dy * dy)
+      const f3 = Math.cos(r * 0.016) * 0.20  // radial ripple from center
+      data[i]     = f0 + f1 + f2 + f3
       data[i + 3] = 1.0
     }
   }
@@ -51,13 +63,21 @@ export function seedSigmaTexture(device: GPUDevice, texture: GPUTexture): void {
   )
 }
 
-// Seed λ with gentle cosine pattern to create initial nebula cloud structure
+// Seed λ with a radially-structured cosine pattern — the gradient aligns with
+// the portal arch the render shader draws around the field center.
 export function seedLambdaTexture(device: GPUDevice, texture: GPUTexture): void {
   const data = new Float32Array(SIM_WIDTH * SIM_HEIGHT * 4)
+  const cx = SIM_WIDTH  / 2
+  const cy = SIM_HEIGHT / 2
   for (let y = 0; y < SIM_HEIGHT; y++) {
     for (let x = 0; x < SIM_WIDTH; x++) {
-      const i = (y * SIM_WIDTH + x) * 4
-      data[i]     = Math.cos(x * 0.03) * Math.sin(y * 0.03) * 0.1
+      const i  = (y * SIM_WIDTH + x) * 4
+      const dx = x - cx
+      const dy = y - cy
+      const r  = Math.sqrt(dx * dx + dy * dy)
+      const f0 = Math.cos(x * 0.030) * Math.sin(y * 0.030) * 0.10
+      const f1 = Math.cos(r * 0.012) * 0.06  // radial ring at ~262px
+      data[i]     = f0 + f1
       data[i + 3] = 1.0
     }
   }
