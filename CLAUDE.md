@@ -433,7 +433,8 @@ sovereign-omega-v2/.env
 
 ## Deployment
 
-All products deploy to Vercel (one project per product, Root Directory set per product).
+### Commercial products → Vercel
+All commercial products deploy to Vercel (one project per product, Root Directory set per product).
 Gate 8 must pass on sovereign-omega-v2 before any deployment proceeds.
 
 ```
@@ -441,6 +442,26 @@ vercel --prod  # from within each product directory after Gate 8
 ```
 
 Gumroad: $19/product, $29 (any 2), $39 (all 3 — Full Creator AI Toolkit).
+
+### AEGIS core services → Cloud Run (europe-west3)
+5 AEGIS services are deployed to GCP Cloud Run, region `europe-west3`.
+Domain: `aegisomega.com` (Cloudflare DNS, configured 2026-05-30).
+GCP account: `info@aegisomega.com`
+
+CI/CD: GitHub Actions with Workload Identity Federation (WIF) + Artifact Registry — no long-lived service account keys.
+
+```
+# Deploy via CI (preferred — WIF auth, no keys)
+git push origin main  # triggers GitHub Actions → Cloud Run deploy
+
+# Manual deploy (if needed)
+gcloud run deploy <service> --region europe-west3 --image <gcr-image>
+```
+
+### Payment security — server-issued tokens
+Supabase edge functions issue payment verification tokens server-side.
+Client-side token minting was a critical vulnerability — fixed 2026-05-30.
+Never re-introduce client-side token generation for payment flows.
 
 ---
 

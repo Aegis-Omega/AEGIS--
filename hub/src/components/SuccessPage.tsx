@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CheckCircle, ExternalLink, Zap, Mail, Loader2 } from 'lucide-react'
-import { createGrantToken, type Plan } from '../lib/access.js'
+import { createGrantToken, verifyServerToken, storeAccess, type Plan, type GrantPayload } from '../lib/access.js'
 
 const TOOL_URLS: Record<string, string> = {
   'platform-picker':  import.meta.env.VITE_URL_PLATFORM_PICKER  ?? 'https://platform.aegisomega.com',
@@ -50,27 +50,40 @@ function ToolLink({ tool, token }: ToolLinkProps) {
 }
 
 function RestoreForm() {
-  const [email, setEmail] = useState('')
-  const [status, setStatus] = useState<'idle' | 'loading' | 'found' | 'notfound' | 'error'>('idle')
-  const [restoreUrl, setRestoreUrl] = useState('')
+  const [email, setEmail]               = useState('')
+  const [status, setStatus]             = useState<'idle' | 'loading' | 'found' | 'notfound' | 'error'>('idle')
+  const [restoredTools, setRestoredTools] = useState<string[]>([])
+  const [localToken, setLocalToken]     = useState('')
 
   const handleRestore = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.includes('@')) return
     setStatus('loading')
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/restore-access`, {
+      const res  = await fetch(`${SUPABASE_URL}/functions/v1/restore-access`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       })
-      const data = await res.json() as { found: boolean; restore_url?: string; plan?: string }
-      if (data.found && data.restore_url) {
-        setRestoreUrl(data.restore_url)
-        setStatus('found')
-      } else {
-        setStatus('notfound')
-      }
+      const data = await res.json() as { found: boolean; aegis_token?: string }
+
+      if (!data.found || !data.aegis_token) { setStatus('notfound'); return }
+
+      // Verify the server-issued ECDSA token before trusting the plan
+      const payload = await verifyServerToken(data.aegis_token)
+      if (!payload) { setStatus('error'); return }
+
+      // Create a legacy local token (same format AccessGate already understands)
+      const token = createGrantToken(payload.plan as Plan)
+
+      // Pre-store access for each tool so same-domain localStorage checks work too
+      payload.tools.forEach(tool => {
+        storeAccess(tool, { ...payload, sig: 'server' } as GrantPayload)
+      })
+
+      setRestoredTools(payload.tools)
+      setLocalToken(token)
+      setStatus('found')
     } catch {
       setStatus('error')
     }
@@ -78,17 +91,17 @@ function RestoreForm() {
 
   if (status === 'found') {
     return (
-      <div className="text-center">
-        <CheckCircle size={32} className="mx-auto mb-3" style={{ color: '#34D399' }} />
-        <p className="text-sm font-semibold mb-1" style={{ color: '#EDEAE3' }}>Purchase found</p>
-        <p className="text-xs mb-4" style={{ color: '#6B6E80' }}>Click below to restore your access.</p>
-        <a
-          href={restoreUrl}
-          className="inline-flex items-center gap-2 text-sm font-semibold py-2.5 px-5 rounded-xl transition-opacity hover:opacity-90"
-          style={{ background: '#6366F1', color: '#fff' }}
-        >
-          <Zap size={13} /> Restore access
-        </a>
+      <div>
+        <div className="text-center mb-4">
+          <CheckCircle size={32} className="mx-auto mb-3" style={{ color: '#34D399' }} />
+          <p className="text-sm font-semibold mb-1" style={{ color: '#EDEAE3' }}>Access restored</p>
+          <p className="text-xs" style={{ color: '#6B6E80' }}>Click a tool to open it.</p>
+        </div>
+        <div className="space-y-2">
+          {restoredTools.map(tool => (
+            <ToolLink key={tool} tool={tool} token={localToken} />
+          ))}
+        </div>
       </div>
     )
   }

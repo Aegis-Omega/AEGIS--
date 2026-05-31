@@ -10,6 +10,46 @@ export interface GrantPayload {
   sig: string
 }
 
+export interface ServerGrantPayload {
+  plan: Plan
+  tools: string[]
+  grantedAt: number
+  exp: number
+}
+
+// P-256 public key — counterpart to GRANT_PRIVATE_KEY_JWK in Supabase secrets.
+// Public keys are safe to embed; replace both if you rotate the key pair.
+const GRANT_PUBLIC_JWK = {
+  key_ops: ['verify'], ext: true, kty: 'EC', crv: 'P-256',
+  x: 'gOiQCOQ9uqrWGjLWtHy-Rz7_iy-upssUQIChM-594mU',
+  y: '8xzK_vJumoNMw5ytMaGijU83XbH5Bl81RUrPokuLt-E',
+}
+
+// Verify a server-issued token (ECDSA P-256, format: <payloadB64>.<sigB64>)
+export async function verifyServerToken(token: string): Promise<ServerGrantPayload | null> {
+  try {
+    const dot = token.indexOf('.')
+    if (dot === -1) return null
+    const payloadB64 = token.slice(0, dot)
+    const sigB64     = token.slice(dot + 1)
+    const key = await crypto.subtle.importKey(
+      'jwk', GRANT_PUBLIC_JWK,
+      { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'],
+    )
+    const sigBytes = Uint8Array.from(atob(sigB64), c => c.charCodeAt(0))
+    const valid = await crypto.subtle.verify(
+      { name: 'ECDSA', hash: 'SHA-256' }, key, sigBytes,
+      new TextEncoder().encode(payloadB64),
+    )
+    if (!valid) return null
+    const payload = JSON.parse(atob(payloadB64)) as ServerGrantPayload
+    if (Date.now() > payload.exp) return null
+    return payload
+  } catch {
+    return null
+  }
+}
+
 function sign(plan: Plan, grantedAt: number): string {
   const str = `${GRANT_SECRET}:${plan}:${grantedAt}`
   let h = 0
