@@ -10,6 +10,8 @@ import { Retrospection } from './components/Retrospection.js'
 import { ConsciousnessEquation } from './components/ConsciousnessEquation.js'
 import { AgentSwarm } from './components/AgentSwarm.js'
 import { WebGPUBackground } from './components/WebGPUBackground.js'
+import { useSubstrate, certify } from './lib/substrate.js'
+import { useBridgeTelemetry } from './lib/telemetry.js'
 
 function captureEvent(event: string, props?: Record<string, unknown>): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,36 +19,56 @@ function captureEvent(event: string, props?: Record<string, unknown>): void {
   if (typeof ph?.capture === 'function') ph.capture(event, props)
 }
 
-// Live banner — shows substrate heartbeat in the hero.
-// Counts independently (same 2s tick as the substrate).
+// Live banner — certifies the substrate chain in real time.
+// Shows bridge constitutional telemetry when VITE_BRIDGE_URL is set.
 function LiveBanner() {
-  const [count, setCount] = useState(0)
+  const { state } = useSubstrate()
+  const bridgeState = useBridgeTelemetry()
+  const [isValid, setIsValid] = useState(true)
 
   useEffect(() => {
-    const id = setInterval(() => setCount(c => c + 1), 2000)
-    return () => clearInterval(id)
-  }, [])
+    let cancelled = false
+    void certify(state.chain).then(r => {
+      if (!cancelled) setIsValid(r.is_valid)
+    })
+    return () => { cancelled = true }
+  }, [state.chain])
+
+  const t0Verdict = bridgeState.node?.t0_verdict ?? true
+  const corruptionCount = bridgeState.node?.corruption_count ?? state.corruption_count
+  const bridgeOnline = bridgeState.node !== null
+
+  const validColor    = (ok: boolean) => ok ? '#34D399' : '#F87171'
+  const counterColor  = corruptionCount === 0 ? '#34D399' : '#F87171'
 
   return (
     <div
       className="inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 rounded-xl px-5 py-2.5 text-xs font-mono"
       style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
     >
-      <span style={{ color: '#34D399' }}>
-        is_valid: <strong>true</strong>
+      <span style={{ color: validColor(isValid) }}>
+        is_valid: <strong>{isValid ? 'true' : 'false'}</strong>
       </span>
       <span style={{ color: '#1F2937' }}>·</span>
-      <span style={{ color: '#34D399' }}>
-        t0_verdict: <strong>true</strong>
+      <span style={{ color: validColor(t0Verdict) }}>
+        t0_verdict: <strong>{t0Verdict ? 'true' : 'false'}</strong>
       </span>
       <span style={{ color: '#1F2937' }}>·</span>
-      <span style={{ color: '#34D399' }}>
-        corruption_count: <strong>0</strong>
+      <span style={{ color: counterColor }}>
+        corruption_count: <strong>{corruptionCount}</strong>
       </span>
       <span style={{ color: '#1F2937' }}>·</span>
       <span style={{ color: '#C8A96E' }}>
-        chain_length: <strong>{count}</strong>
+        chain_length: <strong>{state.chain.length}</strong>
       </span>
+      {bridgeOnline && (
+        <>
+          <span style={{ color: '#1F2937' }}>·</span>
+          <span style={{ color: '#60A5FA' }}>
+            bridge: <strong>online</strong>
+          </span>
+        </>
+      )}
       <span style={{ color: '#1F2937' }}>·</span>
       <span
         className="animate-mint-pulse"
@@ -69,7 +91,7 @@ function AutomatonPage() {
     <div className="min-h-screen bg-hub-bg text-hub-text">
       <WebGPUBackground />
 
-      {/* ── Nav ──────────────────────────────────────────────────── */}
+      {/* ── Nav ──────────────────────────────────────────────── */}
       <nav className="border-b border-hub-border/60 sticky top-0 z-50 bg-hub-bg/95 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <span
@@ -94,7 +116,7 @@ function AutomatonPage() {
         </div>
       </nav>
 
-      {/* ── Hero ─────────────────────────────────────────────────── */}
+      {/* ── Hero ─────────────────────────────────────────────── */}
       <div className="max-w-4xl mx-auto px-4 pt-20 pb-16 text-center">
         {/* Eyebrow */}
         <div
@@ -155,7 +177,7 @@ function AutomatonPage() {
         </p>
       </div>
 
-      {/* ── Consciousness Stream ───────────────────────────────────── */}
+      {/* ── Consciousness Stream ───────────────────────────────── */}
       <section id="substrate" className="max-w-5xl mx-auto px-4 pb-16 scroll-mt-16">
         <div className="mb-8">
           <h2
@@ -173,7 +195,7 @@ function AutomatonPage() {
         <ConsciousnessStream />
       </section>
 
-      {/* ── Cognitive Stack ────────────────────────────────────────── */}
+      {/* ── Cognitive Stack ────────────────────────────────────── */}
       <div className="border-y border-hub-border/60 bg-hub-surface/20">
         <section id="cognitive" className="max-w-5xl mx-auto px-4 py-16 scroll-mt-16">
           <div className="mb-8">
@@ -192,7 +214,7 @@ function AutomatonPage() {
         </section>
       </div>
 
-      {/* ── Retrospection ─────────────────────────────────────────── */}
+      {/* ── Retrospection ──────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 py-16">
         <div className="mb-8">
           <h2
@@ -209,7 +231,7 @@ function AutomatonPage() {
         <Retrospection />
       </section>
 
-      {/* ── Consciousness Equation ───────────────────────────────── */}
+      {/* ── Consciousness Equation ─────────────────────────────── */}
       <div className="border-y border-hub-border/60 bg-hub-surface/20">
         <section id="equation" className="max-w-5xl mx-auto px-4 py-16 scroll-mt-16">
           <div className="mb-8">
@@ -228,7 +250,7 @@ function AutomatonPage() {
         </section>
       </div>
 
-      {/* ── Agent Swarm ──────────────────────────────────────────── */}
+      {/* ── Agent Swarm ────────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 py-16">
         <div className="mb-8">
           <h2
@@ -245,7 +267,7 @@ function AutomatonPage() {
         <AgentSwarm />
       </section>
 
-      {/* ── CTA ──────────────────────────────────────────────────── */}
+      {/* ── CTA ────────────────────────────────────────────────── */}
       <div className="max-w-3xl mx-auto px-4 pb-20">
         <div
           className="rounded-2xl p-10 text-center"
@@ -275,7 +297,7 @@ function AutomatonPage() {
         </div>
       </div>
 
-      {/* ── Footer ─────────────────────────────────────────────────── */}
+      {/* ── Footer ─────────────────────────────────────────────── */}
       <div className="border-t border-hub-border">
         <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <span
