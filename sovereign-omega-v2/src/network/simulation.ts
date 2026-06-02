@@ -76,8 +76,8 @@ export function simulate(
         // Anti-equivocation violation — record and drop the offending message
         equivocations++
         dropped.push(msg)
-      /* c8 ignore next 3 -- queue.enqueue() only throws NetworkError; non-NetworkError path is structurally unreachable */
       } else {
+        /* c8 ignore next -- queue.enqueue() only throws NetworkError; non-NetworkError path is structurally unreachable */
         throw err
       }
     }

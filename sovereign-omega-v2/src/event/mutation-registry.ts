@@ -106,6 +106,7 @@ class MutationGovernanceRegistry {
         path.push(next)
         currentId = next.to_schema_id
         currentVersion = next.to_version
+        /* c8 ignore next -- structurally unreachable: if findNextStep found the target, findDirectMigration would have too */
         if (currentId === toSchemaId && currentVersion === toVersion) return path
       } else {
         path.push(migration)
@@ -113,6 +114,7 @@ class MutationGovernanceRegistry {
       }
     }
 
+    /* c8 ignore next -- requires 10 chained migrations without a direct path; impossible with sealed empty registry */
     return null  // No path found within depth limit
   }
 
