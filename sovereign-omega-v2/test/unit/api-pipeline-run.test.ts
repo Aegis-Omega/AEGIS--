@@ -133,12 +133,13 @@ describe('ConstitutionalPipeline.run — Arabic text (Tajweed + Abjad)', () => {
 
   it('enriches prompt with phonological context when Arabic has active rules', async () => {
     const pipeline = new ConstitutionalPipeline('test-key')
-    // noon + ya triggers IdghamWithGhunnah → activeRules.length > 0
-    await pipeline.run('نيل')  // contains noon + ya sequence (neen, ya, lam)
+    // نينب: noon+ya → IdghamWithGhunnah, noon+ba → Iqlab (2 distinct active rules)
+    // 2-element activeRules forces the sort comparator to execute (covers line 208)
+    await pipeline.run('نينب')
     const sendArgs = mocks.send.mock.calls[0]![0] as { messages: Array<{ content: string }> }
     const content = sendArgs.messages[0]!.content
     // The prompt should be enriched with phonological context
-    expect(content).toContain('نيل')
+    expect(content).toContain('نينب')
   })
 })
 
