@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CheckCircle, ExternalLink, Zap, Mail, Loader2 } from 'lucide-react'
-import { createGrantToken, type Plan } from '../lib/access.js'
+import { createGrantToken, verifyServerToken, storeAccess, type Plan, type GrantPayload } from '../lib/access.js'
 
 const TOOL_URLS: Record<string, string> = {
   'platform-picker':  import.meta.env.VITE_URL_PLATFORM_PICKER  ?? 'https://platform.aegisomega.com',
@@ -50,27 +50,40 @@ function ToolLink({ tool, token }: ToolLinkProps) {
 }
 
 function RestoreForm() {
-  const [email, setEmail] = useState('')
-  const [status, setStatus] = useState<'idle' | 'loading' | 'found' | 'notfound' | 'error'>('idle')
-  const [restoreUrl, setRestoreUrl] = useState('')
+  const [email, setEmail]               = useState('')
+  const [status, setStatus]             = useState<'idle' | 'loading' | 'found' | 'notfound' | 'error'>('idle')
+  const [restoredTools, setRestoredTools] = useState<string[]>([])
+  const [localToken, setLocalToken]     = useState('')
 
   const handleRestore = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.includes('@')) return
     setStatus('loading')
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/restore-access`, {
+      const res  = await fetch(`${SUPABASE_URL}/functions/v1/restore-access`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       })
-      const data = await res.json() as { found: boolean; restore_url?: string; plan?: string }
-      if (data.found && data.restore_url) {
-        setRestoreUrl(data.restore_url)
-        setStatus('found')
-      } else {
-        setStatus('notfound')
-      }
+      const data = await res.json() as { found: boolean; aegis_token?: string }
+
+      if (!data.found || !data.aegis_token) { setStatus('notfound'); return }
+
+      // Verify the server-issued ECDSA token before trusting the plan
+      const payload = await verifyServerToken(data.aegis_token)
+      if (!payload) { setStatus('error'); return }
+
+      // Create a legacy local token (same format AccessGate already understands)
+      const token = createGrantToken(payload.plan as Plan)
+
+      // Pre-store access for each tool so same-domain localStorage checks work too
+      payload.tools.forEach(tool => {
+        storeAccess(tool, { ...payload, sig: 'server' } as GrantPayload)
+      })
+
+      setRestoredTools(payload.tools)
+      setLocalToken(token)
+      setStatus('found')
     } catch {
       setStatus('error')
     }
@@ -78,17 +91,17 @@ function RestoreForm() {
 
   if (status === 'found') {
     return (
-      <div className="text-center">
-        <CheckCircle size={32} className="mx-auto mb-3" style={{ color: '#34D399' }} />
-        <p className="text-sm font-semibold mb-1" style={{ color: '#EDEAE3' }}>Purchase found</p>
-        <p className="text-xs mb-4" style={{ color: '#6B6E80' }}>Click below to restore your access.</p>
-        <a
-          href={restoreUrl}
-          className="inline-flex items-center gap-2 text-sm font-semibold py-2.5 px-5 rounded-xl transition-opacity hover:opacity-90"
-          style={{ background: '#6366F1', color: '#fff' }}
-        >
-          <Zap size={13} /> Restore access
-        </a>
+      <div>
+        <div className="text-center mb-4">
+          <CheckCircle size={32} className="mx-auto mb-3" style={{ color: '#34D399' }} />
+          <p className="text-sm font-semibold mb-1" style={{ color: '#EDEAE3' }}>Access restored</p>
+          <p className="text-xs" style={{ color: '#6B6E80' }}>Click a tool to open it.</p>
+        </div>
+        <div className="space-y-2">
+          {restoredTools.map(tool => (
+            <ToolLink key={tool} tool={tool} token={localToken} />
+          ))}
+        </div>
       </div>
     )
   }
@@ -127,19 +140,84 @@ function RestoreForm() {
   )
 }
 
+// Polls issue-token with exponential backoff: the ls-webhook may arrive slightly
+// after the LS redirect, so we retry on 404 before giving up.
+async function fetchTokenForOrder(
+  orderId: string,
+): Promise<{ plan: Plan; token: string } | null> {
+  const delays = [0, 1500, 3000, 5000, 8000]
+  for (const delay of delays) {
+    if (delay) await new Promise(r => setTimeout(r, delay))
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/issue-token`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ order_id: orderId }),
+      })
+      if (res.status === 404) continue
+      if (!res.ok) return null
+      const data    = await res.json() as { aegis_token?: string }
+      if (!data.aegis_token) return null
+      const payload = await verifyServerToken(data.aegis_token)
+      if (!payload) return null
+      const plan  = payload.plan as Plan
+      const token = createGrantToken(plan)
+      return { plan, token }
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
 export function SuccessPage() {
-  const [plan, setPlan] = useState<Plan | null>(null)
-  const [token, setToken] = useState<string | null>(null)
+  const [plan, setPlan]       = useState<Plan | null>(null)
+  const [token, setToken]     = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [failed, setFailed]   = useState(false)
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const p = params.get('plan') as Plan | null
-    if (p && ['single', 'starter', 'full'].includes(p)) {
-      setPlan(p)
-      setToken(createGrantToken(p))
-    }
+    const params  = new URLSearchParams(window.location.search)
+    const orderId = params.get('order_id')
+    const legacy  = params.get('plan') as Plan | null
     window.history.replaceState({}, '', window.location.pathname)
+
+    if (orderId) {
+      setLoading(true)
+      fetchTokenForOrder(orderId).then(result => {
+        if (result) { setPlan(result.plan); setToken(result.token) }
+        else setFailed(true)
+        setLoading(false)
+      })
+    } else if (legacy && ['single', 'starter', 'full'].includes(legacy)) {
+      setPlan(legacy)
+      setToken(createGrantToken(legacy))
+    }
   }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#08090C' }}>
+        <div className="text-center">
+          <Loader2 size={32} className="animate-spin mx-auto mb-4" style={{ color: '#6366F1' }} />
+          <p className="text-sm" style={{ color: '#6B6E80' }}>Confirming your purchase…</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (failed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#08090C' }}>
+        <div className="w-full max-w-sm text-center">
+          <p className="text-sm mb-4" style={{ color: '#EF4444' }}>
+            Couldn't confirm your order yet — use the restore form below.
+          </p>
+          <RestoreForm />
+        </div>
+      </div>
+    )
+  }
 
   if (!plan || !token) {
     return (

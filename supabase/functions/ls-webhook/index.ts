@@ -8,16 +8,18 @@ const LS_WEBHOOK_SECRET = Deno.env.get('LS_WEBHOOK_SECRET') ?? ''
 const LS_PLAN_MAP: Record<string, string> = JSON.parse(Deno.env.get('LS_PLAN_MAP') ?? '{}')
 
 async function verifySignature(secret: string, body: string, sig: string): Promise<boolean> {
+  const sigBytes = new Uint8Array(sig.match(/.{2}/g)?.map(b => parseInt(b, 16)) ?? [])
+  // Reject obviously wrong-length signatures before importing the key
+  if (sigBytes.length !== 32) return false
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['sign'],
+    ['verify'],
   )
-  const raw = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body))
-  const computed = Array.from(new Uint8Array(raw)).map(b => b.toString(16).padStart(2, '0')).join('')
-  return computed === sig
+  // crypto.subtle.verify is constant-time — prevents timing attacks on the secret
+  return crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(body))
 }
 
 Deno.serve(async (req) => {

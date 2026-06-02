@@ -4,8 +4,9 @@
 // row is a real self-observation: its layer, signal, tier, and the short hash
 // linking prev → entry (tamper-evident). New observations flow in at the top.
 
-import type { MetacognitiveEntry, MetacognitiveLayer } from '../lib/substrate.js'
+import type { MetacognitiveLayer } from '../lib/substrate.js'
 import { LAYER_META } from '../lib/substrate.js'
+import { useSubstrate } from '../lib/useSubstrate.js'
 
 const LAYER_COLOR: Record<MetacognitiveLayer, string> = {
   SENSATION:      '#64748B',
@@ -27,7 +28,8 @@ function short(hash: string): string {
   return hash.slice(0, 8)
 }
 
-export function ConsciousnessStream({ chain, activeLayer }: { chain: MetacognitiveEntry[]; activeLayer: MetacognitiveLayer | null }) {
+export function ConsciousnessStream() {
+  const { chain, activeLayer } = useSubstrate()
   const reversed = [...chain].reverse()
 
   return (

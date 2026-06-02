@@ -38,7 +38,7 @@ fn vs_main(@builtin(vertex_index) vi: u32) -> VertexOut {
 @group(0) @binding(2) var lambda_tex: texture_2d<f32>;
 @group(0) @binding(3) var<uniform> u: Uniforms;
 
-// ── Constants ──────────────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────────
 // Φ² = Φ + 1  ·  Φ - 1 = 1/Φ  ·  M = [[1,1],[1,0]]
 const PHI     : f32 = 1.61803398875;
 const INV_PHI : f32 = 0.61803398875;
@@ -77,7 +77,7 @@ fn fbm(p: vec2<f32>) -> f32 {
   return v;
 }
 
-// ── Φ-wave holographic interference ─────────────────────────────────────────────
+// ── Φ-wave holographic interference ──────────────────────────────────────────
 // Based on Φ² = Φ + 1 and Φ - 1 = 1/Φ frequency relationships.
 // σ drives resonance amplitude; λ drives phase drift.
 // Returns RGB with each channel carrying a different interference component.
@@ -127,7 +127,7 @@ fn stars(uv: vec2<f32>, density: f32, time: f32) -> vec3<f32> {
   return color * mag;
 }
 
-// ── Portal ───────────────────────────────────────────────────────────────────────────
+// ── Portal ────────────────────────────────────────────────────────────────────
 
 fn screen_dist(uv: vec2<f32>, center: vec2<f32>, inv_aspect: f32) -> f32 {
   let p = uv - center;
@@ -165,11 +165,13 @@ fn portal(uv: vec2<f32>, sigma: f32, lambda: f32, time: f32, inv_aspect: f32) ->
   let b_ch = (mb + inner + outer + arcs * 0.5) * mask;
 
   // Interior: Φ-interference holographic texture replaces flat teal fill
+  // st scaled to produce ~8 fringes across the portal diameter
   let st_portal  = p * (9.5 / ring_r);
   let phi        = phi_field(st_portal, sigma, lambda, time);
-  let void_depth = smoothstep(ring_r * 0.52, 0.0, d);
+  let void_depth = smoothstep(ring_r * 0.52, 0.0, d);  // stronger at center
   let sigma_n    = (sigma + 1.0) * 0.5;
   let void_base  = pow(max(sigma_n, 0.0), 1.4);
+  // Blend teal base with holographic interference fringes
   let teal       = vec3<f32>(0.07, 0.82, 0.93) * void_base * 1.2;
   let holo_int   = phi * void_base * 0.65;
   let interior   = (teal + holo_int) * void_depth;
@@ -231,13 +233,14 @@ fn nebula(uv: vec2<f32>, sigma: f32, lambda: f32, time: f32) -> vec3<f32> {
   // Φ-field modulates nebula density → crystalline interference substructure
   let st_neb  = uv * 9.5 - 4.75;
   let phi     = phi_field(st_neb, sigma, lambda, time);
-  let phi_mod = (phi.r * 0.4 + phi.g * 0.3 + phi.b * 0.3);
+  let phi_mod = (phi.r * 0.4 + phi.g * 0.3 + phi.b * 0.3);  // scalar modulator
 
   let density = pow(max(0.0, c2 * 0.6 + c3 * 0.4 - 0.15 + phi_mod * 0.08), 1.7) * lam;
   let wisps   = pow(max(0.0, c3 - 0.30 + phi_mod * 0.05), 2.1) * lam;
 
   let violet_col = vec3<f32>(0.45 + breathe * 0.15, 0.05 + breathe * 0.04, 0.85 - breathe * 0.08);
   let wisp_col   = vec3<f32>(0.90, 0.25 + breathe * 0.10, 0.65);
+  // Hint of phi tint in the nebula colour (Φ-iridescence)
   let phi_tint   = phi * 0.12 * lam;
   return violet_col * density * 1.3 + wisp_col * wisps * 0.9 + phi_tint;
 }
@@ -327,35 +330,49 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
   let rho    = textureLoad(rho_tex,    coord, 0).r;
   let lambda = textureLoad(lambda_tex, coord, 0).r;
 
+  // ── Background ───────────────────────────────────────────────────────────
   let bg = vec3<f32>(0.004, 0.008, 0.026);
 
+  // ── Stars: 3 density layers with diffraction spikes ─────────────────────
   let star_color = stars(uv, 1.0,    time)        * 1.00
                  + stars(uv * 1.618, 0.65, time * 0.71) * 0.65
                  + stars(uv * 2.414, 0.35, time * 0.53) * 0.35;
 
+  // ── Portal: chroma rings + electricity + Φ-interference interior ─────────
   let portal_color = portal(uv, sigma, lambda, time, inv_aspect);
 
+  // ── God rays ──────────────────────────────────────────────────────────────
   let ray_color = vec3<f32>(0.28, 0.76, 0.98) * god_rays(uv, sigma, time, inv_aspect) * 1.5;
 
+  // ── Anamorphic lens flare ─────────────────────────────────────────────────
   let flare_color = lens_flare(uv, sigma, time, inv_aspect);
 
+  // ── Aurora curtains ───────────────────────────────────────────────────────
   let aurora_color = aurora(uv, lambda, time);
 
+  // ── fBm nebula with Φ crystalline substructure ────────────────────────────
   let nebula_color = nebula(uv, sigma, lambda, time);
 
+  // ── Two-armed galaxy ─────────────────────────────────────────────────────
   let galaxy_col = vec3<f32>(0.55, 0.78, 1.00) * galaxy(uv, lambda, time, inv_aspect) * 0.80;
 
+  // ── Gold ρ particle streams ───────────────────────────────────────────────
   let gold_bright = vec3<f32>(1.00, 0.72, 0.08) * pow(rho, 1.4) * 3.2;
   let gold_soft   = vec3<f32>(0.85, 0.52, 0.05) * pow(rho, 0.6) * 0.42;
 
+  // ── Iridescent σ zero-crossing rim ───────────────────────────────────────
   let iridescent = vec3<f32>(0.30, 0.98, 0.92) * exp(-sigma * sigma * 6.0) * 0.55;
 
-  // Φ-field global holographic shimmer (faint screen-wide overlay)
-  let st_global  = (uv * 2.0 - 1.0) * 9.5;
-  let phi_overlay = phi_field(st_global, sigma, lambda, time) * 0.028;
+  // ── Φ-field global holographic shimmer (faint screen-wide overlay) ────────
+  // Gives the whole scene a subtle interference-fringe holographic quality.
+  let st_global = (uv * 2.0 - 1.0) * 9.5;
+  let phi_global = phi_field(st_global, sigma, lambda, time);
+  let phi_overlay = phi_global * 0.028;  // very faint — structural, not dominant
 
+  // ── 8-tap bloom ───────────────────────────────────────────────────────────
   let bloom_color = bloom(uv, dims) * 0.85;
 
+  // ── Mouse cursor glow ────────────────────────────────────────────────────
   var cursor_glow = vec3<f32>(0.0);
   if (u.mouse_x >= 0.0) {
     let hover     = u.mouse_y < 0.0;
@@ -368,19 +385,24 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     cursor_glow   = vec3<f32>(1.00, 0.88, 0.55) * (inner + outer);
   }
 
+  // ── Aspect-correct vignette ───────────────────────────────────────────────
   let vig_p    = vec2<f32>((uv.x - 0.5) * inv_aspect, uv.y - 0.5);
   let vignette = 1.0 - dot(vig_p, vig_p) * 1.65;
 
+  // ── HDR composite ─────────────────────────────────────────────────────────
   let hdr = (bg + star_color + portal_color + ray_color + flare_color
              + aurora_color + nebula_color + galaxy_col
              + gold_bright + gold_soft + iridescent
              + phi_overlay + bloom_color + cursor_glow)
             * clamp(vignette, 0.08, 1.0);
 
+  // Extended Reinhard — channel-independent, preserves saturation
   let lum      = dot(hdr, vec3<f32>(0.2126, 0.7152, 0.0722));
   let mapped   = hdr * (1.0 + lum * 0.18) / (1.0 + hdr);
+  // Saturation boost
   let gray      = vec3<f32>(dot(mapped, vec3<f32>(0.333)));
   let saturated = mix(gray, mapped, 1.18);
-  let gamma    = pow(clamp(saturated, vec3<f32>(0.0), vec3<f32>(1.0)), vec3<f32>(1.0 / 2.2));
+  // Gamma 2.2
+  let gamma = pow(clamp(saturated, vec3<f32>(0.0), vec3<f32>(1.0)), vec3<f32>(1.0 / 2.2));
   return vec4<f32>(gamma, 1.0);
 }

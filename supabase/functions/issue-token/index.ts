@@ -1,16 +1,17 @@
-// Email → purchase lookup → server-issued grant token
-// Deploy: supabase functions deploy restore-access --no-verify-jwt
+// Order-verified token issuer — closes the post-purchase client-side minting gap.
+// Deploy: supabase functions deploy issue-token --no-verify-jwt
 // Env vars: GRANT_PRIVATE_KEY_JWK, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+//
+// LS product redirect URL must be set to:
+//   https://aegisomega.com/success?order_id={order_id}
+// The {order_id} template variable is replaced by Lemon Squeezy at checkout.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { CORS } from '../_shared/cors.ts'
 import { issueGrantToken } from '../_shared/jwt.ts'
 
-const PLAN_RANK: Record<string, number> = { single: 1, starter: 2, full: 3 }
-
-// In-memory rate limit: max 5 lookups per IP per 15 minutes
-// Resets on cold start; sufficient to deter automated enumeration.
+// 10 requests per IP per 15 minutes — enough for retries, blocks brute-force
 const RATE_WINDOW_MS = 15 * 60 * 1000
-const RATE_LIMIT     = 5
+const RATE_LIMIT     = 10
 const ipCounters     = new Map<string, { count: number; reset: number }>()
 
 function checkRateLimit(ip: string): boolean {
@@ -39,16 +40,16 @@ Deno.serve(async (req) => {
     )
   }
 
-  let email: string | undefined
+  let order_id: string | undefined
   try {
-    const body = await req.json() as { email?: string }
-    email = body.email
+    const body = await req.json() as { order_id?: string }
+    order_id = String(body.order_id ?? '').trim()
   } catch {
-    return new Response(JSON.stringify({ found: false }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ error: 'Invalid request body' }), { status: 400, headers: CORS })
   }
 
-  if (!email || !email.includes('@')) {
-    return new Response(JSON.stringify({ found: false }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+  if (!order_id) {
+    return new Response(JSON.stringify({ error: 'order_id required' }), { status: 400, headers: CORS })
   }
 
   const supabase = createClient(
@@ -59,21 +60,26 @@ Deno.serve(async (req) => {
   const { data, error } = await supabase
     .from('purchases')
     .select('plan')
-    .eq('customer_email', email.toLowerCase().trim())
+    .eq('ls_order_id', order_id)
+    .maybeSingle()
 
-  if (error || !data?.length) {
-    return new Response(JSON.stringify({ found: false }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+  if (error) {
+    console.error('DB lookup failed:', error)
+    return new Response(JSON.stringify({ error: 'DB error' }), { status: 500, headers: CORS })
   }
 
-  const bestPlan = data.reduce((best, row) => {
-    return (PLAN_RANK[row.plan] ?? 0) > (PLAN_RANK[best] ?? 0) ? row.plan : best
-  }, 'single')
+  if (!data) {
+    // 404 means the ls-webhook hasn't delivered yet — client should retry with backoff
+    return new Response(
+      JSON.stringify({ error: 'Order not found — webhook may still be in transit' }),
+      { status: 404, headers: { ...CORS, 'Content-Type': 'application/json' } },
+    )
+  }
 
-  // Issue a server-signed token so the client never needs to trust a plan value from a URL
-  const aegis_token = await issueGrantToken(bestPlan)
+  const aegis_token = await issueGrantToken(data.plan)
 
   return new Response(
-    JSON.stringify({ found: true, aegis_token }),
+    JSON.stringify({ aegis_token }),
     { headers: { ...CORS, 'Content-Type': 'application/json' } },
   )
 })
