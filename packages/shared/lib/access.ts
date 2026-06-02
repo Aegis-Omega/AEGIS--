@@ -21,8 +21,8 @@ export interface ServerGrantPayload {
 // Public keys are safe to embed; replace both if you rotate the key pair.
 const GRANT_PUBLIC_JWK = {
   key_ops: ['verify'], ext: true, kty: 'EC', crv: 'P-256',
-  x: 'gOiQCOQ9uqrWGjLWtHy-Rz7_iy-upssUQIChM-594mU',
-  y: '8xzK_vJumoNMw5ytMaGijU83XbH5Bl81RUrPokuLt-E',
+  x: 'DJ76nybgj7ZupVa17biVEgji2M2SbgyAQyqIDl-zNz0',
+  y: 'tZ9Gp96mqUVAlU3xL-YKYh1Es0rYd0joF2t_2Q_BSP8',
 }
 
 // Verify a server-issued token (ECDSA P-256, format: <payloadB64>.<sigB64>)
