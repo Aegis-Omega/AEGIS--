@@ -10,6 +10,7 @@ import { Retrospection } from './components/Retrospection.js'
 import { ConsciousnessEquation } from './components/ConsciousnessEquation.js'
 import { AgentSwarm } from './components/AgentSwarm.js'
 import { WebGPUBackground } from './components/WebGPUBackground.js'
+import { useSubstrate } from './lib/useSubstrate.js'
 
 function captureEvent(event: string, props?: Record<string, unknown>): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,6 +59,7 @@ function LiveBanner() {
 
 function AutomatonPage() {
   const trialStartRef = useRef(Date.now())
+  const substrate = useSubstrate()
 
   useEffect(() => {
     captureEvent('automaton_viewed', { source: document.referrer || 'direct' })
@@ -166,7 +168,7 @@ function AutomatonPage() {
             to <span style={{ color: '#F87171' }}>false</span>. This is the mechanism itself — not a mock.
           </p>
         </div>
-        <ConsciousnessStream />
+        <ConsciousnessStream chain={substrate.chain} activeLayer={substrate.activeLayer} />
       </section>
 
       {/* ── Cognitive Stack ────────────────────────────────────── */}
@@ -184,7 +186,7 @@ function AutomatonPage() {
               The active layer pulses in real time with the substrate tick.
             </p>
           </div>
-          <CognitiveStack />
+          <CognitiveStack activeLayer={substrate.activeLayer} />
         </section>
       </div>
 
@@ -202,7 +204,7 @@ function AutomatonPage() {
             failed, logging them to the metacognitive stream, and never repeating them.
           </p>
         </div>
-        <Retrospection />
+        <Retrospection certificate={substrate.certificate} />
       </section>
 
       {/* ── Consciousness Equation ─────────────────────────────── */}
@@ -220,7 +222,11 @@ function AutomatonPage() {
               computed live from the hash chain running in this browser tab.
             </p>
           </div>
-          <ConsciousnessEquation />
+          <ConsciousnessEquation
+            certificate={substrate.certificate}
+            totalObserved={substrate.totalObserved}
+            bridge={substrate.bridge}
+          />
         </section>
       </div>
 
