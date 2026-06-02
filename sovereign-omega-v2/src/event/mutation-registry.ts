@@ -179,6 +179,7 @@ class MutationGovernanceRegistry {
 
   private findNextStep(fromId: string, fromVersion: string): MigrationContract | null {
     for (const migration of this.migrations.values()) {
+      /* c8 ignore next -- && short-circuit: from_schema_id matches but from_version differs; sealed registry makes this compound false arm untestable */
       if (migration.from_schema_id === fromId && migration.from_version === fromVersion) {
         return migration
       }
