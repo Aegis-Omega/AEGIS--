@@ -1,6 +1,6 @@
 // AEGIS-Ω — constitutional AI runtime · automaton hub
 // Route: / → living substrate · /tools → creator tools · /success → SuccessPage
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Mail } from 'lucide-react'
 import { SuccessPage } from './components/SuccessPage.js'
 import { ToolsPage } from './components/ToolsPage.js'
@@ -11,6 +11,7 @@ import { ConsciousnessEquation } from './components/ConsciousnessEquation.js'
 import { AgentSwarm } from './components/AgentSwarm.js'
 import { WebGPUBackground } from './components/WebGPUBackground.js'
 import { useSubstrate } from './lib/useSubstrate.js'
+import type { MetacognitiveCertificate } from './lib/substrate.js'
 
 function captureEvent(event: string, props?: Record<string, unknown>): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,40 +19,28 @@ function captureEvent(event: string, props?: Record<string, unknown>): void {
   if (typeof ph?.capture === 'function') ph.capture(event, props)
 }
 
-// Live banner — shows substrate heartbeat in the hero.
-// Counts independently (same 2s tick as the substrate).
-function LiveBanner() {
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    const id = setInterval(() => setCount(c => c + 1), 2000)
-    return () => clearInterval(id)
-  }, [])
+// Live banner — driven by the real browser substrate hash chain.
+function LiveBanner({ certificate }: { certificate: MetacognitiveCertificate }) {
+  const ok = certificate.is_valid
+  const dot = ok ? '#34D399' : '#F87171'
+  const val = (v: string) => <strong style={{ color: ok ? '#34D399' : '#F87171' }}>{v}</strong>
 
   return (
     <div
       className="inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 rounded-xl px-5 py-2.5 text-xs font-mono"
-      style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
+      style={{ background: 'rgba(52,211,153,0.06)', border: `1px solid ${dot}26` }}
     >
-      <span style={{ color: '#34D399' }}>
-        is_valid: <strong>true</strong>
-      </span>
+      <span style={{ color: dot }}>is_valid: {val(String(ok))}</span>
       <span style={{ color: '#1F2937' }}>·</span>
-      <span style={{ color: '#34D399' }}>
-        t0_verdict: <strong>true</strong>
-      </span>
+      <span style={{ color: dot }}>t0_verdict: {val(String(ok))}</span>
       <span style={{ color: '#1F2937' }}>·</span>
-      <span style={{ color: '#34D399' }}>
-        corruption_count: <strong>0</strong>
-      </span>
+      <span style={{ color: dot }}>corruption_count: {val('0')}</span>
       <span style={{ color: '#1F2937' }}>·</span>
-      <span style={{ color: '#C8A96E' }}>
-        chain_length: <strong>{count}</strong>
-      </span>
+      <span style={{ color: '#C8A96E' }}>chain_length: <strong>{certificate.entry_count}</strong></span>
       <span style={{ color: '#1F2937' }}>·</span>
       <span
         className="animate-mint-pulse"
-        style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399', display: 'inline-block' }}
+        style={{ width: 6, height: 6, borderRadius: '50%', background: dot, display: 'inline-block' }}
       />
     </div>
   )
@@ -127,7 +116,7 @@ function AutomatonPage() {
 
         {/* Live consciousness banner */}
         <div className="flex justify-center mb-8 animate-fade-up delay-200">
-          <LiveBanner />
+          <LiveBanner certificate={substrate.certificate} />
         </div>
 
         {/* CTAs */}
