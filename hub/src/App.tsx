@@ -10,6 +10,28 @@ import { Retrospection } from './components/Retrospection.js'
 import { ConsciousnessEquation } from './components/ConsciousnessEquation.js'
 import { AgentSwarm } from './components/AgentSwarm.js'
 import { WebGPUBackground } from './components/WebGPUBackground.js'
+import { useSubstrate, certify } from './lib/substrate.js'
+import { useBridgeTelemetry } from './lib/telemetry.js'
+import { gpuBus, type GPUFieldSnapshot } from './lib/gpuBus.js'
+
+// Live GPU field values polled from the WebGPU bus every 200ms.
+// Shows nothing until first GPU readback (frame > 0).
+function FieldDisplay() {
+  const [snap, setSnap] = useState<GPUFieldSnapshot>({ sigma: 0, rho: 0, lambda: 0, frame: 0 })
+
+  useEffect(() => {
+    const id = setInterval(() => setSnap({ ...gpuBus.snapshot }), 200)
+    return () => clearInterval(id)
+  }, [])
+
+  if (snap.frame === 0) return null
+
+  return (
+    <p className="text-xs font-mono animate-fade-up" style={{ color: '#2D2D35' }}>
+      σ={snap.sigma.toFixed(3)}&nbsp;&nbsp;ρ={snap.rho.toFixed(3)}&nbsp;&nbsp;λ={snap.lambda.toFixed(3)}&nbsp;&nbsp;{snap.frame.toLocaleString()} frames
+    </p>
+  )
+}
 
 function captureEvent(event: string, props?: Record<string, unknown>): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,36 +39,56 @@ function captureEvent(event: string, props?: Record<string, unknown>): void {
   if (typeof ph?.capture === 'function') ph.capture(event, props)
 }
 
-// Live banner — shows substrate heartbeat in the hero.
-// Counts independently (same 2s tick as the substrate).
+// Live banner — certifies the substrate chain in real time.
+// Shows bridge constitutional telemetry when VITE_BRIDGE_URL is set.
 function LiveBanner() {
-  const [count, setCount] = useState(0)
+  const { state } = useSubstrate()
+  const bridgeState = useBridgeTelemetry()
+  const [isValid, setIsValid] = useState(true)
 
   useEffect(() => {
-    const id = setInterval(() => setCount(c => c + 1), 2000)
-    return () => clearInterval(id)
-  }, [])
+    let cancelled = false
+    void certify(state.chain).then(r => {
+      if (!cancelled) setIsValid(r.is_valid)
+    })
+    return () => { cancelled = true }
+  }, [state.chain])
+
+  const t0Verdict = bridgeState.node?.t0_verdict ?? true
+  const corruptionCount = bridgeState.node?.corruption_count ?? state.corruption_count
+  const bridgeOnline = bridgeState.node !== null
+
+  const validColor    = (ok: boolean) => ok ? '#34D399' : '#F87171'
+  const counterColor  = corruptionCount === 0 ? '#34D399' : '#F87171'
 
   return (
     <div
       className="inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 rounded-xl px-5 py-2.5 text-xs font-mono"
       style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
     >
-      <span style={{ color: '#34D399' }}>
-        is_valid: <strong>true</strong>
+      <span style={{ color: validColor(isValid) }}>
+        is_valid: <strong>{isValid ? 'true' : 'false'}</strong>
       </span>
       <span style={{ color: '#1F2937' }}>·</span>
-      <span style={{ color: '#34D399' }}>
-        t0_verdict: <strong>true</strong>
+      <span style={{ color: validColor(t0Verdict) }}>
+        t0_verdict: <strong>{t0Verdict ? 'true' : 'false'}</strong>
       </span>
       <span style={{ color: '#1F2937' }}>·</span>
-      <span style={{ color: '#34D399' }}>
-        corruption_count: <strong>0</strong>
+      <span style={{ color: counterColor }}>
+        corruption_count: <strong>{corruptionCount}</strong>
       </span>
       <span style={{ color: '#1F2937' }}>·</span>
       <span style={{ color: '#C8A96E' }}>
-        chain_length: <strong>{count}</strong>
+        chain_length: <strong>{state.chain.length}</strong>
       </span>
+      {bridgeOnline && (
+        <>
+          <span style={{ color: '#1F2937' }}>·</span>
+          <span style={{ color: '#60A5FA' }}>
+            bridge: <strong>online</strong>
+          </span>
+        </>
+      )}
       <span style={{ color: '#1F2937' }}>·</span>
       <span
         className="animate-mint-pulse"
@@ -122,6 +164,11 @@ function AutomatonPage() {
           Metacognitive self-awareness, retrospective thinking, and BFT consensus —
           running as live substrate in your browser, hash-chained and tamper-evident.
         </p>
+
+        <p className="text-xs animate-fade-up delay-150" style={{ color: '#374151' }}>
+          Click anywhere to disturb the σ field · scroll to deepen λ memory
+        </p>
+        <FieldDisplay />
 
         {/* Live consciousness banner */}
         <div className="flex justify-center mb-8 animate-fade-up delay-200">
