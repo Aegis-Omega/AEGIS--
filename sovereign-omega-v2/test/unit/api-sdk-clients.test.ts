@@ -245,6 +245,55 @@ describe('ConstitutionalClaudeClient.stream', () => {
     expect(chunks.some(c => c.delta === 'Hello')).toBe(true)
     expect(chunks.some(c => c.is_final)).toBe(true)
   })
+
+  it('merges caller system with constitutional prompt in stream', async () => {
+    async function* gen() { yield { type: 'message_stop' } }
+    mocks.messagesCreate.mockResolvedValue(gen())
+    const client = new ConstitutionalClaudeClient('test-key')
+    for await (const _ of client.stream({
+      messages: [{ role: 'user', content: 'q' }],
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 100,
+      system: 'Custom context',
+    })) { /* drain */ }
+    const args = mocks.messagesCreate.mock.calls[0]![0] as { system?: string }
+    expect(args.system).toContain('Custom context')
+    expect(args.system).toContain('CONSTITUTIONAL INVARIANTS')
+  })
+
+  it('omits system entirely when use_constitutional_prompt=false and no system provided', async () => {
+    async function* gen() { yield { type: 'message_stop' } }
+    mocks.messagesCreate.mockResolvedValue(gen())
+    const client = new ConstitutionalClaudeClient('test-key')
+    for await (const _ of client.stream({
+      messages: [{ role: 'user', content: 'q' }],
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 100,
+      use_constitutional_prompt: false,
+    })) { /* drain */ }
+    const args = mocks.messagesCreate.mock.calls[0]![0] as { system?: string }
+    expect(args.system).toBeUndefined()
+  })
+
+  it('skips usage chunk when message_delta has no usage field', async () => {
+    const events = [
+      { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hi' } },
+      { type: 'message_delta' },
+      { type: 'message_stop' },
+    ]
+    async function* gen() { for (const e of events) yield e }
+    mocks.messagesCreate.mockResolvedValue(gen())
+    const client = new ConstitutionalClaudeClient('test-key')
+    const chunks: Array<{ delta: string; is_final: boolean; usage?: unknown }> = []
+    for await (const c of client.stream({
+      messages: [{ role: 'user', content: 'q' }],
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 100,
+    })) { chunks.push(c) }
+    expect(chunks.some(c => c.delta === 'Hi')).toBe(true)
+    expect(chunks.some(c => c.is_final)).toBe(true)
+    expect(chunks.every(c => c.usage === undefined)).toBe(true)
+  })
 })
 
 // ── MANAGED_AGENT_SCHEMA_VERSION ──────────────────────────
@@ -343,5 +392,16 @@ describe('ManagedAgentClient', () => {
     expect(out).toHaveLength(1)
     expect(out[0]!.type).toBe('status')
     expect(out[0]!.content).toBe('Stream not available')
+  })
+
+  it('streamSession stringifies non-string event content', async () => {
+    const events = [{ type: 'tool_result', content: { data: 'raw' } }]
+    async function* gen() { for (const e of events) yield e }
+    mocks.sessionsStream.mockReturnValue(gen())
+    const client = new ManagedAgentClient({ apiKey: 'test-key' })
+    const out: Array<{ type: string; content: string }> = []
+    for await (const ev of client.streamSession('sess-abc')) out.push(ev)
+    expect(out).toHaveLength(1)
+    expect(out[0]!.content).toBe(JSON.stringify({ type: 'tool_result', content: { data: 'raw' } }))
   })
 })
