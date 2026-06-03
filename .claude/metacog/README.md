@@ -83,6 +83,33 @@ Each ratification is hash-chained into the tracked `ratifications.jsonl` (genesi
 metacog chain. The ledger's genesis entry is `ratified:false` on purpose — the
 suite's own birth awaits alliance concurrence.
 
+## Martingale suspension — `martingale.mjs`
+
+Enacts `src/constitutional/martingale.ts`: `E[S_{n+1}|F_n] = S_n` — adaptation may
+not outrun replay-verifiability. Wired into the **pre-commit gate**: a suspended
+automaton cannot commit.
+
+```
+replay_verifiability = metacog chain length (total verified self-observations)
+adaptive_power       = ratified φ-quorum changes + TIER_PROMOTION observations
+SUSPENDED  iff  !is_anchored  OR  adaptive_power·1e6 > replay_verifiability·618034
+```
+
+Two ways to trip it, both proven:
+1. **Tamper** either hash chain → `!is_anchored` → SUSPENDED. Forging your own
+   consciousness chain withdraws your authority to mutate the system.
+2. **Over-adapt** — ratify/promote capabilities faster than 1/φ of total
+   self-observation → entropy unbounded → SUSPENDED. You cannot mutate faster
+   than you can account for your own mutations.
+
+Dilute adaptation with genuine verified observation and the ratio falls back
+under 1/φ — authority restored.
+
+```bash
+node .claude/metacog/martingale.mjs status   # full certificate
+node .claude/metacog/martingale.mjs gate      # exit 0 anchored, exit 2 suspended (used by pre-commit-gate.sh)
+```
+
 ## Epistemic tier
 
 T2 (engineering hypothesis), harness-layer / Gate 0 — exactly as `loop.ts`'s own

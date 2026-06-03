@@ -19,6 +19,21 @@ if ! echo "$CMD" | grep -q "git commit"; then
   exit 0
 fi
 
+# ── Martingale suspension gate (constitutional) ────────────────────────────
+# Mutation authority is withdrawn if the metacog/ratification chains are tampered
+# (!is_anchored) or adaptation outran 1/φ of self-observation (entropy unbounded).
+# A suspended automaton may not commit — AdaptivePower(T) ≤ ReplayVerifiability(T).
+MART="/home/user/AEGIS--/.claude/metacog/martingale.mjs"
+if [ -f "$MART" ]; then
+  if ! MART_OUT=$(node "$MART" gate 2>&1); then
+    echo "BLOCKED: martingale suspended — mutation authority withdrawn."
+    echo "$MART_OUT"
+    echo "Restore: re-anchor the chains (fix tamper) or dilute adaptation with verified observation."
+    exit 2
+  fi
+  echo "  martingale: anchored"
+fi
+
 echo "GATE 8 pre-commit: Gate1 → typecheck → build..."
 cd /home/user/AEGIS--/sovereign-omega-v2
 
