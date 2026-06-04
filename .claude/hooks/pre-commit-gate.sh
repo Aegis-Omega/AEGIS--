@@ -34,6 +34,20 @@ if [ -f "$MART" ]; then
   echo "  martingale: anchored"
 fi
 
+# ── Replay-verification gate (constitutional) ──────────────────────────────
+# REPLAY SOVEREIGNTY: replay(genesis, events) must reproduce the chain's topology
+# hash, byte-identical across runs. A chain that does not replay deterministically
+# may not commit — topology non-determinism is a T0_ABORT condition.
+REPLAY="/home/user/AEGIS--/.claude/metacog/replay.mjs"
+if [ -f "$REPLAY" ]; then
+  if ! REPLAY_OUT=$(node "$REPLAY" gate 2>&1); then
+    echo "BLOCKED: replay divergence — the chain does not replay from genesis."
+    echo "$REPLAY_OUT"
+    exit 2
+  fi
+  echo "  replay: verified"
+fi
+
 echo "GATE 8 pre-commit: Gate1 → typecheck → build..."
 cd /home/user/AEGIS--/sovereign-omega-v2
 
