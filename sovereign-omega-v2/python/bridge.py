@@ -21,11 +21,13 @@ from hardware_config import detect_hardware
 from constitutional_identity import CONSTITUTIONAL_SYSTEM_FULL, CONSTITUTIONAL_SYSTEM_COMPACT
 from tgcs_afse import TGCSController, AFSEController
 from ledger_persist import save_checkpoint, load_checkpoint, checkpoint_exists, CheckpointError
+from source_attribution import SourceAttributor, TelemetrySample
 
 matrix = CoreMatrix()
 _hw = detect_hardware()
 _tgcs = TGCSController(hw_profile=_hw)
 _afse = AFSEController()
+_attributor = SourceAttributor()
 last_ack_sequence = -1
 _lock = threading.Lock()
 _last_autosave_epoch = -1
@@ -383,6 +385,17 @@ class BridgeHandler(BaseHTTPRequestHandler):
             telemetry['tgcs_variance'] = tgcs_snap.run_variance
             telemetry['afse_r2'] = _afse.get_r2()
             telemetry['holonic_scaling_score'] = _afse.holonic_scaling_score()
+            # ICA/NMF source attribution — observational, no write-back (T2)
+            # drift_index proxy: VCG drift rises when OS background noise perturbs timing
+            _attributor.push(TelemetrySample(
+                sequence=seq,
+                afse_score=float(_afse.holonic_scaling_score()),
+                tgcs_stretch_ms=float(tgcs_snap.cycle_stretch_ms),
+                pgcs_compressed_bytes=int(abs(float(telemetry.get('drift_index', 0.0))) * 1000),
+            ))
+            attribution = _attributor.attribute()
+            if attribution is not None:
+                telemetry['source_attribution'] = attribution.to_dict()
             self._respond(200, telemetry)
 
         elif self.path == '/resonance':
