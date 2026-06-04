@@ -183,7 +183,7 @@ _SKILL_DEFINITIONS: list[tuple] = [
         ["governance", "typescript", "constitutional"],
         ["epistemic_tier_classification"],
         ["sovereign-omega-v2/docs/SOVEREIGN_RUNTIME_HANDOFF_v1.0.md",
-         "sovereign-omega-v2/docs/ONTOLOGY.md" if False else "docs/ONTOLOGY.md"],
+         "docs/ONTOLOGY.md"],
         "admitAbstraction() blocks T4/T5 constructs. Every abstraction must reduce "
         "to six canonical primitives: Event, Transition, Ownership, Entropy, Transport, Verification.",
     ),
