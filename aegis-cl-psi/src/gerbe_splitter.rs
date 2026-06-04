@@ -121,4 +121,67 @@ mod tests {
         let mean = splitter.weighted_mean(&branches);
         assert_eq!(mean, vec![1.0, 2.0]);
     }
+
+    // 4. uniform(3) has 3 equal weights summing to ~1
+    #[test]
+    fn uniform_weights_are_equal() {
+        let splitter = GerbeSplitter::uniform(3);
+        assert_eq!(splitter.ccil_weights.len(), 3);
+        let expected = 1.0f32 / 3.0;
+        for &w in &splitter.ccil_weights {
+            assert!((w - expected).abs() < 1e-6);
+        }
+    }
+
+    // 5. single branch always returns index 0
+    #[test]
+    fn single_branch_selects_index_0() {
+        let splitter = GerbeSplitter::new(vec![1.0]);
+        let result = splitter.split(&[vec![7.0f32, 8.0]], &[1.0]).unwrap();
+        assert_eq!(result.selected_branch_idx, 0);
+        assert_eq!(result.resolved_vector, vec![7.0, 8.0]);
+    }
+
+    // 6. split_method is always "ccil_weighted_lyapunov"
+    #[test]
+    fn split_method_field_value() {
+        let splitter = GerbeSplitter::uniform(2);
+        let result = splitter.split(&[vec![1.0f32], vec![2.0]], &[1.0, 1.0]).unwrap();
+        assert_eq!(result.split_method, "ccil_weighted_lyapunov");
+    }
+
+    // 7. constitutional_score = weight * margin for winning branch
+    #[test]
+    fn constitutional_score_correct() {
+        let splitter = GerbeSplitter::new(vec![0.4, 0.6]);
+        let result = splitter.split(&[vec![1.0f32], vec![2.0]], &[2.0, 3.0]).unwrap();
+        // scores: [0.4*2=0.8, 0.6*3=1.8] → branch 1 wins, score=1.8
+        assert_eq!(result.selected_branch_idx, 1);
+        assert!((result.constitutional_score - 1.8f32).abs() < 1e-5);
+    }
+
+    // 8. weighted_mean on empty branches returns empty vec
+    #[test]
+    fn weighted_mean_empty_branches() {
+        let splitter = GerbeSplitter::uniform(0);
+        let mean = splitter.weighted_mean(&[]);
+        assert!(mean.is_empty());
+    }
+
+    // 9. weighted_mean three equal-weight branches
+    #[test]
+    fn weighted_mean_three_branches() {
+        let splitter = GerbeSplitter::uniform(3);
+        let branches = vec![vec![0.0f32], vec![3.0], vec![6.0]];
+        let mean = splitter.weighted_mean(&branches);
+        assert!((mean[0] - 3.0f32).abs() < 1e-5);
+    }
+
+    // 10. zero margin means zero score (branch with nonzero margin wins)
+    #[test]
+    fn zero_margin_loses_to_nonzero() {
+        let splitter = GerbeSplitter::new(vec![0.5, 0.5]);
+        let result = splitter.split(&[vec![1.0f32], vec![2.0]], &[0.0, 1.0]).unwrap();
+        assert_eq!(result.selected_branch_idx, 1);
+    }
 }

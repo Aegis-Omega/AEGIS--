@@ -137,4 +137,69 @@ mod tests {
         sched.tick(&ObstructionClass::NoGlobalComparison, false, false, None);
         assert_eq!(sched.state, PolyState::CloudVerify);
     }
+
+    // 4. Starts in LocalInference
+    #[test]
+    fn starts_in_local_inference() {
+        let sched = PolyScheduler::new(5);
+        assert_eq!(sched.state, PolyState::LocalInference);
+    }
+
+    // 5. Budget exhausted from any state → Rollback
+    #[test]
+    fn budget_exhausted_triggers_rollback() {
+        let mut sched = PolyScheduler::new(5);
+        sched.tick(&ObstructionClass::None, true, false, None);
+        assert_eq!(sched.state, PolyState::Rollback);
+    }
+
+    // 6. State transitions are logged
+    #[test]
+    fn transitions_logged_on_state_change() {
+        let mut sched = PolyScheduler::new(5);
+        assert_eq!(sched.transitions.len(), 0);
+        sched.tick(&ObstructionClass::EnhancementDivergence, false, false, None);
+        assert_eq!(sched.transitions.len(), 1);
+        assert_eq!(sched.transitions[0].from, PolyState::LocalInference);
+        assert_eq!(sched.transitions[0].to, PolyState::Superposition);
+    }
+
+    // 7. No transition logged on stable no-obstruction ticks
+    #[test]
+    fn no_transition_on_no_obstruction() {
+        let mut sched = PolyScheduler::new(5);
+        sched.tick(&ObstructionClass::None, false, false, None);
+        sched.tick(&ObstructionClass::None, false, false, None);
+        assert_eq!(sched.transitions.len(), 0);
+    }
+
+    // 8. Branches are stored when entering superposition
+    #[test]
+    fn branches_stored_on_superposition() {
+        let mut sched = PolyScheduler::new(5);
+        let b = vec![vec![1.0f32, 2.0], vec![3.0, 4.0]];
+        sched.tick(&ObstructionClass::EnhancementDivergence, false, false, Some(b.clone()));
+        assert_eq!(sched.superposition_branches, b);
+    }
+
+    // 9. CloudVerify resolves to Resolved when collapse_ready
+    #[test]
+    fn cloud_verify_resolves_on_collapse_ready() {
+        let mut sched = PolyScheduler::new(1);
+        sched.tick(&ObstructionClass::NoGlobalComparison, false, false, None); // → Superposition
+        sched.tick(&ObstructionClass::NoGlobalComparison, false, false, None); // streak=1 → CloudVerify
+        sched.tick(&ObstructionClass::None, false, true, None); // cloud verified → Resolved
+        assert_eq!(sched.state, PolyState::Resolved);
+    }
+
+    // 10. Step counter increments on every tick
+    #[test]
+    fn step_increments_on_tick() {
+        let mut sched = PolyScheduler::new(5);
+        assert_eq!(sched.step, 0);
+        sched.tick(&ObstructionClass::None, false, false, None);
+        assert_eq!(sched.step, 1);
+        sched.tick(&ObstructionClass::None, false, false, None);
+        assert_eq!(sched.step, 2);
+    }
 }

@@ -83,4 +83,67 @@ mod tests {
         assert_eq!(PostnikovTruncation::pi0_extract(&[5.0, 3.0, 1.0]), 5.0);
         assert_eq!(PostnikovTruncation::pi0_extract(&[]), 0.0);
     }
+
+    // 4. Tau1 keeps first two components, zeroes the rest
+    #[test]
+    fn tau1_keeps_first_two() {
+        let state = vec![1.0f32, 2.0, 3.0, 4.0];
+        let result = PostnikovTruncation::truncate(&state, TruncationLevel::Tau1);
+        assert_eq!(result.retained_components[0], 1.0);
+        assert_eq!(result.retained_components[1], 2.0);
+        assert_eq!(result.retained_components[2], 0.0);
+        assert_eq!(result.retained_components[3], 0.0);
+        assert_eq!(result.zeroed_count, 2);
+    }
+
+    // 5. Tau2 keeps first four components
+    #[test]
+    fn tau2_keeps_first_four() {
+        let state = vec![1.0f32, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let result = PostnikovTruncation::truncate(&state, TruncationLevel::Tau2);
+        assert_eq!(&result.retained_components[..4], &[1.0, 2.0, 3.0, 4.0]);
+        assert_eq!(result.retained_components[4], 0.0);
+        assert_eq!(result.zeroed_count, 2);
+    }
+
+    // 6. Truncating empty state does not panic
+    #[test]
+    fn truncate_empty_state_no_panic() {
+        let result = PostnikovTruncation::truncate(&[], TruncationLevel::Tau0);
+        assert!(result.retained_components.is_empty());
+        assert_eq!(result.zeroed_count, 0);
+    }
+
+    // 7. result.level matches the input level
+    #[test]
+    fn result_level_matches_input() {
+        let result = PostnikovTruncation::truncate(&[1.0, 2.0], TruncationLevel::Tau2);
+        assert_eq!(result.level, TruncationLevel::Tau2);
+    }
+
+    // 8. Zero components don't increment zeroed_count
+    #[test]
+    fn zero_components_not_counted_as_zeroed() {
+        let state = vec![0.0f32, 0.0, 0.0];
+        let result = PostnikovTruncation::truncate(&state, TruncationLevel::Tau0);
+        // The two skipped are already 0 — zeroed_count only counts non-zero→zero transitions
+        assert_eq!(result.zeroed_count, 0);
+    }
+
+    // 9. Tau0 on single-element vector keeps it, zeroes nothing
+    #[test]
+    fn tau0_single_element_unchanged() {
+        let state = vec![3.14f32];
+        let result = PostnikovTruncation::truncate(&state, TruncationLevel::Tau0);
+        assert_eq!(result.retained_components[0], 3.14f32);
+        assert_eq!(result.zeroed_count, 0);
+    }
+
+    // 10. TauInf zeroed_count is always 0
+    #[test]
+    fn tau_inf_zeroed_count_zero() {
+        let state = vec![1.0f32, 2.0, 3.0, 4.0, 5.0];
+        let result = PostnikovTruncation::truncate(&state, TruncationLevel::TauInf);
+        assert_eq!(result.zeroed_count, 0);
+    }
 }
