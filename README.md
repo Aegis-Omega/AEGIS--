@@ -5,8 +5,8 @@
 *Designed and built by Tarik Skalić · AGPL-3.0*
 
 [![Rust](https://img.shields.io/badge/Rust_Tests-6958_(aegis--cl--psi_+_runtime)-brightgreen)](#testing)
-[![TypeScript](https://img.shields.io/badge/TypeScript_Tests-3205%2B-brightgreen)](#testing)
-[![Total](https://img.shields.io/badge/Total_Tests-10163%2B-brightgreen)](#testing)
+[![TypeScript](https://img.shields.io/badge/TypeScript_Tests-4015%2B-brightgreen)](#testing)
+[![Total](https://img.shields.io/badge/Total_Tests-10973%2B-brightgreen)](#testing)
 [![Gate 8](https://img.shields.io/badge/Gate_8-passing-brightgreen)](#testing)
 [![CI](https://img.shields.io/github/actions/workflow/status/Aegis-Omega/AEGIS--/ci.yml?label=CI%20CEREMONY)](https://github.com/Aegis-Omega/AEGIS--/actions)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE)
@@ -80,7 +80,7 @@ No part of the system can do more than it can prove it did. Every AI response, e
 │  │  src/capsule/      Capability VM · evolution lifecycle               │  │
 │  │  src/corpus-engine/ 5-phase RALPH document pipeline                  │  │
 │  │                                                                      │  │
-│  │  3205+ tests · 156+ test files                                       │  │
+│  │  4015+ tests · 247+ test files                                       │  │
 │  └─────────────────────────────────┬────────────────────────────────────┘  │
 │                                     │                                       │
 │  MOLECULAR SCALE — Rust (aegis-cl-psi)                                      │
@@ -105,9 +105,9 @@ No part of the system can do more than it can prove it did. Every AI response, e
 ## Testing
 
 ```
-10,163+ total tests · 0 failures
+10,973+ total tests · 0 failures
 
-  3205+  TypeScript  sovereign-omega-v2  (156+ test files)
+  4015+  TypeScript  sovereign-omega-v2  (247+ test files)
   6862   Rust        aegis-cl-psi        (385 gate modules)
     96   Rust        aegis-runtime       (7-pillar runtime)
 ```
@@ -202,7 +202,7 @@ Modification requires `/guardian APPROVED` verdict. Unauthorized modification = 
 ## Repository Structure
 
 ```
-sovereign-omega-v2/     TypeScript governance runtime (3205+ tests)
+sovereign-omega-v2/     TypeScript governance runtime (4015+ tests)
   src/                  Core · Frame · Consensus · Constitutional · Ledger
                         Skill-harness · Metacognition · Agents · Capsule
   python/               HTTP bridge (port 7890) · PGCS · frozen constitutional files
