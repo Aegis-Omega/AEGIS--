@@ -112,3 +112,13 @@ export function storeAccess(product: string, payload: GrantPayload): void {
 export function hasAccess(product: string): boolean {
   return getStoredAccess(product) !== null
 }
+
+const SERVER_STORAGE_KEY = (product: string) => `aegis_srv_${product}`
+
+export function storeServerToken(product: string, token: string): void {
+  localStorage.setItem(SERVER_STORAGE_KEY(product), token)
+}
+
+export function getStoredServerToken(product: string): string | null {
+  return localStorage.getItem(SERVER_STORAGE_KEY(product))
+}
