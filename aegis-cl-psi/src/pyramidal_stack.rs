@@ -160,4 +160,34 @@ mod tests {
         let stack = PyramidalStack::new(8);
         assert!(stack.verify_algebraic_structure().is_ok());
     }
+
+    // 7. pyramidal_number(0) = 0
+    #[test]
+    fn pyramidal_number_zero_is_zero() {
+        assert_eq!(pyramidal_number(0), 0);
+    }
+
+    // 8. get_cumulative_capacity(0) returns None
+    #[test]
+    fn cumulative_capacity_layer_zero_is_none() {
+        let stack = PyramidalStack::new(8);
+        assert_eq!(stack.get_cumulative_capacity(0), None);
+    }
+
+    // 9. get_cumulative_capacity above max_layer returns None
+    #[test]
+    fn cumulative_capacity_above_max_is_none() {
+        let stack = PyramidalStack::new(5);
+        assert_eq!(stack.get_cumulative_capacity(6), None);
+        assert!(stack.get_cumulative_capacity(5).is_some());
+    }
+
+    // 10. layers Vec length matches max_layer
+    #[test]
+    fn layers_count_matches_max_layer() {
+        let stack = PyramidalStack::new(5);
+        assert_eq!(stack.layers.len(), 5);
+        let stack8 = PyramidalStack::new(8);
+        assert_eq!(stack8.layers.len(), 8);
+    }
 }

@@ -170,10 +170,43 @@ mod tests {
     fn test_simulate_penrose_tiling() {
         let mut mesh = DodecagonalMesh::new(204);
         mesh.trigger_phase_shift().unwrap();
-        
+
         let report = mesh.simulate_penrose_tiling(10).unwrap();
         assert_eq!(report.total_tiles, 120);
         assert_eq!(report.gap_count, 0);
         assert_eq!(report.overlap_count, 0);
+    }
+
+    // 7. validate_204_factorization returns Err for non-204 totals
+    #[test]
+    fn validate_non_204_returns_err() {
+        let mesh = DodecagonalMesh::new(205);
+        assert!(mesh.validate_204_factorization().is_err());
+    }
+
+    // 8. get_harmonic_resonance returns sector_id + 1 (1-indexed)
+    #[test]
+    fn get_harmonic_resonance_correct() {
+        let mesh = DodecagonalMesh::new(204);
+        assert_eq!(mesh.get_harmonic_resonance(0), Some(1));
+        assert_eq!(mesh.get_harmonic_resonance(11), Some(12));
+        assert_eq!(mesh.get_harmonic_resonance(12), None);
+    }
+
+    // 9. simulate_penrose_tiling errors before phase shift
+    #[test]
+    fn simulate_penrose_without_phase_shift_errors() {
+        let mesh = DodecagonalMesh::new(204);
+        assert!(mesh.simulate_penrose_tiling(5).is_err());
+    }
+
+    // 10. total_tiles = 12 * iterations
+    #[test]
+    fn total_tiles_12_times_iterations() {
+        let mut mesh = DodecagonalMesh::new(204);
+        mesh.trigger_phase_shift().unwrap();
+        let report = mesh.simulate_penrose_tiling(7).unwrap();
+        assert_eq!(report.total_tiles, 84); // 12 * 7
+        assert_eq!(report.iterations, 7);
     }
 }
