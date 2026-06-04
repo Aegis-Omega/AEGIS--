@@ -16,6 +16,7 @@ pub mod sgm_gate;
 pub mod lut_kan;
 pub mod rwkv_state;
 pub mod merkle_cross_shard;
+pub mod mersenne31;
 pub mod lyapunov;
 pub mod audit;
 pub mod orchestrator;
