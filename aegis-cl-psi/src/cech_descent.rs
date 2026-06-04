@@ -141,4 +141,57 @@ mod tests {
         assert_eq!(state.k3_invariant, 0.0);
         assert!(state.level0_models.is_empty());
     }
+
+    // 5. Three models: level2 non-empty, level3 empty (need 4 for quads)
+    #[test]
+    fn three_models_has_level2_no_level3() {
+        let models = vec![vec![1.0f32], vec![2.0], vec![3.0]];
+        let state = CechDescentState::build(models);
+        assert!(!state.level2.is_empty());
+        assert!(state.level3.is_empty());
+    }
+
+    // 6. Two models: level1 has 1 entry, level2 empty
+    #[test]
+    fn two_models_level1_one_entry_level2_empty() {
+        let models = vec![vec![1.0f32, 2.0], vec![3.0, 4.0]];
+        let state = CechDescentState::build(models);
+        assert_eq!(state.level1.len(), 1);
+        assert!(state.level2.is_empty());
+    }
+
+    // 7. level0_models is preserved verbatim
+    #[test]
+    fn level0_models_preserved() {
+        let input = vec![vec![1.0f32, 2.0], vec![3.0, 4.0]];
+        let state = CechDescentState::build(input.clone());
+        assert_eq!(state.level0_models, input);
+    }
+
+    // 8. k3_invariant is always non-negative
+    #[test]
+    fn k3_invariant_nonneg() {
+        let models = vec![vec![5.0f32, -3.0], vec![-2.0, 7.0], vec![1.0, 1.0], vec![0.0, 0.0]];
+        let state = CechDescentState::build(models);
+        assert!(state.k3_invariant >= 0.0);
+    }
+
+    // 9. Default matches new()
+    #[test]
+    fn default_is_empty_state() {
+        let d = CechDescentState::default();
+        assert!(d.level0_models.is_empty());
+        assert_eq!(d.k3_invariant, 0.0);
+        assert!(d.level3.is_empty());
+    }
+
+    // 10. Single model: all levels empty
+    #[test]
+    fn single_model_all_levels_empty() {
+        let state = CechDescentState::build(vec![vec![1.0f32, 2.0]]);
+        assert!(state.level1.is_empty());
+        assert!(state.level2.is_empty());
+        assert!(state.level3.is_empty());
+        assert_eq!(state.k3_invariant, 0.0);
+    }
 }
