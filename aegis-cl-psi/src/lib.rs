@@ -1405,7 +1405,7 @@ pub mod gossip_broadcast_duplicate;
 pub mod gossip_broadcast_peer_latency;
 
 pub use sgm_gate::SGMGate;
-pub use lut_kan::LUTKANRouter;
+pub use lut_kan::{LUTKANRouter, lut_activation};
 pub use rwkv_state::RWKVStateCache;
 pub use lyapunov::LyapunovMonitor;
 pub use audit::AuditLogger;
