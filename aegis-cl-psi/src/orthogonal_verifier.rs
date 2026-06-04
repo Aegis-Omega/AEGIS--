@@ -131,4 +131,19 @@ mod tests {
         let result = verify_orthogonal(&a, &b);
         assert_eq!(result.unwrap_err().kind, ViolationKind::DomainCorruption);
     }
+
+    // 9. ORTHOGONALITY_EPSILON is exactly 1e-9
+    #[test]
+    fn epsilon_constant_is_1e_neg_9() {
+        assert!((ORTHOGONALITY_EPSILON - 1e-9).abs() < f64::EPSILON);
+    }
+
+    // 10. dot_product field in error matches the computed dot product
+    #[test]
+    fn dot_product_in_error_matches_computed() {
+        // [3.0, 4.0] · [2.0, 1.0] = 6 + 4 = 10
+        let err = verify_orthogonal(&[3.0, 4.0], &[2.0, 1.0]).unwrap_err();
+        assert_eq!(err.kind, ViolationKind::DomainCorruption);
+        assert!((err.dot_product - 10.0).abs() < 1e-9);
+    }
 }

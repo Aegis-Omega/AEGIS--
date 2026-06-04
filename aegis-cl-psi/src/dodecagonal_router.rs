@@ -123,4 +123,42 @@ mod tests {
             assert_eq!(*path.last().unwrap(), dest);
         }
     }
+
+    // 8. ring_distance(x, x) == 0 for any node
+    #[test]
+    fn ring_distance_zero_for_same_node() {
+        for i in 0u8..12 {
+            assert_eq!(ring_distance(i, i), 0);
+        }
+    }
+
+    // 9. every consecutive pair in a routed path is an adjacency neighbor
+    #[test]
+    fn route_path_consecutive_pairs_are_neighbors() {
+        let mesh = build_dodecagonal_mesh();
+        for from in 0..12u8 {
+            for to in 0..12u8 {
+                let path = route(&mesh, from, to);
+                for w in path.windows(2) {
+                    let (a, b) = (w[0], w[1]);
+                    assert!(
+                        mesh.adjacency[a as usize].contains(&b),
+                        "edge {a}->{b} not in adjacency"
+                    );
+                }
+            }
+        }
+    }
+
+    // 10. each node has exactly 3 distinct sorted neighbors
+    #[test]
+    fn adjacency_has_3_distinct_sorted_neighbors_per_node() {
+        let mesh = build_dodecagonal_mesh();
+        for i in 0..12usize {
+            let n = mesh.adjacency[i];
+            assert!(n[0] < n[1] && n[1] < n[2], "neighbors not strictly sorted for node {i}");
+            // all three differ from i itself (no self-loops)
+            assert!(!n.contains(&(i as u8)), "node {i} contains self-loop");
+        }
+    }
 }
