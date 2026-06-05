@@ -98,13 +98,32 @@ impl CloudBridge {
             },
         }).unwrap_or_default();
 
-        // Stub HTTP call — in production replace with reqwest or ureq
-        let _ = (key, body);
         self.total_cost_usd += COST_PER_CALL_USD;
         self.call_count += 1;
 
-        // Stub response for builds without HTTP runtime
-        Ok(format!("stub_verified:step={}", self.call_count))
+        Self::http_post(key, &body)
+    }
+
+    #[cfg(feature = "cloud")]
+    fn http_post(key: &str, body: &str) -> Result<String, BridgeError> {
+        const URL: &str = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
+        let resp = ureq::post(URL)
+            .set("Authorization", &format!("Bearer {}", key))
+            .set("Content-Type", "application/json")
+            .send_string(body)
+            .map_err(|e| BridgeError::RequestFailed(e.to_string()))?;
+        let raw: serde_json::Value = resp.into_json()
+            .map_err(|e| BridgeError::RequestFailed(e.to_string()))?;
+        let text = raw["output"]["text"]
+            .as_str()
+            .unwrap_or("no_text")
+            .to_string();
+        Ok(text)
+    }
+
+    #[cfg(not(feature = "cloud"))]
+    fn http_post(_key: &str, _body: &str) -> Result<String, BridgeError> {
+        Ok("stub_verified".to_string())
     }
 }
 
@@ -131,5 +150,66 @@ mod tests {
         bridge.verify("test1").ok();
         bridge.verify("test2").ok();
         assert_eq!(bridge.call_count, 2);
+    }
+
+    // 4. Cost accumulates per call
+    #[test]
+    fn total_cost_increments_per_call() {
+        let mut bridge = CloudBridge::new(Some("key".to_string()), "qwen-plus");
+        assert_eq!(bridge.total_cost_usd, 0.0);
+        bridge.verify("x").ok();
+        assert!(bridge.total_cost_usd > 0.0);
+        let after_one = bridge.total_cost_usd;
+        bridge.verify("y").ok();
+        assert!(bridge.total_cost_usd > after_one);
+    }
+
+    // 5. Throttle flag set when cost reaches 90% cap
+    #[test]
+    fn throttle_flag_set_at_throttle_threshold() {
+        let mut bridge = CloudBridge::new(Some("key".to_string()), "qwen-plus");
+        bridge.total_cost_usd = THROTTLE_AT_USD;
+        bridge.verify("x").ok(); // check_budget sets throttled=true, then proceeds
+        assert!(bridge.throttled);
+    }
+
+    // 6. Full cap at $200 returns Throttled error
+    #[test]
+    fn budget_cap_errors_at_200_usd() {
+        let mut bridge = CloudBridge::new(Some("key".to_string()), "qwen-plus");
+        bridge.total_cost_usd = BUDGET_CAP_USD;
+        assert!(matches!(bridge.verify("x"), Err(BridgeError::Throttled { .. })));
+    }
+
+    // 7. New bridge starts at zero cost and zero calls
+    #[test]
+    fn new_bridge_zero_state() {
+        let bridge = CloudBridge::new(Some("k".to_string()), "qwen-turbo");
+        assert_eq!(bridge.total_cost_usd, 0.0);
+        assert_eq!(bridge.call_count, 0);
+        assert!(!bridge.throttled);
+    }
+
+    // 8. Model name is preserved from constructor
+    #[test]
+    fn model_name_preserved() {
+        let bridge = CloudBridge::new(None, "my-custom-model");
+        assert_eq!(bridge.model, "my-custom-model");
+    }
+
+    // 9. from_env without DASHSCOPE_API_KEY results in no api_key
+    #[test]
+    fn from_env_no_key_when_var_unset() {
+        // Ensure the env var is not set (may already be unset in CI)
+        // We just verify from_env doesn't panic and returns a valid bridge
+        let bridge = CloudBridge::from_env();
+        // Can't assert api_key is None without clearing env, but bridge must not panic
+        assert!(!bridge.model.is_empty());
+    }
+
+    // 10. Cost per call is strictly positive
+    #[test]
+    fn cost_per_call_positive() {
+        assert!(COST_PER_CALL_USD > 0.0);
     }
 }

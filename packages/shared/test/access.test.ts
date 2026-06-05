@@ -3,14 +3,7 @@
  * Tests: createGrantToken, verifyGrantToken, storeAccess, getStoredAccess
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  createGrantToken,
-  verifyGrantToken,
-  storeAccess,
-  getStoredAccess,
-  storeServerToken,
-  getStoredServerToken,
-} from '../lib/access.js'
+import { createGrantToken, verifyGrantToken, storeAccess, getStoredAccess } from '../lib/access.js'
 import type { Plan, GrantPayload } from '../lib/access.js'
 
 const ALL_PLANS: Plan[] = ['single', 'starter', 'full']
@@ -127,20 +120,5 @@ describe('storeAccess / getStoredAccess', () => {
     storeAccess('platform-picker', payload)
     expect(getStoredAccess('hook-generator')).toBeNull()
     expect(getStoredAccess('platform-picker')).not.toBeNull()
-  })
-})
-
-describe('storeServerToken / getStoredServerToken', () => {
-  it('round-trips a server token through localStorage', () => {
-    storeServerToken('platform-picker', 'payload.signature')
-
-    expect(getStoredServerToken('platform-picker')).toBe('payload.signature')
-  })
-
-  it('stores independently per product', () => {
-    storeServerToken('platform-picker', 'platform-token')
-
-    expect(getStoredServerToken('hook-generator')).toBeNull()
-    expect(getStoredServerToken('platform-picker')).toBe('platform-token')
   })
 })

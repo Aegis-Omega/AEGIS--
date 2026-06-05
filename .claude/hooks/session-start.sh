@@ -7,6 +7,8 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
 
+echo '{"async": true, "asyncTimeout": 300000}'
+
 REPO="${CLAUDE_PROJECT_DIR:-/home/user/AEGIS--}"
 
 install_npm() {
@@ -28,5 +30,7 @@ install_npm hook-generator
 install_npm content-calendar
 install_npm cockpit
 install_npm studio
+install_npm enterprise
+install_npm aegisomega-webgpu
 
 echo "SessionStart: all deps ready."

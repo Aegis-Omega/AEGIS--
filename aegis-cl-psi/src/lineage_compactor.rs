@@ -385,15 +385,62 @@ mod tests {
     #[test]
     fn test_stats_accuracy() {
         let mut compactor = LineageCompactor::new(CompactionStrategy::Conservative, 10);
-        
+
         for i in 0..3 {
             compactor.add_segment(i, vec![i as u8; 50]);
         }
-        
+
         let stats = compactor.stats();
-        
+
         assert_eq!(stats.pending_segments, 3);
         assert_eq!(stats.pending_bytes, 150);
         assert_eq!(stats.compacted_segments, 0);
+    }
+
+    // 6. Retrieving a non-existent epoch returns EpochNotFound
+    #[test]
+    fn retrieve_nonexistent_epoch_errors() {
+        let compactor = LineageCompactor::new(CompactionStrategy::Conservative, 10);
+        assert_eq!(compactor.retrieve(999), Err(CompactionError::EpochNotFound(999)));
+    }
+
+    // 7. Compacting an empty compactor returns NoSegmentsToCompact
+    #[test]
+    fn compact_empty_errors() {
+        let mut compactor = LineageCompactor::new(CompactionStrategy::Conservative, 10);
+        assert!(matches!(compactor.compact(), Err(CompactionError::NoSegmentsToCompact)));
+    }
+
+    // 8. should_compact is false below threshold
+    #[test]
+    fn should_compact_false_below_threshold() {
+        let mut compactor = LineageCompactor::new(CompactionStrategy::Aggressive, 5);
+        for i in 0..4 {
+            compactor.add_segment(i, vec![i as u8]);
+        }
+        assert!(!compactor.should_compact());
+    }
+
+    // 9. immutable_checkpoints count reflected in stats
+    #[test]
+    fn stats_checkpoint_count_correct() {
+        let mut compactor = LineageCompactor::new(CompactionStrategy::Conservative, 10);
+        compactor.mark_checkpoint(1, "h1".to_string());
+        compactor.mark_checkpoint(2, "h2".to_string());
+        let stats = compactor.stats();
+        assert_eq!(stats.immutable_checkpoints, 2);
+    }
+
+    // 10. Aggressive compact reduces pending_segments count
+    #[test]
+    fn aggressive_compact_reduces_pending() {
+        let mut compactor = LineageCompactor::new(CompactionStrategy::Aggressive, 3);
+        for i in 0..10u64 {
+            compactor.add_segment(i, vec![i as u8; 20]);
+        }
+        let before = compactor.stats().pending_segments;
+        compactor.compact().unwrap();
+        let after = compactor.stats().pending_segments;
+        assert!(after < before);
     }
 }

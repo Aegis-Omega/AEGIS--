@@ -286,7 +286,7 @@ mod tests {
         machine.l1_autonomous.add_node("node1", 4);
         machine.l2_relational.add_node("node1", 4);
         machine.l3_transcendent.add_node("node1", 4);
-        
+
         // Inject extreme misalignment that even L3 can't resolve
         for layer in [&mut machine.l1_autonomous, &mut machine.l2_relational, &mut machine.l3_transcendent] {
             if let Some(node) = layer.nodes.get_mut("node1") {
@@ -295,8 +295,49 @@ mod tests {
                 node.weights.evaluator = vec![0.0, 0.0, 0.0, 0.0];
             }
         }
-        
+
         let state = machine.process_mutation("node1", "key1", "hash1");
         assert_eq!(state, GlobalState::ByzantineFault);
+    }
+
+    // 6. New machine starts at epoch 0
+    #[test]
+    fn new_machine_epoch_zero() {
+        let machine = HolonicStateMachine::new(0.5);
+        assert_eq!(machine.get_epoch(), 0);
+    }
+
+    // 7. Empty layer evaluates as ByzantineFault
+    #[test]
+    fn empty_layer_is_byzantine_fault() {
+        let layer = HolonicLayer::new("test", ConsensusLayer::Autonomous, 0.5);
+        assert_eq!(layer.evaluate_layer_state(), GlobalState::ByzantineFault);
+    }
+
+    // 8. Prune orphans on a clean (no-node) machine returns 0
+    #[test]
+    fn prune_orphans_clean_machine_zero() {
+        let mut machine = HolonicStateMachine::new(0.5);
+        assert_eq!(machine.prune_orphans(), 0);
+    }
+
+    // 9. add_node creates a node accessible via get_node_mut
+    #[test]
+    fn add_node_creates_accessible_node() {
+        let mut machine = HolonicStateMachine::new(0.5);
+        machine.l1_autonomous.add_node("nx", 4);
+        assert!(machine.l1_autonomous.get_node_mut("nx").is_some());
+        assert!(machine.l1_autonomous.nodes.contains_key("nx"));
+    }
+
+    // 10. process_mutation auto-creates unknown node and does not panic
+    #[test]
+    fn process_mutation_auto_creates_node() {
+        let mut machine = HolonicStateMachine::new(0.5);
+        // "unknown_node" not pre-added — process_mutation must handle this
+        let state = machine.process_mutation("unknown_node", "k", "v");
+        // May be Synchronized or Finalized but must not panic
+        assert!(state == GlobalState::Synchronized || state == GlobalState::Finalized
+            || state == GlobalState::Reconciling || state == GlobalState::ByzantineFault);
     }
 }

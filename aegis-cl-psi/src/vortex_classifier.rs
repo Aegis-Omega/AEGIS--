@@ -115,4 +115,24 @@ mod tests {
         let triangular_9: u64 = (1..=9).sum();
         assert_eq!(ALL_DR_SUM, triangular_9);
     }
+
+    // 9. single-element sequence is always stable
+    #[test]
+    fn single_element_sequence_is_stable() {
+        assert!(is_sequence_stable(&[3]));
+        assert!(is_sequence_stable(&[1]));
+        assert!(is_sequence_stable(&[9]));
+    }
+
+    // 10. all six hexadic members classify as Hexadic
+    #[test]
+    fn hexadic_members_all_classify_hexadic() {
+        for &n in &[1u64, 2, 4, 5, 7, 8] {
+            assert_eq!(
+                classify_vortex(n),
+                VortexFamily::Hexadic,
+                "expected Hexadic for {n}"
+            );
+        }
+    }
 }

@@ -136,4 +136,23 @@ mod tests {
         assert_eq!(norm.denominator, 9);
         assert!(p.normalized_to(7).is_none());
     }
+
+    // 9. grid with width != 8 returns false for verify_squared_sum
+    #[test]
+    fn grid_non_8_width_fails_verify_squared_sum() {
+        let base = ProportionalPoint::new(1, 1).unwrap();
+        let grid = ProportionalGrid::new(base, 7, 8);
+        assert!(!grid.verify_squared_sum());
+        let grid9 = ProportionalGrid::new(base, 9, 8);
+        assert!(!grid9.verify_squared_sum());
+    }
+
+    // 10. scale multiplies numerator, denominator unchanged
+    #[test]
+    fn scale_preserves_denominator() {
+        let p = ProportionalPoint::new(3, 7).unwrap();
+        let scaled = p.scale(5);
+        assert_eq!(scaled.numerator, 15);
+        assert_eq!(scaled.denominator, 7);
+    }
 }

@@ -115,4 +115,68 @@ mod tests {
         assert_eq!(report.divergence_score, 0.0);
         assert_eq!(report.obstruction_class, ObstructionClass::None);
     }
+
+    // 4. Moderate divergence classified as H1 (EnhancementDivergence)
+    #[test]
+    fn moderate_divergence_is_h1() {
+        let mut mon = MCMObstructionMonitor::new(0.1, 0.5, 1.0);
+        // divergence ≈ 0.2 → in [h1=0.1, h2=0.5)
+        let outputs = vec![vec![0.0f32], vec![0.2]];
+        let report = mon.assess(&outputs);
+        assert_eq!(report.obstruction_class, ObstructionClass::EnhancementDivergence);
+        assert!(report.superposition_required);
+    }
+
+    // 5. Divergence in [h2, h3) classified as H2 (LocalizationIncompatibility)
+    #[test]
+    fn mid_divergence_is_h2() {
+        let mut mon = MCMObstructionMonitor::new(0.1, 0.5, 1.0);
+        // divergence ≈ 0.7 → in [h2=0.5, h3=1.0)
+        let outputs = vec![vec![0.0f32], vec![0.7]];
+        let report = mon.assess(&outputs);
+        assert_eq!(report.obstruction_class, ObstructionClass::LocalizationIncompatibility);
+    }
+
+    // 6. Step counter increments on each assess call
+    #[test]
+    fn step_counter_increments() {
+        let mut mon = MCMObstructionMonitor::new(0.1, 0.5, 1.0);
+        assert_eq!(mon.step, 0);
+        mon.assess(&[vec![1.0f32]]);
+        assert_eq!(mon.step, 1);
+        mon.assess(&[vec![1.0f32]]);
+        assert_eq!(mon.step, 2);
+    }
+
+    // 7. pairwise_divergence on empty outputs returns 0
+    #[test]
+    fn pairwise_divergence_empty_returns_zero() {
+        assert_eq!(MCMObstructionMonitor::pairwise_divergence(&[]), 0.0);
+    }
+
+    // 8. model_count in report matches input length
+    #[test]
+    fn model_count_matches_input() {
+        let mut mon = MCMObstructionMonitor::new(0.1, 0.5, 1.0);
+        let report = mon.assess(&[vec![1.0f32], vec![2.0], vec![3.0]]);
+        assert_eq!(report.model_count, 3);
+    }
+
+    // 9. superposition_required is false when class is None
+    #[test]
+    fn superposition_not_required_for_none_class() {
+        let mut mon = MCMObstructionMonitor::new(0.1, 0.5, 1.0);
+        let report = mon.assess(&[vec![1.0f32], vec![1.0]]);
+        assert_eq!(report.obstruction_class, ObstructionClass::None);
+        assert!(!report.superposition_required);
+    }
+
+    // 10. Three-way pairwise divergence averages all pairs
+    #[test]
+    fn three_outputs_pairwise_average() {
+        // outputs: [0], [1], [2] → pairs: d(0,1)=1, d(0,2)=2, d(1,2)=1 → avg=4/3
+        let outputs = vec![vec![0.0f32], vec![1.0], vec![2.0]];
+        let d = MCMObstructionMonitor::pairwise_divergence(&outputs);
+        assert!((d - 4.0f32 / 3.0).abs() < 1e-5);
+    }
 }

@@ -130,8 +130,10 @@
       }
     ]
   },
+  "enableWorkflows": true,
   "permissions": {
     "allow": [
+      "mcp__71923ddf-e9ee-4959-b191-9ef0ac574e2a__apply_migration",
       "Write(.claude/hooks/*)",
       "Edit(.claude/hooks/*)",
       "Write(.claude/settings.json)",
@@ -251,6 +253,15 @@
       "Bash(cargo check*)",
       "Bash(cargo clippy*)",
       "Bash(python harness/ingest.py*)",
+      "Bash(git remote set-url origin*)",
+      "mcp__34d71637-3038-431f-873f-3f90926d4fd8__get_file_metadata",
+      "mcp__34d71637-3038-431f-873f-3f90926d4fd8__read_file_content",
+      "mcp__34d71637-3038-431f-873f-3f90926d4fd8__download_file_content",
+      "mcp__34d71637-3038-431f-873f-3f90926d4fd8__search_files",
+      "mcp__34d71637-3038-431f-873f-3f90926d4fd8__list_recent_files",
+      "mcp__34d71637-3038-431f-873f-3f90926d4fd8__copy_file",
+      "mcp__34d71637-3038-431f-873f-3f90926d4fd8__create_file",
+      "mcp__34d71637-3038-431f-873f-3f90926d4fd8__get_file_permissions"
       "Bash(git remote set-url origin*)"
     ]
   }

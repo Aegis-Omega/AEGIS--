@@ -105,4 +105,65 @@ mod tests {
         let report = lattice.apply(&mut logits);
         assert!(report.fallback_triggered);
     }
+
+    // 4. risk_tier "LOW" for 1–2 interventions
+    #[test]
+    fn risk_tier_low_for_few_blocks() {
+        let lattice = CCILLattice::new(5, &[2]);
+        let mut logits = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        let report = lattice.apply(&mut logits);
+        assert_eq!(report.interventions, 1);
+        assert_eq!(report.risk_tier, "LOW");
+    }
+
+    // 5. masked_indices matches blocked set
+    #[test]
+    fn masked_indices_match_blocked() {
+        let lattice = CCILLattice::new(6, &[1, 4]);
+        let mut logits = vec![1.0; 6];
+        let report = lattice.apply(&mut logits);
+        assert_eq!(report.masked_indices, vec![1, 4]);
+    }
+
+    // 6. interventions == masked_indices.len() always
+    #[test]
+    fn interventions_matches_masked_len() {
+        let lattice = CCILLattice::new(8, &[0, 2, 5, 7]);
+        let mut logits = vec![1.0; 8];
+        let report = lattice.apply(&mut logits);
+        assert_eq!(report.interventions, report.masked_indices.len());
+    }
+
+    // 7. risk_tier "MEDIUM" for 3–9 interventions
+    #[test]
+    fn risk_tier_medium_for_mid_blocks() {
+        let lattice = CCILLattice::new(10, &[0, 1, 2, 3]);
+        let mut logits = vec![1.0; 10];
+        let report = lattice.apply(&mut logits);
+        assert_eq!(report.interventions, 4);
+        assert_eq!(report.risk_tier, "MEDIUM");
+    }
+
+    // 8. safety_floor is very negative (≤ −1e8)
+    #[test]
+    fn safety_floor_is_very_negative() {
+        let lattice = CCILLattice::new(4, &[]);
+        assert!(lattice.safety_floor <= -1e8);
+    }
+
+    // 9. Out-of-range blocked index is silently ignored
+    #[test]
+    fn out_of_range_blocked_index_ignored() {
+        let lattice = CCILLattice::new(3, &[10]); // 10 >= vocab_size=3
+        let mut logits = vec![1.0, 2.0, 3.0];
+        let report = lattice.apply(&mut logits);
+        assert_eq!(report.interventions, 0);
+    }
+
+    // 10. policy_mask is all-true when no indices blocked
+    #[test]
+    fn policy_mask_all_true_when_no_blocks() {
+        let lattice = CCILLattice::new(4, &[]);
+        assert!(lattice.policy_mask.iter().all(|&v| v));
+    }
 }

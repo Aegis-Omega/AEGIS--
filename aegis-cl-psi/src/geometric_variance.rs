@@ -123,4 +123,70 @@ mod tests {
         let weights = TensorWeights::new(0, 1.0);
         assert_eq!(weights.compute_geometric_variance(), 0.0);
     }
+
+    // 5. Uniform initialization produces zero geometric variance
+    #[test]
+    fn uniform_init_zero_variance() {
+        let weights = TensorWeights::new(4, 1.0);
+        assert_eq!(weights.compute_geometric_variance(), 0.0);
+    }
+
+    // 6. scalar_sums returns correct per-vector sums
+    #[test]
+    fn scalar_sums_correct() {
+        let weights = TensorWeights {
+            planner:   vec![1.0f64, 2.0],
+            generator: vec![3.0, 4.0],
+            evaluator: vec![5.0, 6.0],
+        };
+        let (p, g, e) = weights.compute_scalar_sums();
+        assert!((p - 3.0).abs() < 1e-9);
+        assert!((g - 7.0).abs() < 1e-9);
+        assert!((e - 11.0).abs() < 1e-9);
+    }
+
+    // 7. scalar_variance detects when sums differ
+    #[test]
+    fn scalar_variance_nonzero_when_sums_differ() {
+        let weights = TensorWeights {
+            planner:   vec![1.0f64],
+            generator: vec![2.0],
+            evaluator: vec![3.0],
+        };
+        assert!(weights.compute_scalar_variance() > 0.0);
+    }
+
+    // 8. Single-element tensor: geometric variance computed correctly
+    #[test]
+    fn single_element_geometric_variance() {
+        let weights = TensorWeights {
+            planner:   vec![1.0f64],
+            generator: vec![3.0],
+            evaluator: vec![5.0],
+        };
+        // mse_pg=(1-3)²=4, mse_pe=(1-5)²=16, mse_ge=(3-5)²=4 → (4+16+4)/(3*1)=8
+        let gv = weights.compute_geometric_variance();
+        assert!((gv - 8.0).abs() < 1e-9);
+    }
+
+    // 9. new() creates tensors of correct size and value
+    #[test]
+    fn new_initializes_correct_size_and_value() {
+        let w = TensorWeights::new(3, 2.5);
+        assert_eq!(w.planner.len(), 3);
+        assert!(w.planner.iter().all(|&v| (v - 2.5).abs() < 1e-9));
+        assert_eq!(w.generator.len(), 3);
+        assert_eq!(w.evaluator.len(), 3);
+    }
+
+    // 10. Geometric variance is zero when all three vectors are equal
+    #[test]
+    fn identical_non_uniform_vectors_zero_variance() {
+        let weights = TensorWeights {
+            planner:   vec![1.0f64, 2.0, 3.0],
+            generator: vec![1.0, 2.0, 3.0],
+            evaluator: vec![1.0, 2.0, 3.0],
+        };
+        assert!((weights.compute_geometric_variance() - 0.0).abs() < 1e-9);
+    }
 }

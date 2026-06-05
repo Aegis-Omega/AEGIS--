@@ -72,6 +72,7 @@ export function simulate(
       }
       // DELIVERED and DUPLICATE both stay in queue for drain
     } catch (err) {
+      /* c8 ignore next -- queue.enqueue() only throws NetworkError; non-NetworkError path is structurally unreachable */
       if (err instanceof NetworkError) {
         // Anti-equivocation violation — record and drop the offending message
         equivocations++

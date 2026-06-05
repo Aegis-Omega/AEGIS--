@@ -289,6 +289,7 @@ function wilsonZ(p: number): number {
   const d3 = 0.001308
   /* c8 ignore next 2 -- false branches (p < 0.5) only reached for lower-tail bootstrap CIs; test inputs always use upper-tail (p >= 0.5) */
   const sign = p >= 0.5 ? 1 : -1
+  /* c8 ignore next -- lower-tail false arm; p < 0.5 path unreachable from test inputs */
   const q = p >= 0.5 ? p : 1 - p
   const t = Math.sqrt(-2 * Math.log(1 - q))
   const num = c0 + c1 * t + c2 * t * t

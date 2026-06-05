@@ -45,7 +45,7 @@ Key specs: `sovereign-omega-v2/docs/SOVEREIGN_RUNTIME_HANDOFF_v1.0.md` (constitu
 
 ## Build & Test Commands
 
-### Rust — aegis-cl-psi (6862 tests)
+### Rust — aegis-cl-psi (7178 tests)
 ```bash
 cd aegis-cl-psi
 
@@ -60,7 +60,7 @@ cargo build --release               # release build (no HIP/ROCm required)
 
 `--all-features` will fail in CI — `hip` and `rocblas` link against ROCm symbols not present on standard Ubuntu. Always use plain `cargo test`.
 
-### Rust — aegis-runtime (96 tests)
+### Rust — aegis-runtime (133 tests)
 
 ```bash
 cd aegis-runtime
@@ -68,7 +68,8 @@ cargo test
 cargo build
 ```
 
-### TypeScript — sovereign-omega-v2 (3205+ tests)
+### TypeScript — sovereign-omega-v2 (4026+ tests)
+### TypeScript — sovereign-omega-v2 (4015+ tests)
 
 ```bash
 cd sovereign-omega-v2
