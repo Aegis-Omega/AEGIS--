@@ -739,6 +739,179 @@ async def platform_collaborate(request: Request):
     return result
 
 
+# ── Batch agent endpoint ──────────────────────────────────────────────────────
+
+@app.post("/agents/batch")
+async def agent_batch(request: Request):
+    """
+    Run multiple agent tasks in parallel and return all results.
+
+    Request:
+      {"tasks": [{"role": "strategy", "task": "...", "cycles": 3}, ...]}
+      max 10 tasks per batch; all run concurrently via asyncio.gather.
+
+    Response:
+      {"results": [{task_id, role, output, duration_ms, is_valid}, ...],
+       "batch_id": "...", "duration_ms": N}
+
+    Ideal for: running several departments simultaneously, comparing outputs,
+    or preparing a briefing from multiple specialist agents at once.
+    """
+    body = await request.json()
+    tasks_raw = body.get("tasks", [])
+    if not tasks_raw:
+        raise HTTPException(400, "tasks list is required")
+    if len(tasks_raw) > 10:
+        raise HTTPException(400, "max 10 tasks per batch")
+
+    batch_id = str(uuid.uuid4())
+    t_batch_start = time.time()
+
+    try:
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+        from agents.coordinator import AgentTask, AgentRole, run_agent
+    except ImportError as exc:
+        raise HTTPException(503, f"Agent coordinator not available: {exc}")
+
+    async def _run_one(task_dict: dict) -> dict:
+        role_str = task_dict.get("role", "engineering")
+        task_text = task_dict.get("task", "")
+        cycles = int(task_dict.get("cycles", 3))
+        if not task_text:
+            return {"error": "task is required", "role": role_str}
+        try:
+            agent_role = AgentRole(role_str)
+        except ValueError:
+            return {"error": f"unknown role: {role_str}", "role": role_str}
+        task_obj = AgentTask(
+            task_id=str(uuid.uuid4()),
+            role=agent_role,
+            instruction=task_text,
+            max_ralph_cycles=cycles,
+        )
+        t0 = time.time()
+        result = await run_agent(task_obj)
+        return {
+            "task_id": result.task_id,
+            "role": result.role.value,
+            "output": result.output,
+            "ralph_cycles": result.ralph_cycles,
+            "duration_ms": result.duration_ms,
+            "is_valid": result.is_valid,
+        }
+
+    results = await asyncio.gather(*[_run_one(t) for t in tasks_raw], return_exceptions=False)
+
+    total_ms = int((time.time() - t_batch_start) * 1000)
+    try:
+        await state.append(
+            {"layer": "BATCH_EXECUTION", "batch_id": batch_id,
+             "task_count": len(tasks_raw), "duration_ms": total_ms},
+            tier="T2",
+        )
+    except Exception:
+        pass
+
+    return {"batch_id": batch_id, "results": list(results), "duration_ms": total_ms}
+
+
+# ── Multi-objective comparison ─────────────────────────────────────────────────
+
+@app.post("/platform/compare")
+async def platform_compare(request: Request):
+    """
+    Run revenue cycles for multiple objectives in parallel and rank them.
+
+    Request:
+      {"objectives": ["obj1", "obj2", "obj3"], "live": false}
+      max 5 objectives; all run concurrently; ranked by KAN-scored ARR projection.
+
+    Response:
+      {"ranked": [{objective, cycle_id, arr_usd, kan_score, tier, rank}, ...],
+       "best": {objective, arr_usd}, "analysis": "..."}
+
+    The constitutional governance engine scores each projected ARR via the
+    INT4 LUT-KAN gate — the same gate that scores all other claims. The ranking
+    is itself tier-tagged (T2 engineering hypothesis — the best-scoring projection
+    may not be the best real business opportunity).
+    """
+    body = await request.json()
+    objectives = body.get("objectives", [])
+    live = bool(body.get("live", False))
+
+    if not objectives:
+        raise HTTPException(400, "objectives list is required")
+    if len(objectives) > 5:
+        raise HTTPException(400, "max 5 objectives per comparison")
+
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from agents.revenue_engine import run_revenue_cycle
+
+    # Run all cycles in parallel
+    t_start = time.time()
+    cycle_results = await asyncio.gather(
+        *[run_revenue_cycle(obj, live=live) for obj in objectives],
+        return_exceptions=True,
+    )
+
+    # Rank by KAN score * ARR
+    ranked: list[dict] = []
+    for obj, r in zip(objectives, cycle_results):
+        if isinstance(r, Exception):
+            ranked.append({"objective": obj, "error": str(r), "rank": 99})
+            continue
+        proj = r.projection
+        arr = proj.first_year_arr_usd if proj else 0
+        kan = proj.kan_score if proj else 0
+        # Composite score: KAN quality × ARR magnitude (log-normalized)
+        import math
+        composite = kan * (math.log10(max(arr, 1)) if arr > 0 else 0)
+        ranked.append({
+            "objective": obj,
+            "cycle_id": r.cycle_id,
+            "arr_usd": arr,
+            "kan_score": kan,
+            "tier": proj.tier if proj else "unknown",
+            "composite_score": round(composite, 2),
+            "chain_valid": r.chain_valid,
+            "constitutional_verdict": (
+                r.red_team.verdict if r.red_team and hasattr(r.red_team, "verdict") else "APPROVED"
+            ),
+        })
+
+    ranked.sort(key=lambda x: x.get("composite_score", 0), reverse=True)
+    for i, r in enumerate(ranked):
+        r["rank"] = i + 1
+
+    best = ranked[0] if ranked else {}
+    total_ms = int((time.time() - t_start) * 1000)
+
+    # Audit the comparison
+    try:
+        await state.append(
+            {"layer": "PLATFORM_COMPARISON", "objective_count": len(objectives),
+             "best_objective": best.get("objective", "")[:80],
+             "best_arr": best.get("arr_usd", 0)},
+            tier="T2",
+        )
+    except Exception:
+        pass
+
+    return {
+        "ranked": ranked,
+        "best": best,
+        "objective_count": len(objectives),
+        "duration_ms": total_ms,
+        "note": (
+            "T2 governed comparison — ranking by KAN-score × log(ARR). "
+            "Composite score is an engineering hypothesis, not a proven ROI forecast. "
+            "Human judgment required before committing resources."
+        ),
+    }
+
+
 # ── Streaming collaboration endpoint (SSE) ────────────────────────────────────
 
 @app.post("/platform/stream")
