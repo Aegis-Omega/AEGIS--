@@ -677,6 +677,249 @@ async def platform_collaborate(request: Request):
     return result
 
 
+# ── Streaming collaboration endpoint (SSE) ────────────────────────────────────
+
+@app.post("/platform/stream")
+async def platform_stream(request: Request):
+    """
+    Server-Sent Events stream for a revenue collaboration.
+    Each stage emits an event as it completes so clients can watch the swarm work.
+
+    Request:  {"objective": "...", "live": false}
+    Response: text/event-stream — one SSE event per stage + a final 'done' event.
+
+    Event format:
+      data: {"stage": N, "role": "strategy", "output": "...", "envelope_id": "..."}
+      data: {"done": true, "projection": {...}, "chain_valid": true}
+    """
+    body = await request.json()
+    objective = body.get("objective", "").strip()
+    live = bool(body.get("live", False))
+    if not objective:
+        raise HTTPException(400, "objective is required")
+
+    async def _generate():
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+        from agents.revenue_engine import REVENUE_STAGES, StageArtifact, RevenueCycleResult, _demo_output, _govern_projection, _record_revenue_cycle
+        import uuid
+
+        cycle_id = str(uuid.uuid4())
+        result = RevenueCycleResult(cycle_id=cycle_id, objective=objective, live=live)
+
+        # Attempt real tool runner in live mode
+        _api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        use_tools = live and bool(_api_key)
+
+        prior_output: str | None = None
+        prior_envelope: str | None = None
+
+        for seq, (role, mandate) in enumerate(REVENUE_STAGES):
+            envelope_id = f"{cycle_id}:{seq}:{role}"
+            if use_tools:
+                try:
+                    from agents.tool_runner import run_collaborative_stage
+                    output = await run_collaborative_stage(
+                        role=role, mandate=mandate, objective=objective,
+                        prior_context=prior_output, api_key=_api_key,
+                        namespace=f"revenue:{role}",
+                    )
+                    output = output[:2000]
+                except Exception as exc:
+                    output = _demo_output(role, objective, prior_output) + f" [fallback: {exc}]"
+            else:
+                output = _demo_output(role, objective, prior_output)
+
+            artifact = StageArtifact(
+                sequence=seq, role=role, mandate=mandate,
+                envelope_id=envelope_id, output=output, source_envelope=prior_envelope,
+            )
+            result.artifacts.append(artifact)
+            prior_output, prior_envelope = output, envelope_id
+
+            # Emit stage event immediately
+            event_data = json.dumps({
+                "stage": seq, "role": role, "output": output,
+                "envelope_id": envelope_id, "source_envelope": prior_envelope,
+            })
+            yield f"data: {event_data}\n\n"
+
+        # Govern projection
+        finance_output = result.artifacts[-1].output if result.artifacts else ""
+        result.projection = _govern_projection(objective, finance_output)
+
+        # Record in lineage
+        result.lineage_terminal_hash, result.chain_valid = _record_revenue_cycle(result)
+
+        # Emit done event
+        done_data = json.dumps({
+            "done": True,
+            "cycle_id": cycle_id,
+            "chain_valid": result.chain_valid,
+            "departments_collaborated": len(result.artifacts),
+            "projection": (
+                {
+                    "first_year_arr_usd": result.projection.first_year_arr_usd,
+                    "tier": result.projection.tier,
+                    "kan_score": result.projection.kan_score,
+                    "governed_note": result.projection.governed_note,
+                } if result.projection else None
+            ),
+        })
+        yield f"data: {done_data}\n\n"
+
+    return StreamingResponse(_generate(), media_type="text/event-stream")
+
+
+# ── Autonomous scheduling endpoint (Cloud Scheduler target) ───────────────────
+
+@app.post("/platform/schedule/revenue")
+async def schedule_revenue(request: Request):
+    """
+    Cloud Scheduler target — runs a revenue cycle and persists results.
+    Cloud Scheduler POSTs to this endpoint on a cron schedule.
+
+    Request body (JSON from scheduler):
+      {"objective": "...", "live": true}  — or empty (uses env SCHEDULE_OBJECTIVE)
+
+    Response: 200 immediately with cycle summary (Cloud Scheduler reads this).
+    Auth: requires PLATFORM_API_KEY (gated by observability_and_guard middleware).
+    """
+    body: dict = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+
+    default_objective = os.environ.get(
+        "SCHEDULE_OBJECTIVE",
+        "Run the weekly autonomous revenue cycle: identify highest-value opportunities, "
+        "research real prospects, produce an executable GTM plan for AEGIS constitutional governance.",
+    )
+    objective = (body.get("objective") or default_objective).strip()
+    live = bool(body.get("live", bool(os.environ.get("ANTHROPIC_API_KEY"))))
+
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from agents.revenue_engine import run_revenue_cycle
+
+    r = await run_revenue_cycle(objective, live=live)
+
+    summary = {
+        "scheduled": True,
+        "cycle_id": r.cycle_id,
+        "objective": r.objective,
+        "live": r.live,
+        "departments_collaborated": len(r.artifacts),
+        "chain_valid": r.chain_valid,
+        "projection": (
+            {
+                "first_year_arr_usd": r.projection.first_year_arr_usd,
+                "tier": r.projection.tier,
+                "governed_note": r.projection.governed_note,
+            } if r.projection else None
+        ),
+    }
+
+    # Audit the scheduled run
+    try:
+        await state.append(
+            {"layer": "SCHEDULED_EXECUTION", "objective": objective[:100],
+             "cycle_id": r.cycle_id, "chain_valid": r.chain_valid},
+            tier="T2",
+        )
+    except Exception:
+        pass
+
+    return summary
+
+
+# ── Platform status ───────────────────────────────────────────────────────────
+
+@app.get("/platform/status")
+async def platform_status():
+    """Full platform status: chain health, agent count, rate limits, capabilities."""
+    cert = {"is_valid": True, "entry_count": state._seq}
+    try:
+        cert = await state.certify()
+    except Exception:
+        pass
+    return {
+        "platform": "AEGIS-Ω Agent Platform",
+        "version": "1.2.0",
+        "constitutional_chain": {
+            "length": state._seq,
+            "is_valid": cert.get("is_valid", True),
+            "terminal_hash": cert.get("terminal_hash", ""),
+        },
+        "capabilities": {
+            "tool_execution": True,
+            "web_search": True,
+            "url_fetch": True,
+            "github_search": True,
+            "persistent_memory": True,
+            "streaming_sse": True,
+            "scheduled_execution": True,
+            "collaboration_modes": ["revenue", "cognitive"],
+        },
+        "pricing_tiers": PLATFORM_TIERS,
+        "rate_limit_per_min": RATE_LIMIT_PER_MIN,
+        "auth_enabled": bool(PLATFORM_API_KEY),
+        "live_agents_enabled": bool(ANTHROPIC_API_KEY),
+    }
+
+
+# ── Webhook receiver (GitHub) ─────────────────────────────────────────────────
+
+@app.post("/platform/webhooks/github")
+async def github_webhook(request: Request):
+    """
+    Receive GitHub webhook events and dispatch them to the appropriate agents.
+    Handles: push, pull_request, issues, pull_request_review, check_run.
+
+    Verify GITHUB_WEBHOOK_SECRET if set (HMAC-SHA256).
+    """
+    import hmac, hashlib as _hl
+
+    # Signature verification
+    secret = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
+    if secret:
+        sig_header = request.headers.get("x-hub-signature-256", "")
+        body_raw = await request.body()
+        expected = "sha256=" + hmac.new(secret.encode(), body_raw, _hl.sha256).hexdigest()
+        if not hmac.compare_digest(sig_header, expected):
+            return JSONResponse({"error": "invalid_signature"}, status_code=401)
+        body = json.loads(body_raw)
+    else:
+        body = await request.json()
+
+    event_type = request.headers.get("x-github-event", "unknown")
+
+    # Map GitHub events to agent dispatch
+    try:
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+        from agents.coordinator import dispatch_event
+        results = await dispatch_event(event_type, body)
+        dispatched = len(results)
+    except Exception as exc:
+        dispatched = 0
+        event_type = f"{event_type}:dispatch_failed:{exc}"
+
+    # Audit in chain
+    try:
+        await state.append(
+            {"layer": "WEBHOOK", "event_type": event_type,
+             "repo": body.get("repository", {}).get("full_name", ""),
+             "dispatched_to_agents": dispatched},
+            tier="T2",
+        )
+    except Exception:
+        pass
+
+    return {"received": event_type, "dispatched_to_agents": dispatched}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))

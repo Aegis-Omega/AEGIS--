@@ -12,7 +12,8 @@ RUN pip install --no-cache-dir \
     anthropic==0.52.0 \
     redis[asyncio]==5.1.0 \
     httpx==0.27.0 \
-    pyyaml==6.0.2
+    pyyaml==6.0.2 \
+    anyio==4.6.2
 
 # serve.py at /app, agents package at /app/agents, harness data at /app/harness.
 # evolution.py computes _REPO_ROOT = dirname(agents) = /app, so it finds

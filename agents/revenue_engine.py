@@ -50,6 +50,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import uuid
 from dataclasses import dataclass, field
 from typing import Callable
@@ -263,18 +264,37 @@ async def run_revenue_cycle(objective: str, live: bool = False) -> RevenueCycleR
                 f"{prior_output}"
             )
 
-        if live and run_agent is not None:
-            try:
-                task = AgentTask(  # type: ignore[call-arg]
-                    task_id=str(uuid.uuid4()),
-                    role=AgentRole(role),  # type: ignore[call-arg]
-                    instruction=instruction,
-                    max_ralph_cycles=2,
-                )
-                agent_result = await run_agent(task)  # type: ignore[misc]
-                output = agent_result.output[:1500]
-            except Exception as exc:  # noqa: BLE001 — degrade to deterministic stage
-                output = _demo_output(role, objective, prior_output) + f"  [live fallback: {exc}]"
+        if live:
+            _api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+            if _api_key:
+                try:
+                    from agents.tool_runner import run_collaborative_stage
+                    output = await run_collaborative_stage(
+                        role=role,
+                        mandate=mandate,
+                        objective=objective,
+                        prior_context=prior_output,
+                        api_key=_api_key,
+                        namespace=f"revenue:{role}",
+                    )
+                    output = output[:2000]
+                except Exception as exc:  # noqa: BLE001
+                    output = _demo_output(role, objective, prior_output) + f"  [live fallback: {exc}]"
+            elif run_agent is not None:
+                # Old coordinator path — no tool support
+                try:
+                    task = AgentTask(  # type: ignore[call-arg]
+                        task_id=str(uuid.uuid4()),
+                        role=AgentRole(role),  # type: ignore[call-arg]
+                        instruction=instruction,
+                        max_ralph_cycles=2,
+                    )
+                    agent_result = await run_agent(task)  # type: ignore[misc]
+                    output = agent_result.output[:1500]
+                except Exception as exc:  # noqa: BLE001
+                    output = _demo_output(role, objective, prior_output) + f"  [live fallback: {exc}]"
+            else:
+                output = _demo_output(role, objective, prior_output)
         else:
             output = _demo_output(role, objective, prior_output)
 
