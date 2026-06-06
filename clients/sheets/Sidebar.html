@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 12px;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+    /* ── Header ── */
+    .header {
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .header-mark {
+      width: 22px; height: 22px;
+      color: #818cf8;
+    }
+    .header-title { font-weight: 700; font-size: 12px; color: #e2e8f0; }
+    .header-sub   { font-size: 9px; color: #475569; }
+
+    /* ── Chain banner ── */
+    .chain-banner {
+      background: #0d1117;
+      border-bottom: 1px solid #1e293b;
+      padding: 5px 12px;
+      display: flex;
+      gap: 10px;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      color: #334155;
+      flex-shrink: 0;
+    }
+    .chain-ok   { color: #16a34a; }
+    .chain-hash { color: #1d4ed8; }
+
+    /* ── Scroll area ── */
+    .scroll { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+    /* ── Card ── */
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .card-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+
+    /* ── Inputs ── */
+    textarea, select, input[type="text"] {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 11px;
+      padding: 7px 9px;
+      outline: none;
+      resize: vertical;
+      transition: border-color .15s;
+    }
+    textarea:focus, select:focus { border-color: #6366f1; }
+    select option { background: #1e293b; }
+
+    /* ── Checkbox row ── */
+    .check-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: #94a3b8; }
+    input[type="checkbox"] { accent-color: #6366f1; width: 13px; height: 13px; }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(99,102,241,.4);
+    }
+    .btn-primary:hover { filter: brightness(1.12); box-shadow: 0 4px 14px rgba(99,102,241,.5); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+    .btn-secondary { background: #1e293b; border: 1px solid #334155; color: #94a3b8; }
+    .btn-secondary:hover { border-color: #6366f1; color: #818cf8; }
+    .btn-sm {
+      width: auto; padding: 4px 10px; font-size: 10px; font-weight: 600;
+      background: #0f172a; border: 1px solid #334155; color: #6366f1;
+      border-radius: 5px; cursor: pointer;
+    }
+    .btn-sm:hover { border-color: #6366f1; background: #1e293b; }
+
+    /* ── Status bar ── */
+    .status-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #172033;
+      border: 1px solid #1d4ed8;
+      border-radius: 6px;
+      color: #93c5fd;
+      font-size: 10px;
+    }
+    .status-bar.active { display: flex; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 14px; height: 14px; border: 2px solid #1d4ed8; border-top-color: #93c5fd; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+
+    /* ── Console ── */
+    .console {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: #94a3b8;
+      padding: 9px;
+      min-height: 80px;
+      max-height: 220px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+    .console .ok   { color: #4ade80; }
+    .console .warn { color: #fbbf24; }
+    .console .err  { color: #f87171; }
+    .console .hi   { color: #818cf8; }
+    .console .dim  { color: #334155; }
+
+    /* ── Result summary cards ── */
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+    .stat-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; }
+    .stat-label { font-size: 8px; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
+    .stat-value { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-top: 2px; font-family: 'Courier New', monospace; }
+    .stat-value.arr  { color: #4ade80; }
+    .stat-value.ok   { color: #4ade80; }
+    .stat-value.warn { color: #fbbf24; }
+    .stat-value.err  { color: #f87171; }
+
+    /* ── Verdict badge ── */
+    .verdict { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .verdict-APPROVED   { background: #14532d; color: #4ade80; }
+    .verdict-FLAG       { background: #713f12; color: #fbbf24; }
+    .verdict-QUARANTINE { background: #7f1d1d; color: #f87171; }
+
+    /* ── Footer ── */
+    .footer { padding: 8px 12px; border-top: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .footer-link { font-size: 9px; color: #334155; text-decoration: none; }
+    .footer-link:hover { color: #818cf8; }
+
+    /* ── Scrollbar for console ── */
+    .console::-webkit-scrollbar { width: 4px; }
+    .console::-webkit-scrollbar-thumb { background: #1e293b; }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <svg class="header-mark" viewBox="0 0 64 64" fill="none" stroke="currentColor">
+      <rect x="0.5" y="0.5" width="63" height="63" stroke-width="1"/>
+      <path d="M32 32L32 14M32 32L16.4 41M32 32L47.6 41" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="32" cy="12" r="4" stroke-width="1.6"/>
+      <circle cx="14.7" cy="42" r="4" stroke-width="1.6"/>
+      <circle cx="49.3" cy="42" r="4" stroke-width="1.6"/>
+      <circle cx="32" cy="32" r="5" fill="currentColor" stroke="none"/>
+    </svg>
+    <div>
+      <div class="header-title">AEGIS-Ω Control</div>
+      <div class="header-sub">39-agent autonomous platform</div>
+    </div>
+    <button class="btn-sm" style="margin-left:auto" onclick="loadStatus()">status</button>
+  </div>
+
+  <!-- ── Chain integrity banner ── -->
+  <div class="chain-banner" id="chainBanner">
+    <span>hash-chain</span>
+    <span id="chainHash" class="chain-hash">—</span>
+    <span style="margin-left:auto" id="chainOk" class="chain-ok"></span>
+  </div>
+
+  <!-- ── Scrollable body ── -->
+  <div class="scroll">
+
+    <!-- Objective -->
+    <div class="card">
+      <div class="card-label">Objective — what the 39 agents work on</div>
+      <textarea id="objective" rows="3" placeholder="e.g. Identify top 3 revenue opportunities for a B2B SaaS in EU market"></textarea>
+    </div>
+
+    <!-- Mode + options -->
+    <div class="card">
+      <div class="card-label">Collaboration Mode</div>
+      <select id="mode">
+        <option value="revenue">📈 Revenue Cycle — ARR projection + go-to-market</option>
+        <option value="analysis">🔍 Market Analysis — competitive landscape + positioning</option>
+        <option value="gtm">🚀 Go-to-Market — launch strategy + channel selection</option>
+        <option value="retention">🔄 Retention — churn reduction + expansion revenue</option>
+      </select>
+      <div class="check-row">
+        <input type="checkbox" id="liveMode">
+        <label for="liveMode">Live mode (uses real Anthropic API — slower, requires Operator+ tier)</label>
+      </div>
+    </div>
+
+    <!-- Cell data pull -->
+    <div class="card">
+      <div class="card-label">Inject Sheet Data into Objective</div>
+      <button class="btn btn-secondary" onclick="pullCell()">📥 Pull Active Cell into Objective</button>
+    </div>
+
+    <!-- Deploy button -->
+    <button class="btn btn-primary" id="deployBtn" onclick="deploy()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Deploy 39 Agents
+    </button>
+
+    <!-- Status bar -->
+    <div class="status-bar" id="statusBar">
+      <div class="spinner"></div>
+      <span id="statusText">Deploying agents…</span>
+    </div>
+
+    <!-- Result stats (hidden until result arrives) -->
+    <div id="resultStats" style="display:none">
+      <div class="card-label" style="margin-bottom:4px">Collaboration Result</div>
+      <div class="result-grid">
+        <div class="stat-card">
+          <div class="stat-label">Departments</div>
+          <div class="stat-value" id="statDepts">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">ARR Projection</div>
+          <div class="stat-value arr" id="statArr">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tier</div>
+          <div class="stat-value" id="statTier">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Constitutional Verdict</div>
+          <div id="statVerdict">—</div>
+        </div>
+      </div>
+      <div style="margin-top:6px; display:flex; gap:6px">
+        <button class="btn-sm" onclick="writeToSheet()">📋 Write Report to Sheet</button>
+        <button class="btn-sm" onclick="copyOutput()">📋 Copy JSON</button>
+      </div>
+    </div>
+
+    <!-- Console -->
+    <div class="card" style="padding:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="card-label" style="margin:0">Agent Output Console</div>
+        <button class="btn-sm" onclick="clearConsole()">clear</button>
+      </div>
+      <div id="console" class="console"><span class="dim">Waiting for deployment…</span></div>
+    </div>
+
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <a href="#" class="footer-link" onclick="showSetup();return false">setup guide</a>
+    <span style="font-size:9px;color:#1e293b;font-family:monospace" id="footerHash"></span>
+    <a href="https://aegisomega.com" class="footer-link" target="_blank">aegisomega.com</a>
+  </div>
+
+</body>
+
+<script>
+  let _lastResult = null;
+
+  // ── Console helpers ──────────────────────────────────────────────────────────
+  function log(msg, cls) {
+    const el = document.getElementById('console');
+    const span = document.createElement('span');
+    if (cls) span.className = cls;
+    span.textContent = msg + '\n';
+    if (el.firstChild && el.firstChild.className === 'dim') el.innerHTML = '';
+    el.appendChild(span);
+    el.scrollTop = el.scrollHeight;
+  }
+  function clearConsole() {
+    document.getElementById('console').innerHTML = '<span class="dim">Waiting for deployment…</span>';
+  }
+
+  // ── Status banner ────────────────────────────────────────────────────────────
+  function setBusy(msg) {
+    document.getElementById('statusBar').classList.add('active');
+    document.getElementById('statusText').textContent = msg || 'Working…';
+    document.getElementById('deployBtn').disabled = true;
+  }
+  function setIdle() {
+    document.getElementById('statusBar').classList.remove('active');
+    document.getElementById('deployBtn').disabled = false;
+  }
+
+  // ── Load platform status ──────────────────────────────────────────────────────
+  function loadStatus() {
+    setBusy('Checking platform status…');
+    google.script.run
+      .withSuccessHandler(function(s) {
+        setIdle();
+        if (s.error) { log('❌ Status: ' + s.error, 'err'); return; }
+        const hash = (s.audit_chain_hash || '').slice(0, 16) || '—';
+        document.getElementById('chainHash').textContent = hash + '…';
+        document.getElementById('chainOk').textContent = s.chain_valid !== false ? '✓ valid' : '✗ broken';
+        document.getElementById('footerHash').textContent = hash;
+        log('✓ AEGIS-Ω v' + (s.version || '?') + ' · ' + (s.total_agents || 39) + ' agents · chain: ' + (s.chain_valid !== false ? 'valid' : 'BROKEN'), 'ok');
+      })
+      .withFailureHandler(function(e) { setIdle(); log('❌ ' + e.message, 'err'); })
+      .getAegisPlatformStatus();
+  }
+
+  // ── Pull active cell ─────────────────────────────────────────────────────────
+  function pullCell() {
+    google.script.run
+      .withSuccessHandler(function(text) {
+        if (!text) { log('⚠ Active cell is empty', 'warn'); return; }
+        const obj = document.getElementById('objective');
+        obj.value = obj.value ? obj.value + '\n\n[Sheet data]:\n' + text : text;
+        log('✓ Pulled ' + text.length + ' chars from active cell', 'ok');
+      })
+      .withFailureHandler(function(e) { log('❌ Pull failed: ' + e.message, 'err'); })
+      .getActiveCellText();
+  }
+
+  // ── Main: deploy ─────────────────────────────────────────────────────────────
+  function deploy() {
+    const objective = document.getElementById('objective').value.trim();
+    if (!objective) { log('⚠ Enter an objective first.', 'warn'); return; }
+
+    const mode = document.getElementById('mode').value;
+    const live = document.getElementById('liveMode').checked;
+
+    clearConsole();
+    log('⚡ Deploying 39 agents…', 'hi');
+    log('  Objective: ' + objective.slice(0, 80), 'dim');
+    log('  Mode: ' + mode + ' | Live: ' + live, 'dim');
+    document.getElementById('resultStats').style.display = 'none';
+    setBusy('39 agents collaborating' + (live ? ' (live API)' : ' (demo)') + '…');
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        setIdle();
+        _lastResult = result;
+
+        if (result.error) {
+          log('❌ Error: ' + result.error, 'err');
+          return;
+        }
+
+        // Parse and display result
+        const proj  = result.projection  || {};
+        const audit = result.constitutional_audit || {};
+        const arts  = result.artifacts   || [];
+        const verdict = audit.verdict || 'APPROVED';
+        const arrFmt  = proj.first_year_arr_usd
+          ? '$' + Number(proj.first_year_arr_usd).toLocaleString()
+          : 'N/A';
+
+        // Update stat cards
+        document.getElementById('statDepts').textContent = result.departments_collaborated || arts.length;
+        document.getElementById('statArr').textContent = arrFmt;
+        document.getElementById('statTier').textContent = proj.tier || '—';
+
+        const vBadge = document.getElementById('statVerdict');
+        vBadge.innerHTML = '<span class="verdict verdict-' + verdict + '">' + verdict + '</span>';
+
+        document.getElementById('resultStats').style.display = 'block';
+
+        // Console log
+        log('✓ Cycle complete: ' + (result.cycle_id || '?'), 'ok');
+        log('  Departments: ' + (result.departments_collaborated || arts.length), 'ok');
+        log('  ARR: ' + arrFmt + ' · Tier: ' + (proj.tier || '?'), 'ok');
+        log('  Verdict: ' + verdict, verdict === 'APPROVED' ? 'ok' : verdict === 'FLAG' ? 'warn' : 'err');
+        if (proj.governed_note) log('  Note: ' + proj.governed_note.slice(0, 100), 'dim');
+
+        if ((audit.concerns || []).length > 0) {
+          log('⚠ Constitutional concerns:', 'warn');
+          audit.concerns.slice(0, 3).forEach(function(c) { log('  · ' + c.slice(0, 100), 'warn'); });
+        }
+
+        // Log stage outputs (abbreviated)
+        if (arts.length > 0) {
+          log('', '');
+          log('── Stage outputs (' + arts.length + ' departments) ──', 'hi');
+          arts.forEach(function(a) {
+            log('[' + (a.role || '?') + '] ' + (a.output || '').slice(0, 120) + '…', '');
+          });
+        }
+      })
+      .withFailureHandler(function(e) {
+        setIdle();
+        log('❌ Failure: ' + e.message, 'err');
+      })
+      .runAegisCollaboration(objective, mode, live);
+  }
+
+  // ── Write to sheet ───────────────────────────────────────────────────────────
+  function writeToSheet() {
+    if (!_lastResult) { log('⚠ No result to write.', 'warn'); return; }
+    setBusy('Writing report to sheet…');
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        setIdle();
+        log('✓ ' + msg, 'ok');
+      })
+      .withFailureHandler(function(e) { setIdle(); log('❌ Write failed: ' + e.message, 'err'); })
+      .writeReportToSheet(_lastResult);
+  }
+
+  // ── Copy JSON ────────────────────────────────────────────────────────────────
+  function copyOutput() {
+    if (!_lastResult) return;
+    const text = JSON.stringify(_lastResult, null, 2);
+    // google.script.run call to writeToActiveCell so clipboard works inside iframe
+    google.script.run
+      .withSuccessHandler(function() { log('✓ JSON written to active cell', 'ok'); })
+      .writeToActiveCell(text);
+  }
+
+  function showSetup() {
+    google.script.run.showSetupModal();
+  }
+
+  // Auto-load status on open
+  window.onload = function() { loadStatus(); };
+</script>
+</html>
