@@ -115,6 +115,19 @@ CAPABILITY_SKILL_MAP: dict[str, str] = {
     "vendor_negotiation":    "agent_handoff_protocol",
     "budget_forecasting":    "martingale_gating",
     "api_cost_tracking":     "telemetry_streaming",
+    # Mythos-level cognitive substrate capabilities
+    "deep_research":         "corpus_ingestion_pipeline",
+    "multi_source_synthesis":"epistemic_tier_classification",
+    "corpus_ingestion":      "corpus_ingestion_pipeline",
+    "tier_arbitration":      "epistemic_tier_classification",
+    "annotation_pipeline":   "corpus_ingestion_pipeline",
+    "batch_processing":      "gate8_deployment_gate",
+    "fibonacci_cadence":     "orchestration_routing",
+    "parallel_arbitration":  "epistemic_tier_classification",
+    "chronology":            "audit_trail_management",
+    "retrospective_analysis":"constitutional_law_enforcement",
+    "lineage_narration":     "replay_sovereignty",
+    "metacognitive_observation":"constitutional_law_enforcement",
 }
 
 
@@ -167,6 +180,11 @@ class AgentRole(str, Enum):
     WORKPLACE            = "workplace"
     # Enablement
     EDUCATION            = "education"
+    # Mythos-level cognitive substrate (tier 0 apex agents)
+    DEEP_RESEARCHER      = "deep_researcher"
+    CORPUS_INGESTOR      = "corpus_ingestor"
+    BATCH_PROCESSOR      = "batch_processor"
+    CHRONOLOGIST         = "chronologist"
 
 
 # ── EventEnvelope (Law of Silence) ───────────────────────────────────────────
@@ -756,6 +774,13 @@ EVENT_ROUTING: dict[str, list[AgentRole]] = {
     # Education events
     "training_request":          [AgentRole.EDUCATION, AgentRole.DEVREL],
     "certification_inquiry":     [AgentRole.EDUCATION, AgentRole.CUSTOMER_SUCCESS],
+    # Mythos cognitive-substrate events — the four-stage knowledge pipeline
+    "research_request":          [AgentRole.DEEP_RESEARCHER],
+    "corpus_document":           [AgentRole.CORPUS_INGESTOR],
+    "corpus_batch":              [AgentRole.BATCH_PROCESSOR, AgentRole.CORPUS_INGESTOR],
+    "retrospective_request":     [AgentRole.CHRONOLOGIST],
+    "knowledge_pipeline":        [AgentRole.DEEP_RESEARCHER, AgentRole.CORPUS_INGESTOR,
+                                  AgentRole.BATCH_PROCESSOR, AgentRole.CHRONOLOGIST],
 }
 
 

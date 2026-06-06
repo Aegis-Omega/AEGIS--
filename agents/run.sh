@@ -232,6 +232,40 @@ case "${1:-help}" in
       --task "${2:-Create constitutional AI governance curriculum}"
     ;;
 
+  # ── Mythos Cognitive Substrate (tier-0 apex agents) ───────────────────────
+  deep-research)
+    $COORD run --role deep_researcher \
+      --task "${2:-Exhaustively research INT4 LUT-KAN viability; emit citable claims}"
+    ;;
+
+  corpus)
+    $COORD run --role corpus_ingestor \
+      --task "${2:-Run 5-phase RALPH ARBITRATION on the latest research findings}"
+    ;;
+
+  batch)
+    $COORD run --role batch_processor \
+      --task "${2:-Partition corpus findings into Fibonacci-cadence RALPH batches}"
+    ;;
+
+  chronology)
+    $COORD run --role chronologist \
+      --task "${2:-Narrate the adaptive lineage; produce the retrospective entry}"
+    ;;
+
+  # ── Mythos pipeline: deep-research → corpus → batch → chronology ───────────
+  pipeline)
+    $PYTHON -m agents.cognitive_pipeline run --topic "${2:-INT4 LUT-KAN viability}" "${@:3}"
+    ;;
+
+  pipeline-demo)
+    $PYTHON -m agents.cognitive_pipeline demo
+    ;;
+
+  arbitrate)
+    $PYTHON -m agents.cognitive_pipeline score --claim "${2:-deterministic SHA-256 hash chain}"
+    ;;
+
   # ── Event dispatcher ─────────────────────────────────────────────────────
   dispatch)
     EVENT="${2:-github_pr_opened}"

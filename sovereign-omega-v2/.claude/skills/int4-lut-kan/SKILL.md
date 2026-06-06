@@ -61,6 +61,38 @@ The `table` values are stored as `i32` (scaled fixed-point); the scaling factor 
 
 ---
 
+## Implementation Status (updated 2026-06-06)
+
+**Criterion #1 — COMPLETE.** `lut_activation()` is implemented in
+`aegis-cl-psi/src/int4_lut_kan.rs` with a full 20-test viability ring (the 19-test
+ring + 1 cross-implementation parity test). `cargo test int4_lut_kan` → 20 passed.
+
+Module surface:
+- `lut_activation(input: i32, &Lut) -> i32` — clamped 16-entry lookup, no f64
+- `quantize_int4(value, shift)` — power-of-two fixed-point → 4-bit index
+- `KanLayer` / `KanScorer` — two-layer Kolmogorov-Arnold form, saturating i32
+- `KanInferenceLog` — hash-chained scoring decisions; `verify_chain() → (bool, Option<usize>)`;
+  `record_hash = SHA-256(prev ‖ seq_be8 ‖ input_fingerprint ‖ score_be4)`; genesis `[0u8;32]`
+
+**Criterion #3 — PARTIAL (Rust ↔ Python parity proven).** A faithful Python port
+in `agents/cognitive_pipeline.py` produces byte-identical fingerprints and record
+hashes; the Rust test `fingerprint_matches_python_reference` asserts the exact
+Python-computed values. Cross-platform determinism across ROCm/CPU/ARM remains
+pending hardware access (Criterion #2 benchmark also pending).
+
+**Orchestration.** The scorer is wired as the ARBITRATION gate of the Mythos
+cognitive pipeline (`deep-research → corpus-ingestion → batch → chronology`).
+Each candidate claim is quantised to four constitutional features
+[evidence, determinism, t45_contamination, citation] and scored; the decision is
+hash-chained and replay-certifiable. T4/T5 contamination is a hard veto regardless
+of score. See `docs/MYTHOS_COGNITIVE_SUBSTRATE.md`.
+
+Promotion note: criterion #1 met is necessary but not sufficient for T2→T1 — that
+requires the ≥2× benchmark (criterion #2) AND tri-platform determinism (criterion #3).
+The module remains **T2** until both land. (Test pass ≠ Correctness; the invariant holds.)
+
+---
+
 ## Source
 
 Admitted T2 engineering claim from corpus ARBITRATION (AEGIS OMEGA Deployment-Certifiable). Also admitted from same document: eBPF sandbox boundaries, SGM Hoeffding LCB bounds, TimescaleDB hypertable 2ms SLA — all as independent T2 patterns.

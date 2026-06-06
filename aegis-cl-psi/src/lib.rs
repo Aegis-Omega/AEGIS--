@@ -243,6 +243,11 @@ pub mod alert_engine;
 // plan_hash = SHA-256(prev ‖ severity_byte ‖ top_priority_byte ‖ epoch_be8).
 pub mod intervention_recommender;
 
+// INT4 LUT-KAN — cache-local Kolmogorov-Arnold inference (T2)
+// lut_activation(input, &[i32;16]) replaces B-spline activations: O(1), no f64.
+// KanInferenceLog hash-chains scoring decisions; record_hash = SHA-256(prev ‖ seq_be8 ‖ fingerprint ‖ score_be4).
+pub mod int4_lut_kan;
+
 // Gate 252 — Recovery Sequencer: time-ordered step execution with progress hash (T2)
 // RecoveryStep: kind + priority + StepStatus (Pending/InProgress/Completed/Skipped).
 // advance_step() recomputes step_hash chain. sequence_hash = SHA-256(all step_hashes ‖ epoch).
