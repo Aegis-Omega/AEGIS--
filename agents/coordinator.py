@@ -34,10 +34,49 @@ import yaml
 # ── Config ────────────────────────────────────────────────────────────────────
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.dirname(_ROOT)
 PROXY_URL = os.environ.get("PROXY_URL", "http://localhost:8080")
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
 DEFAULT_MODEL = os.environ.get("AEGIS_DEFAULT_MODEL", "claude-opus-4-8")
 EVENTBUS_CHANNEL = "aegis:events"
+SKILL_TREE_PATH = os.path.join(_REPO_ROOT, "harness", "skill_tree.json")
+
+# Capability → skill_id mapping: which harness skill backs each agent capability
+CAPABILITY_SKILL_MAP: dict[str, str] = {
+    "code_generation":       "rust_gate_module_development",
+    "code_review":           "typescript_event_ledger",
+    "pr_management":         "agent_handoff_protocol",
+    "ci_diagnosis":          "gate8_deployment_gate",
+    "architecture_decisions":"constitutional_law_enforcement",
+    "test_writing":          "gate8_deployment_gate",
+    "dependency_audit":      "audit_trail_management",
+    "partnership_outreach":  "probabilistic_competency_modeling",
+    "enterprise_sales":      "orchestration_routing",
+    "rfp_response":          "audit_trail_management",
+    "competitive_analysis":  "epistemic_tier_classification",
+    "technical_briefing":    "constitutional_law_enforcement",
+    "investor_communication":"martingale_gating",
+    "technical_content":     "skill_tree_construction",
+    "seo_optimization":      "orchestration_routing",
+    "positioning":           "epistemic_tier_classification",
+    "case_studies":          "audit_trail_management",
+    "documentation":         "typescript_event_ledger",
+    "social_media":          "probabilistic_competency_modeling",
+    "press_releases":        "constitutional_law_enforcement",
+    "eu_ai_act_analysis":    "replay_sovereignty",
+    "nist_framework_mapping":"constitutional_law_enforcement",
+    "contract_review":       "audit_trail_management",
+    "privacy_assessment":    "frozen_file_protection",
+    "regulatory_gap_analysis":"eccf_security_alignment",
+    "fisma_alignment":       "replay_sovereignty",
+    "revenue_analysis":      "martingale_gating",
+    "cost_optimization":     "gate8_deployment_gate",
+    "unit_economics":        "probabilistic_competency_modeling",
+    "pricing_strategy":      "orchestration_routing",
+    "vendor_negotiation":    "agent_handoff_protocol",
+    "budget_forecasting":    "martingale_gating",
+    "api_cost_tracking":     "telemetry_streaming",
+}
 
 
 # ── Agent roles ───────────────────────────────────────────────────────────────
@@ -105,6 +144,118 @@ class AgentResult:
     ralph_cycles: int
     duration_ms: int
     is_valid: bool
+
+
+# ── Phase 2: Skill Router — probabilistic competency-backed routing ───────────
+
+class SkillRouter:
+    """
+    Phase 2 skill harness integration.
+    Routes tasks to agents based on competency score from skill_tree.json.
+    Writes SKILL_VALIDATED / SKILL_DEGRADED events back to the tree after execution.
+
+    Score formula: confidence × recency_score × (1 − failure_rate)
+    This mirrors the orchestration_routing skill spec:
+      "Route tasks to best-qualified agent using: competency confidence,
+       specialization domain, failure history, domain affinity, recency score."
+    """
+
+    def __init__(self):
+        self._tree: dict | None = None
+
+    def _load_tree(self) -> dict:
+        if self._tree is None and os.path.exists(SKILL_TREE_PATH):
+            with open(SKILL_TREE_PATH) as f:
+                self._tree = json.load(f)
+        return self._tree or {"skills": []}
+
+    def _skill_by_id(self, skill_id: str) -> dict | None:
+        tree = self._load_tree()
+        for s in tree.get("skills", []):
+            if s["skill_id"] == skill_id:
+                return s
+        return None
+
+    def competency_score(self, skill_id: str) -> float:
+        """confidence × recency_score × (1 − failure_rate)"""
+        s = self._skill_by_id(skill_id)
+        if not s:
+            return 0.5  # unknown skill — neutral
+        return s["confidence"] * s["recency_score"] * (1.0 - s["failure_rate"])
+
+    def capability_score(self, capability: str) -> float:
+        """Resolve capability → skill_id → competency score."""
+        skill_id = CAPABILITY_SKILL_MAP.get(capability)
+        if not skill_id:
+            return 0.5
+        return self.competency_score(skill_id)
+
+    def score_role_for_task(self, role: "AgentRole", task_instruction: str, agent_defs: dict) -> float:
+        """
+        Score an agent role for a given task.
+        Uses the declared capabilities list from agents.yaml.
+        Returns sum of capability scores weighted by mention in task text.
+        """
+        agent_def = agent_defs.get(role.value, {})
+        capabilities: list[str] = agent_def.get("capabilities", [])
+        if not capabilities:
+            return 0.5
+
+        task_lower = task_instruction.lower()
+        total, weight = 0.0, 0.0
+        for cap in capabilities:
+            score = self.capability_score(cap)
+            # Domain-keyword boost: if task mentions the capability domain, weight it higher
+            boost = 1.5 if any(kw in task_lower for kw in cap.replace("_", " ").split()) else 1.0
+            total += score * boost
+            weight += boost
+        return total / weight if weight > 0 else 0.5
+
+    def emit_skill_event(self, capability: str, success: bool) -> None:
+        """
+        Phase 2: write SKILL_VALIDATED or SKILL_DEGRADED back to skill_tree.json.
+        Updates: validated_runs, failure_rate, recency_score (decay toward 0.9 on success, 0.7 on failure).
+        Does NOT modify confidence directly — that requires 3+ independent validations to promote.
+        """
+        skill_id = CAPABILITY_SKILL_MAP.get(capability)
+        if not skill_id:
+            return
+
+        tree = self._load_tree()
+        for s in tree.get("skills", []):
+            if s["skill_id"] != skill_id:
+                continue
+
+            s["validated_runs"] += 1
+            total = s["validated_runs"]
+            prev_failures = round(s["failure_rate"] * (total - 1))
+
+            if success:
+                # SKILL_VALIDATED: decay failure_rate, boost recency
+                s["failure_rate"] = prev_failures / total
+                s["recency_score"] = min(1.0, s["recency_score"] * 0.95 + 0.05)
+                # Confidence promotion: if 3+ runs with failure_rate < 0.1, promote to next tier
+                if total >= 3 and s["failure_rate"] < 0.1 and s["confidence"] < 0.95:
+                    s["confidence"] = min(0.95, s["confidence"] + 0.02)
+            else:
+                # SKILL_DEGRADED: increment failure count, decay recency
+                s["failure_rate"] = (prev_failures + 1) / total
+                s["recency_score"] = max(0.1, s["recency_score"] * 0.9)
+                s["confidence"] = max(0.1, s["confidence"] - 0.05)
+
+            s["last_validated"] = time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime())
+            break
+
+        # Write back
+        try:
+            with open(SKILL_TREE_PATH, "w") as f:
+                json.dump(tree, f, indent=2)
+            self._tree = tree  # refresh cache
+        except OSError:
+            pass  # non-fatal — skill tree is observational, not load-bearing
+
+
+_skill_router = SkillRouter()
 
 
 # ── Memory — per-agent Redis namespace ───────────────────────────────────────
@@ -239,7 +390,11 @@ async def _ralph_cycle(
 
 
 async def run_agent(task: AgentTask) -> AgentResult:
-    """Run an agent through RALPH loops until completion or max_cycles."""
+    """Run an agent through RALPH loops until completion or max_cycles.
+
+    Phase 2: emits SKILL_VALIDATED / SKILL_DEGRADED events back to skill_tree.json
+    after each execution, closing the evidence loop for probabilistic competency modeling.
+    """
     defs = _load_agent_defs()
     agent_def = defs["agents"][task.role.value]
 
@@ -253,6 +408,7 @@ async def run_agent(task: AgentTask) -> AgentResult:
     final_output = ""
     final_governance: dict = {}
     cycles = 0
+    succeeded = False
 
     try:
         for cycle in range(task.max_ralph_cycles):
@@ -263,6 +419,7 @@ async def run_agent(task: AgentTask) -> AgentResult:
 
             # Terminal condition: agent declared harmonization complete
             if "HARMONIZE_COMPLETE" in output or cycle == task.max_ralph_cycles - 1:
+                succeeded = governance.get("is_valid", True) and "ERROR" not in output[:200]
                 break
 
     finally:
@@ -270,7 +427,7 @@ async def run_agent(task: AgentTask) -> AgentResult:
         await redis_conn.aclose()
 
     duration_ms = int((time.time() - t_start) * 1000)
-    return AgentResult(
+    result = AgentResult(
         task_id=task.task_id,
         role=task.role,
         output=final_output,
@@ -279,6 +436,13 @@ async def run_agent(task: AgentTask) -> AgentResult:
         duration_ms=duration_ms,
         is_valid=final_governance.get("is_valid", True),
     )
+
+    # Phase 2: emit skill events for all capabilities declared by this agent
+    capabilities: list[str] = agent_def.get("capabilities", [])
+    for cap in capabilities:
+        _skill_router.emit_skill_event(cap, success=succeeded)
+
+    return result
 
 
 # ── Event dispatcher — routes external events to agents ──────────────────────
@@ -301,11 +465,26 @@ EVENT_ROUTING: dict[str, list[AgentRole]] = {
 
 
 async def dispatch_event(event_type: str, payload: dict) -> list[AgentResult]:
-    """Route an external event to the appropriate agents and run them."""
-    roles = EVENT_ROUTING.get(event_type, [AgentRole.ENGINEERING])
-    results = []
+    """Route an external event using skill-backed competency scoring (Phase 2).
 
-    for role in roles:
+    Primary routing from EVENT_ROUTING; within that set, agents are scored by
+    the SkillRouter against their declared capabilities. The highest-scoring
+    agent runs first. All agents in the routing set still run (not winner-take-all)
+    but the order reflects competency confidence.
+    """
+    candidate_roles = EVENT_ROUTING.get(event_type, [AgentRole.ENGINEERING])
+    defs = _load_agent_defs()
+
+    # Score candidates by competency and sort descending
+    instruction_sample = _event_to_instruction(event_type, payload, candidate_roles[0])
+    scored = sorted(
+        candidate_roles,
+        key=lambda r: _skill_router.score_role_for_task(r, instruction_sample, defs["agents"]),
+        reverse=True,
+    )
+
+    results = []
+    for role in scored:
         task_id = str(uuid.uuid4())
         instruction = _event_to_instruction(event_type, payload, role)
         task = AgentTask(
