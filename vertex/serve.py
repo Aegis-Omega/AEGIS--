@@ -19,6 +19,7 @@ Every inference call is hash-chained:
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import os
@@ -141,6 +142,48 @@ class ChainState:
 
 
 state = ChainState()
+
+# Supabase persistence config (optional — graceful no-op if unset)
+_SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+_SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+
+
+async def _persist_cycle_result(result: dict) -> None:
+    """
+    Persist a collaboration cycle result to Supabase for permanent storage.
+    Fire-and-forget — never raises; caller is not blocked.
+    Stores: cycle_id, objective, projection, departments_collaborated, chain_valid, timestamp.
+    """
+    if not _SUPABASE_URL or not _SUPABASE_KEY:
+        return
+    try:
+        row = {
+            "cycle_id": result.get("cycle_id"),
+            "objective": result.get("objective", "")[:500],
+            "mode": result.get("mode", "revenue"),
+            "departments_collaborated": result.get("departments_collaborated", 0),
+            "chain_valid": result.get("chain_valid", True),
+            "projection_arr_usd": (
+                result.get("projection", {}) or {}
+            ).get("first_year_arr_usd"),
+            "projection_tier": (result.get("projection", {}) or {}).get("tier"),
+            "constitutional_verdict": (
+                (result.get("constitutional_audit") or {}).get("verdict", "APPROVED")
+            ),
+            "live": result.get("live", False),
+            "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+        url = f"{_SUPABASE_URL}/rest/v1/revenue_cycles"
+        headers = {
+            "apikey": _SUPABASE_KEY,
+            "Authorization": f"Bearer {_SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        }
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(url, json=row, headers=headers)
+    except Exception:  # noqa: BLE001 — persistence is best-effort
+        pass
 
 
 @asynccontextmanager
@@ -621,6 +664,21 @@ async def platform_collaborate(request: Request):
         except ImportError as exc:
             raise HTTPException(503, f"Revenue engine not available: {exc}")
         r = await run_revenue_cycle(objective, live=live)
+
+        # Red team verdict (attached by revenue_engine post-cycle)
+        rt = r.red_team
+        red_team_data = rt.to_dict() if rt and hasattr(rt, "to_dict") else None
+
+        # If quarantined, block and return safety report instead
+        if rt and getattr(rt, "quarantine", False):
+            return JSONResponse({
+                "mode": "revenue",
+                "blocked": True,
+                "reason": "Constitutional red team quarantine",
+                "concerns": rt.concerns,
+                "cycle_id": r.cycle_id,
+            }, status_code=422)
+
         result = {
             "mode": "revenue",
             "cycle_id": r.cycle_id,
@@ -643,7 +701,11 @@ async def platform_collaborate(request: Request):
             "lineage_terminal_hash": r.lineage_terminal_hash,
             "chain_valid": r.chain_valid,
             "departments_collaborated": len(r.artifacts),
+            "constitutional_audit": red_team_data,
         }
+
+        # Persist to Supabase (fire-and-forget — non-blocking)
+        asyncio.create_task(_persist_cycle_result(result))
     elif mode == "cognitive":
         try:
             from agents.cognitive_pipeline import run_pipeline

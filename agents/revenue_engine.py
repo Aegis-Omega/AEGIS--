@@ -145,6 +145,7 @@ class RevenueCycleResult:
     lineage_terminal_hash: str = ""
     chain_valid: bool = True
     live: bool = False
+    red_team: object = None  # RedTeamVerdict | None — typed as object to avoid circular import
 
 
 # ── Deterministic demo generators ───────────────────────────────────────────────
@@ -344,6 +345,14 @@ async def run_revenue_cycle(objective: str, live: bool = False) -> RevenueCycleR
 
     # Hash-chain into AdaptiveLineage and run one evolution tick.
     result.lineage_terminal_hash, result.chain_valid = _record_revenue_cycle(result)
+
+    # Constitutional red team: audit the full cycle output (non-blocking).
+    try:
+        from agents.red_team import audit_revenue_cycle
+        _rt_api_key = os.environ.get("ANTHROPIC_API_KEY", "") if live else ""
+        result.red_team = await audit_revenue_cycle(result, api_key=_rt_api_key or None)
+    except Exception:  # noqa: BLE001 — red team is best-effort, never blocks
+        result.red_team = None  # type: ignore[attr-defined]
 
     return result
 
