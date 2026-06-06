@@ -91,11 +91,11 @@ export function HomepageLanding() {
             Book Enterprise Demo →
           </button>
           <a
-            href="/cockpit"
-            onClick={() => captureEvent('hero_cockpit_link', { ttv_seconds: ttv() })}
+            href="/runtime"
+            onClick={() => captureEvent('hero_runtime_link', { ttv_seconds: ttv() })}
             className="inline-flex items-center justify-center gap-2 border border-hub-border text-hub-muted hover:text-hub-text hover:border-hub-border/80 font-medium px-8 py-3.5 rounded-xl transition-colors text-sm"
           >
-            Try Free Cockpit →
+            See the Runtime →
           </a>
         </div>
 
