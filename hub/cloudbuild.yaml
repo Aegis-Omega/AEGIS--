@@ -39,3 +39,10 @@ steps:
 images:
   - gcr.io/$PROJECT_ID/aegis-hub:$COMMIT_SHA
   - gcr.io/$PROJECT_ID/aegis-hub:latest
+
+# Required when the trigger runs as a custom service account: Cloud Build rejects
+# the default logging mode and mandates CLOUD_LOGGING_ONLY. Declaring it here makes
+# the build request carry the instruction from source, satisfying the API check
+# (the gcloud CLI flag could not set this bit on the trigger).
+options:
+  logging: CLOUD_LOGGING_ONLY
