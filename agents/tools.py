@@ -153,7 +153,77 @@ TOOL_SCHEMAS: list[dict] = [
             "required": [],
         },
     },
+    {
+        "name": "run_python",
+        "description": (
+            "Execute a Python snippet and return stdout + stderr. "
+            "Use for data analysis, calculations, parsing structured data, "
+            "generating CSV/JSON output, or any computation that Claude cannot "
+            "do precisely in prose. Only stdlib + numpy/pandas if available. "
+            "No network calls inside the snippet. Timeout: 15 seconds."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "Python code to execute. Use print() for output.",
+                },
+                "timeout": {
+                    "type": "integer",
+                    "description": "Execution timeout in seconds (max 15).",
+                    "default": 10,
+                },
+            },
+            "required": ["code"],
+        },
+    },
 ]
+
+# ── Per-role tool specialization ──────────────────────────────────────────────
+# Different departments get different tool subsets.
+# This is enforced by tool_runner when building the tool list for each agent.
+
+ROLE_TOOLS: dict[str, list[str]] = {
+    # Research roles — deep web access + code execution for analysis
+    "strategy":              ["web_search", "fetch_url", "search_github", "read_memory", "write_memory", "current_datetime", "run_python"],
+    "ai_research":           ["web_search", "fetch_url", "search_github", "read_memory", "write_memory", "current_datetime", "run_python"],
+    "applied_science":       ["web_search", "fetch_url", "search_github", "read_memory", "write_memory", "run_python"],
+    "deep_researcher":       ["web_search", "fetch_url", "search_github", "read_memory", "write_memory", "current_datetime", "run_python"],
+    "corpus_ingestor":       ["web_search", "fetch_url", "read_memory", "write_memory", "run_python"],
+    # Engineering roles — code execution + GitHub access
+    "engineering":           ["search_github", "fetch_url", "read_memory", "write_memory", "run_python", "current_datetime"],
+    "platform_engineering":  ["search_github", "fetch_url", "read_memory", "write_memory", "run_python"],
+    "hardware_engineering":  ["web_search", "fetch_url", "read_memory", "write_memory", "run_python"],
+    # Data roles — code execution for analysis
+    "data_labeling":         ["run_python", "read_memory", "write_memory"],
+    "data_governance":       ["run_python", "read_memory", "write_memory", "fetch_url"],
+    "batch_processor":       ["run_python", "read_memory", "write_memory", "current_datetime"],
+    # Commercial roles — market research + web + contact finding
+    "marketing":             ["web_search", "fetch_url", "read_memory", "write_memory", "current_datetime"],
+    "biz_dev":               ["web_search", "fetch_url", "search_github", "read_memory", "write_memory", "current_datetime"],
+    "partnerships":          ["web_search", "fetch_url", "search_github", "read_memory", "write_memory"],
+    "sales":                 ["web_search", "fetch_url", "search_github", "read_memory", "write_memory", "current_datetime"],
+    "solutions_engineering": ["web_search", "fetch_url", "search_github", "read_memory", "write_memory", "run_python"],
+    "customer_success":      ["web_search", "fetch_url", "read_memory", "write_memory", "current_datetime"],
+    "product_management":    ["web_search", "fetch_url", "read_memory", "write_memory", "current_datetime", "run_python"],
+    # Finance + analysis roles
+    "finance":               ["web_search", "fetch_url", "run_python", "read_memory", "write_memory", "current_datetime"],
+    "corporate_development": ["web_search", "fetch_url", "run_python", "read_memory", "write_memory"],
+    # Security roles — GitHub + web for threat intel
+    "cybersecurity":         ["web_search", "fetch_url", "search_github", "read_memory", "write_memory", "run_python"],
+    "ai_safety":             ["web_search", "fetch_url", "search_github", "read_memory", "write_memory"],
+    "compliance":            ["web_search", "fetch_url", "read_memory", "write_memory"],
+    # Default for all unlisted roles
+    "_default":              ["web_search", "fetch_url", "read_memory", "write_memory", "current_datetime"],
+}
+
+
+def tools_for_role(role: str) -> list[dict]:
+    """Return the tool schemas allowed for a given agent role."""
+    allowed = ROLE_TOOLS.get(role, ROLE_TOOLS["_default"])
+    schema_by_name = {s["name"]: s for s in TOOL_SCHEMAS}
+    return [schema_by_name[name] for name in allowed if name in schema_by_name]
 
 
 # ── Tool implementations ──────────────────────────────────────────────────────
@@ -307,6 +377,30 @@ def current_datetime() -> str:
     return datetime.datetime.utcnow().isoformat() + "Z"
 
 
+async def run_python(code: str, timeout: int = 10) -> str:
+    """Execute a Python snippet in a subprocess and return combined stdout/stderr."""
+    import asyncio
+    timeout = max(1, min(15, timeout))
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "python", "-c", code,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd="/tmp",
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        except asyncio.TimeoutError:
+            proc.kill()
+            return f"timeout after {timeout}s"
+        out = stdout.decode("utf-8", errors="replace")
+        err = stderr.decode("utf-8", errors="replace")
+        combined = (out + ("\n[stderr]\n" + err if err.strip() else "")).strip()
+        return combined[:4000] or "(no output)"
+    except Exception as exc:
+        return f"run_python error: {exc}"
+
+
 # ── Dispatcher — called by tool_runner ───────────────────────────────────────
 
 async def execute_tool(
@@ -342,6 +436,11 @@ async def execute_tool(
             )
         elif name == "current_datetime":
             return current_datetime()
+        elif name == "run_python":
+            return await run_python(
+                code=tool_input["code"],
+                timeout=tool_input.get("timeout", 10),
+            )
         else:
             return f"unknown_tool: {name}"
     except Exception as exc:

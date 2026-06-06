@@ -32,7 +32,7 @@ from typing import Any
 
 import anthropic
 
-from agents.tools import TOOL_SCHEMAS, execute_tool
+from agents.tools import TOOL_SCHEMAS, execute_tool, tools_for_role
 
 MAX_TOOL_ROUNDS = int(os.environ.get("AEGIS_MAX_TOOL_ROUNDS", "8"))
 DEFAULT_MODEL = os.environ.get("AEGIS_DEFAULT_MODEL", "claude-opus-4-8")
@@ -91,13 +91,15 @@ async def run_with_tools(
     final_output = ""
     error: str | None = None
 
+    role_tools = tools_for_role(role)
+
     try:
         for round_num in range(max_tool_rounds + 1):
             resp = await client.messages.create(
                 model=model,
                 system=system,
                 messages=messages,
-                tools=TOOL_SCHEMAS,  # type: ignore[arg-type]
+                tools=role_tools,  # type: ignore[arg-type]
                 max_tokens=8192,
                 thinking={"type": "adaptive"},  # type: ignore[arg-type]
             )
