@@ -100,7 +100,7 @@ export function HomepageLanding() {
         </div>
 
         <p className="text-hub-muted/50 text-xs">
-          10,973 tests · 0 failures · SHA-256 hash-chained · AGPL-3.0
+          11,337 tests · 0 failures · SHA-256 hash-chained · AGPL-3.0
         </p>
       </section>
 
@@ -108,7 +108,7 @@ export function HomepageLanding() {
       <section className="bg-hub-surface/30 border-y border-hub-border/60 py-12">
         <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
-            { value: '10,973+', label: 'Invariant Tests', sub: 'all passing' },
+            { value: '11,337+', label: 'Invariant Tests', sub: 'all passing' },
             { value: 'SHA-256', label: 'Hash-Chained', sub: 'tamper-evident' },
             { value: 'T0 Proven', label: 'Deterministic', sub: 'replay-verified' },
             { value: 'AGPL-3.0', label: 'Open Source', sub: 'no lock-in' },
