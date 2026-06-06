@@ -402,13 +402,14 @@ async def agent_roles():
     try:
         import sys, os
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-        from agents.coordinator import EVENT_ROUTING, AgentRole
-        import yaml
-        with open(os.path.join(os.path.dirname(__file__), "..", "agents", "agents.yaml")) as f:
-            defs = yaml.safe_load(f)
+        from agents.coordinator import EVENT_ROUTING, _load_agent_defs
+        defs = _load_agent_defs()
         return {
             "agents": {
-                name: {"role": ag["role"], "capabilities": ag["capabilities"]}
+                name: {
+                    "name": ag.get("name", name),
+                    "capabilities": ag.get("capabilities", []),
+                }
                 for name, ag in defs["agents"].items()
             },
             "event_routing": {
@@ -418,6 +419,154 @@ async def agent_roles():
         }
     except ImportError as exc:
         raise HTTPException(503, f"Agent coordinator not available: {exc}")
+
+
+# ── Platform layer — the consumer-facing ultra-premium product surface ─────────
+# Every one of the 39 departments is a tier-0 (Mythos-level) agent. The platform
+# exposes them three ways: as a catalog (browse the swarm), as single governed
+# runs (one agent), and as collaborations (the swarm works together toward an
+# outcome — revenue plans, research pipelines). Every response is governed and
+# replay-certifiable: the audit chain records the work.
+
+PLATFORM_TIERS = {
+    "explorer": {
+        "price_usd_mo": 0,
+        "runs_per_mo": 10,
+        "collaboration": False,
+        "blurb": "Try any single Mythos agent. Governed, audited, replayable.",
+    },
+    "operator": {
+        "price_usd_mo": 49,
+        "runs_per_mo": 500,
+        "collaboration": True,
+        "blurb": "Full swarm collaboration. Revenue + research pipelines. Audit export.",
+    },
+    "sovereign": {
+        "price_usd_mo": 499,
+        "runs_per_mo": -1,  # unlimited
+        "collaboration": True,
+        "blurb": "Unlimited. Self-hosted substrate, guardian review, SLA, custom orchestration.",
+    },
+}
+
+
+@app.get("/platform/catalog")
+async def platform_catalog():
+    """The premium agent catalog: every Mythos department, its capabilities, tiers."""
+    try:
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+        from agents.coordinator import _load_agent_defs
+        defs = _load_agent_defs()
+    except ImportError as exc:
+        raise HTTPException(503, f"Agent coordinator not available: {exc}")
+
+    agents = {
+        name: {
+            "name": ag.get("name", name),
+            "tier": ag.get("tier", 0),
+            "mythos": ag.get("tier", 0) == 0,
+            "autonomous": bool(ag.get("autonomous", False)),
+            "evolving": bool(ag.get("evolving", False)),
+            "capabilities": ag.get("capabilities", []),
+            "max_tokens": ag.get("max_tokens", 4096),
+        }
+        for name, ag in defs["agents"].items()
+    }
+    mythos_count = sum(1 for a in agents.values() if a["mythos"])
+    return {
+        "platform": "AEGIS-Ω Agent Platform",
+        "tagline": "39 Mythos-level autonomous agents. Governed. Replay-certifiable.",
+        "agent_count": len(agents),
+        "mythos_count": mythos_count,
+        "pricing_tiers": PLATFORM_TIERS,
+        "agents": agents,
+    }
+
+
+@app.post("/platform/collaborate")
+async def platform_collaborate(request: Request):
+    """Run a multi-agent collaboration — the swarm working together.
+
+    Request:  {"mode": "revenue" | "cognitive", "objective": "...", "live": false}
+    Response: the collaboration result, governed and recorded in the audit chain.
+
+    'revenue'   → the commercial departments produce an executable go-to-market
+                  with a governed (tier-tagged, never-T0) revenue projection.
+    'cognitive' → the four cognitive-substrate agents run the research →
+                  ARBITRATION → batch → chronology knowledge pipeline.
+    """
+    body = await request.json()
+    mode = body.get("mode", "revenue")
+    objective = body.get("objective") or body.get("topic") or ""
+    live = bool(body.get("live", False))
+
+    if not objective:
+        raise HTTPException(400, "objective (or topic) is required")
+
+    import sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+    if mode == "revenue":
+        try:
+            from agents.revenue_engine import run_revenue_cycle
+        except ImportError as exc:
+            raise HTTPException(503, f"Revenue engine not available: {exc}")
+        r = await run_revenue_cycle(objective, live=live)
+        result = {
+            "mode": "revenue",
+            "cycle_id": r.cycle_id,
+            "objective": r.objective,
+            "live": r.live,
+            "stages": [
+                {"sequence": a.sequence, "role": a.role, "output": a.output,
+                 "envelope_id": a.envelope_id, "source_envelope": a.source_envelope}
+                for a in r.artifacts
+            ],
+            "projection": (
+                {
+                    "first_year_arr_usd": r.projection.first_year_arr_usd,
+                    "tier": r.projection.tier,
+                    "kan_score": r.projection.kan_score,
+                    "assumptions": r.projection.assumptions,
+                    "governed_note": r.projection.governed_note,
+                } if r.projection else None
+            ),
+            "lineage_terminal_hash": r.lineage_terminal_hash,
+            "chain_valid": r.chain_valid,
+            "departments_collaborated": len(r.artifacts),
+        }
+    elif mode == "cognitive":
+        try:
+            from agents.cognitive_pipeline import run_pipeline
+        except ImportError as exc:
+            raise HTTPException(503, f"Cognitive pipeline not available: {exc}")
+        r = await run_pipeline(objective, live=live)
+        result = {
+            "mode": "cognitive",
+            "pipeline_id": r.pipeline_id,
+            "topic": r.topic,
+            "arbitration": r.arbitration,
+            "admitted": len(r.admitted),
+            "quarantined": len(r.quarantined),
+            "kan_terminal_hash": r.kan_terminal_hash,
+            "chain_valid": r.chain_valid,
+            "stage_results": r.stage_results,
+        }
+    else:
+        raise HTTPException(400, f"Unknown mode: {mode}. Use 'revenue' or 'cognitive'.")
+
+    # Record the collaboration in the platform audit chain (governed, replayable).
+    try:
+        await state.append(
+            {"layer": "PLATFORM_COLLABORATION", "mode": mode,
+             "objective": objective[:120], "chain_valid": result.get("chain_valid", True)},
+            tier="T2",
+        )
+    except Exception:  # noqa: BLE001 — audit is best-effort, never blocks the response
+        pass
+
+    return result
 
 
 if __name__ == "__main__":
