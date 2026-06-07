@@ -48,7 +48,14 @@ from gradient_anchor import GradientAnchorCalibrator, DEFAULT_ANCHOR_TOKENS
 # All region boundaries are aligned to INT_SCALE (65536 bytes) for
 # deterministic memory access patterns.
 
-ARRAY_TOTAL_BYTES     = 4 * 1024 ** 3  # 4GB — leaves 4GB for OS and TypeScript layer
+# Default 4GB (AMD RX 570 / 8GB RAM profile). Overridable via AEGIS_ARRAY_BYTES
+# for memory-constrained deployments (e.g. Cloud Run, where the bridge serves
+# /platform/* + telemetry and does not need the full inference arena). Must be a
+# multiple of INT_SCALE (65536) so region boundaries stay aligned. Unset = 4GB,
+# so all tests and local runs are byte-identical to the original layout.
+_INT_SCALE_ALIGN      = 65536
+ARRAY_TOTAL_BYTES     = int(os.environ.get('AEGIS_ARRAY_BYTES', str(4 * 1024 ** 3)))
+ARRAY_TOTAL_BYTES    -= ARRAY_TOTAL_BYTES % _INT_SCALE_ALIGN  # force alignment
 M1_REGION_FRACTION    = 0.50            # 2GB — state management (E3 substrate)
 M2_REGION_FRACTION    = 0.30            # 1.2GB — calibration and gate data
 M3_REGION_FRACTION    = 0.20            # 0.8GB — inference context and projections

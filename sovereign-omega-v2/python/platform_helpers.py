@@ -377,9 +377,12 @@ def swarm_collaborate_live(
 
     try:
         client = _anth.Anthropic(api_key=api_key)
+        # 39 departments each emit a JSON output line; 4096 tokens truncates the
+        # response mid-JSON, json.loads fails, and every dept silently falls back
+        # to templates. Size the ceiling so the full swarm response fits.
         resp = client.messages.create(
             model='claude-sonnet-4-6',
-            max_tokens=4096,
+            max_tokens=16000,
             system=full_system,
             messages=[{'role': 'user', 'content': user_prompt}],
         )
