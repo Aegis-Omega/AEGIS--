@@ -21,11 +21,15 @@ steps:
       - --platform=managed
       # anthropic-api-key powers live 39-agent swarm (platform_helpers.swarm_collaborate_live)
       # supabase-service-role-key gates /platform/* endpoints via verify_api_key()
+      # Create both secrets before first deploy:
+      #   printf '%s' "$ANTHROPIC_API_KEY" | gcloud secrets create anthropic-api-key --data-file=- --project aegisomegav1
+      #   printf '%s' "$SUPABASE_SERVICE_ROLE_KEY" | gcloud secrets create supabase-service-role-key --data-file=- --project aegisomegav1
       - --set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest,SUPABASE_SERVICE_ROLE_KEY=supabase-service-role-key:latest
-      - --set-env-vars=SUPABASE_URL=https://rwehltdwpsncnwxzkwik.supabase.co
+      # AEGIS_ARRAY_BYTES caps the CoreMatrix arena (default 4GB OOM-kills small instances)
+      - --set-env-vars=SUPABASE_URL=https://rwehltdwpsncnwxzkwik.supabase.co,AEGIS_ARRAY_BYTES=268435456
       - --allow-unauthenticated
       - --port=8080
-      - --memory=512Mi
+      - --memory=1Gi
       - --cpu=1
       - --min-instances=0
       - --max-instances=5
