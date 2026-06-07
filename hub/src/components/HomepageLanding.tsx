@@ -329,7 +329,7 @@ function TopBar({ status, total, ttv }: { status: ChainStatus; total: number; tt
           <a href="#substrate">Substrate</a>
           <a href="#cognition">Cognition</a>
           <a href="#equation">Equation</a>
-          <a href="#api">Platform API</a>
+          <a href="/platform">Platform</a>
           <a href="/docs">Docs</a>
         </nav>
         <div className="ld-spacer"/>
@@ -884,6 +884,7 @@ function Footer() {
           </div>
           <div className="ld-foot-links">
             <span className="ld-fh">Product</span>
+            <a href="/platform">Platform</a>
             <a href="/pricing">Pricing</a>
             <a href="/docs">API Docs</a>
             <a href="mailto:info@aegisomega.com">Contact</a>
