@@ -194,6 +194,74 @@ curl -s -X POST "$URL/platform/collaborate" \
 
 ---
 
+## Path 5 — Wire the Bridge (aegis-vertex) for live swarm mode
+
+The Python bridge (`sovereign-omega-v2/python/bridge.py`) runs as the `aegis-vertex`
+Cloud Run service. It now has a `cloudbuild.yaml` and is included in the deploy
+workflow (`deploy.yml` → `deploy-bridge` job). Before first deploy, create two GCP
+secrets so the bridge can (a) call Claude for live 39-agent swarm runs and (b) verify
+AEGIS API keys against Supabase.
+
+### One-time secret creation (run once from Cloud Shell or any machine with gcloud)
+
+```bash
+PROJECT=aegisomegav1
+
+# 1. Anthropic API key — powers live swarm mode (swarm_collaborate_live)
+#    Without this, platform/collaborate?live=true silently falls back to templates.
+printf '%s' "sk-ant-YOUR_ANTHROPIC_KEY" | \
+  gcloud secrets create anthropic-api-key \
+    --data-file=- --project "$PROJECT"
+
+# 2. Supabase service role key — verifies aegis_* API keys via api_key_store table
+#    Find it at: Supabase dashboard → Project Settings → API → service_role (secret)
+printf '%s' "eyJ...YOUR_SUPABASE_SERVICE_ROLE_KEY" | \
+  gcloud secrets create supabase-service-role-key \
+    --data-file=- --project "$PROJECT"
+
+# 3. Grant the Cloud Run service account access to both secrets
+CR_SA="$(gcloud projects describe $PROJECT --format='value(projectNumber)')-compute@developer.gserviceaccount.com"
+for secret in anthropic-api-key supabase-service-role-key; do
+  gcloud secrets add-iam-policy-binding "$secret" \
+    --project "$PROJECT" \
+    --role roles/secretmanager.secretAccessor \
+    --member "serviceAccount:${CR_SA}"
+done
+```
+
+### Deploy the bridge
+
+```bash
+# Option A — trigger via GitHub Actions (preferred, keyless WIF)
+# Actions → Deploy to Cloud Run → Run workflow (branch: main)
+# The deploy-bridge job in deploy.yml runs sovereign-omega-v2/cloudbuild.yaml.
+
+# Option B — manual Cloud Build submit (if CI not yet wired)
+gcloud builds submit \
+  --config sovereign-omega-v2/cloudbuild.yaml \
+  --project aegisomegav1 .
+```
+
+### Verify (after deploy)
+
+```bash
+URL=https://aegis-vertex.aegisomega.com
+
+curl -s "$URL/health"
+# → {"status":"ok","pgcs_passes":true,...}
+
+curl -s "$URL/platform/status"
+# → {"data":{"version":"...","total_agents":39,"chain_valid":true,...}}
+
+curl -s -X POST "$URL/platform/collaborate" \
+  -H "x-api-key: aegis_explorer_YOURKEY" \
+  -H "Content-Type: application/json" \
+  -d '{"objective":"Enter EU AI Act compliance market","mode":"gtm","live":true}'
+# → SSE stream with real Claude-powered dept outputs (not templates)
+```
+
+---
+
 ## Why this is constitutionally sound
 
 Paths 1 and 2 keep deploy authority **outside** the agent runtime: the GitHub OIDC
