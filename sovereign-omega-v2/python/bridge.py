@@ -34,8 +34,17 @@ _last_autosave_epoch = -1
 
 # ─── /platform/* contract constants ──────────────────────────────────────────
 import queue as _queue_mod
-_PLATFORM_CONTRACT_VERSION = '1.0.0'
-_PLATFORM_GIT_SHA = os.environ.get('AEGIS_GIT_SHA', 'dev')
+from platform_helpers import (
+    PLATFORM_CONTRACT_VERSION as _PLATFORM_CONTRACT_VERSION,
+    PLATFORM_GIT_SHA as _PLATFORM_GIT_SHA,
+    PLATFORM_DEPARTMENTS as _PLATFORM_DEPARTMENTS,
+    platform_ts as _platform_ts,
+    platform_envelope as _platform_envelope,
+    verify_api_key as _platform_verify_api_key,
+    dept_output as _platform_dept_output,
+    make_sse_event as _make_sse_event,
+    validate_collaboration_request as _validate_collab_req,
+)
 
 # In-memory execution store — keyed by execution_id
 # { execution_id: {'result': dict|None, 'done': bool, 'email': str, 'error': str|None} }
@@ -100,166 +109,9 @@ def _mc_recent_context(n: int = 3) -> str:
     return '\n'.join(lines)
 
 
-# ─── /platform/* helpers ─────────────────────────────────────────────────────
-
-_PLATFORM_DEPARTMENTS = [
-    {'id': 'REV-01', 'role': 'Strategy',    'category': 'revenue'},
-    {'id': 'REV-02', 'role': 'Finance',     'category': 'revenue'},
-    {'id': 'REV-03', 'role': 'Pricing',     'category': 'revenue'},
-    {'id': 'MKT-01', 'role': 'Brand',       'category': 'marketing'},
-    {'id': 'MKT-02', 'role': 'Content',     'category': 'marketing'},
-    {'id': 'MKT-03', 'role': 'SEO',         'category': 'marketing'},
-    {'id': 'MKT-04', 'role': 'Paid',        'category': 'marketing'},
-    {'id': 'MKT-05', 'role': 'Social',      'category': 'marketing'},
-    {'id': 'SLS-01', 'role': 'Outbound',    'category': 'sales'},
-    {'id': 'SLS-02', 'role': 'Inbound',     'category': 'sales'},
-    {'id': 'SLS-03', 'role': 'Partner',     'category': 'sales'},
-    {'id': 'SLS-04', 'role': 'Enterprise',  'category': 'sales'},
-    {'id': 'PRD-01', 'role': 'Product',     'category': 'product'},
-    {'id': 'PRD-02', 'role': 'UX',          'category': 'product'},
-    {'id': 'PRD-03', 'role': 'Data',        'category': 'product'},
-    {'id': 'PRD-04', 'role': 'API',         'category': 'product'},
-    {'id': 'ENG-01', 'role': 'Backend',     'category': 'engineering'},
-    {'id': 'ENG-02', 'role': 'Frontend',    'category': 'engineering'},
-    {'id': 'ENG-03', 'role': 'Infra',       'category': 'engineering'},
-    {'id': 'ENG-04', 'role': 'Security',    'category': 'engineering'},
-    {'id': 'ENG-05', 'role': 'AI/ML',       'category': 'engineering'},
-    {'id': 'OPS-01', 'role': 'RevOps',      'category': 'operations'},
-    {'id': 'OPS-02', 'role': 'Support',     'category': 'operations'},
-    {'id': 'OPS-03', 'role': 'Legal',       'category': 'operations'},
-    {'id': 'OPS-04', 'role': 'Compliance',  'category': 'operations'},
-    {'id': 'RES-01', 'role': 'Research',    'category': 'research'},
-    {'id': 'RES-02', 'role': 'Competitive', 'category': 'research'},
-    {'id': 'RES-03', 'role': 'Customer',    'category': 'research'},
-    {'id': 'FIN-01', 'role': 'Accounting',  'category': 'finance'},
-    {'id': 'FIN-02', 'role': 'Treasury',    'category': 'finance'},
-    {'id': 'FIN-03', 'role': 'Tax',         'category': 'finance'},
-    {'id': 'EXE-01', 'role': 'CEO',         'category': 'executive'},
-    {'id': 'EXE-02', 'role': 'COO',         'category': 'executive'},
-    {'id': 'EXE-03', 'role': 'CTO',         'category': 'executive'},
-    {'id': 'EXE-04', 'role': 'CFO',         'category': 'executive'},
-    {'id': 'GOV-01', 'role': 'Ethics',      'category': 'governance'},
-    {'id': 'GOV-02', 'role': 'Risk',        'category': 'governance'},
-    {'id': 'CON-01', 'role': 'Audit',       'category': 'constitutional'},
-    {'id': 'CON-09', 'role': 'Guardian',    'category': 'constitutional'},
-]
-
-
-def _platform_ts() -> str:
-    import datetime as _dt
-    return _dt.datetime.utcnow().isoformat() + 'Z'
-
-
-def _platform_envelope(execution_id: str, data: dict) -> dict:
-    return {
-        'contract_version': _PLATFORM_CONTRACT_VERSION,
-        'execution_id': execution_id,
-        'timestamp': _platform_ts(),
-        'is_replay_reconstructable': True,
-        'data': data,
-    }
-
-
-def _platform_verify_api_key(api_key: str):
-    """
-    Verify against Supabase api_key_store. Returns (email, tier).
-    Raises ValueError on failure.
-    Falls back to dev bypass when SUPABASE_URL is unset.
-    """
-    import hashlib as _hl_pk
-    import urllib.request as _ur_pk
-    import urllib.error as _ue_pk
-
-    if not api_key:
-        raise ValueError('Missing x-api-key header')
-
-    key_hash = _hl_pk.sha256(api_key.encode()).hexdigest()
-
-    supabase_url = os.environ.get('SUPABASE_URL', '').rstrip('/')
-    service_key  = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
-
-    if not supabase_url or not service_key:
-        if api_key.startswith('aegis_'):
-            return 'dev@local', 'explorer'
-        raise ValueError('API key verification unavailable (Supabase not configured)')
-
-    auth_headers = {
-        'apikey': service_key,
-        'Authorization': f'Bearer {service_key}',
-        'Content-Type': 'application/json',
-    }
-
-    rest_url = (
-        f'{supabase_url}/rest/v1/api_key_store'
-        f'?key_hash=eq.{key_hash}&revoked=eq.false'
-        f'&select=customer_email,tier,usage_count,usage_limit'
-    )
-    req = _ur_pk.Request(rest_url, headers=auth_headers)
-    try:
-        with _ur_pk.urlopen(req, timeout=5) as resp:
-            rows = json.loads(resp.read().decode())
-    except _ue_pk.HTTPError as exc:
-        raise ValueError(f'Supabase error: HTTP {exc.code}')
-    except Exception as exc:
-        raise ValueError(f'Key verification failed: {str(exc)[:60]}')
-
-    if not rows:
-        raise ValueError('Invalid or revoked API key')
-
-    row = rows[0]
-    if row['usage_count'] >= row['usage_limit']:
-        raise ValueError('Usage limit reached')
-
-    patch_url = f'{supabase_url}/rest/v1/api_key_store?key_hash=eq.{key_hash}'
-    patch_data = json.dumps({'usage_count': row['usage_count'] + 1}).encode()
-    patch_req = _ur_pk.Request(
-        patch_url, data=patch_data,
-        headers={**auth_headers, 'Prefer': 'return=minimal'},
-        method='PATCH',
-    )
-    try:
-        with _ur_pk.urlopen(patch_req, timeout=5):
-            pass
-    except Exception:
-        pass  # don't fail if usage increment fails
-
-    return row['customer_email'], row['tier']
-
-
-def _platform_dept_output(objective: str, mode: str, dept: dict) -> str:
-    """Generate a constitutionally-structured department output."""
-    role = dept['role']
-    obj_short = objective[:55]
-    category = dept['category']
-    mode_outputs = {
-        'revenue':   (
-            f'{role}: 3 revenue vectors identified for "{obj_short}". '
-            f'Primary: SMB upsell ($12k ARR). Secondary: API monetisation. '
-            f'Tertiary: partner channel. T2 projection: $2.4M ARR Y1.'
-        ),
-        'analysis':  (
-            f'{role}: Market analysis for "{obj_short}" — 2 competitive gaps found. '
-            f'Differentiation lever: constitutional governance layer. '
-            f'Entry timing: Q3 2026. Market size: $340M TAM.'
-        ),
-        'gtm':       (
-            f'{role}: GTM for "{obj_short}" — 4-phase launch. '
-            f'Phase 1: design-partner beta (8 wks). '
-            f'Phase 2: Product Hunt + HN. Phase 3: EU enterprise push. CAC: $1,200.'
-        ),
-        'retention': (
-            f'{role}: Retention strategy for "{obj_short}" — 3 churn vectors. '
-            f'Fix: governance dashboard stickiness, API key continuity, '
-            f'operator success program. Expected lift: +15% NRR.'
-        ),
-    }
-    base = mode_outputs.get(mode, mode_outputs['revenue'])
-    suffix = {
-        'constitutional': ' Constitutional compliance: T0 verdict VALID.',
-        'governance':     ' Risk: LOW. Ethical concerns: NONE.',
-        'executive':      ' Board priority: TIER-1. Strategic alignment: confirmed.',
-    }.get(category, '')
-    return base + suffix
+# ─── /platform/* helpers (pure functions live in platform_helpers.py) ────────
+# All stateless helpers imported at top of file from platform_helpers.
+# Only the stateful collaboration runner stays here (uses _exec_queues, _mc_observe).
 
 
 def _platform_run_collaboration(

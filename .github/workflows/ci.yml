@@ -172,6 +172,9 @@ jobs:
       - name: Run constitutional tests
         run: python python/tests/test_constitutional.py
 
+      - name: Run /platform/* contract tests
+        run: python python/tests/test_platform.py
+
       # test_ledger_persist.py allocates 4 GB (CoreMatrix bytearray) — requires
       # AMD RX 570 hardware-spec RAM; run locally only, not in CI.
 
@@ -245,7 +248,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        product: [hub, platform-picker, hook-generator, content-calendar]
+        product: [hub, cockpit, platform-picker, hook-generator, content-calendar]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
