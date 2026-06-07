@@ -203,4 +203,207 @@ mod tests {
         let ids: Vec<PeerId> = f.peers.keys().copied().collect();
         assert_eq!(ids, vec![1, 2, 3, 5, 8]);
     }
+
+    // 11. MAX_SCORE constant is 10_000
+    #[test] fn max_score_is_10000() {
+        assert_eq!(MAX_SCORE, 10_000);
+    }
+
+    // 12. QUARANTINE_THRESHOLD is 2_000
+    #[test] fn quarantine_threshold_is_2000() {
+        assert_eq!(QUARANTINE_THRESHOLD, 2_000);
+    }
+
+    // 13. THROTTLE_THRESHOLD is 5_000
+    #[test] fn throttle_threshold_is_5000() {
+        assert_eq!(THROTTLE_THRESHOLD, 5_000);
+    }
+
+    // 14. New peer starts at MAX_SCORE
+    #[test] fn new_peer_score_is_max() {
+        let mut f = HysteresisFilter::new();
+        f.register_peer(7);
+        assert_eq!(f.get_peer(7).unwrap().score, MAX_SCORE);
+    }
+
+    // 15. New peer demotion_count starts at 0
+    #[test] fn new_peer_demotion_count_zero() {
+        let mut f = HysteresisFilter::new();
+        f.register_peer(1);
+        assert_eq!(f.get_peer(1).unwrap().demotion_count, 0);
+    }
+
+    // 16. New peer penalty_events starts at 0
+    #[test] fn new_peer_penalty_events_zero() {
+        let mut f = HysteresisFilter::new();
+        f.register_peer(2);
+        assert_eq!(f.get_peer(2).unwrap().penalty_events, 0);
+    }
+
+    // 17. penalty_weight(0) == 500
+    #[test] fn penalty_weight_0_is_500() {
+        assert_eq!(penalty_weight(0), 500);
+    }
+
+    // 18. penalty_weight(1) == 1000
+    #[test] fn penalty_weight_1_is_1000() {
+        assert_eq!(penalty_weight(1), 1000);
+    }
+
+    // 19. penalty_weight(2) == 2000
+    #[test] fn penalty_weight_2_is_2000() {
+        assert_eq!(penalty_weight(2), 2000);
+    }
+
+    // 20. penalty_weight(4) == 8000 (max shift = 4, cap at MAX_SCORE prevents overflow)
+    #[test] fn penalty_weight_4_is_8000() {
+        assert_eq!(penalty_weight(4), 8000);
+    }
+
+    // 21. penalty_weight(5) == 8000 (shift capped at 4, so same as penalty_weight(4))
+    #[test] fn penalty_weight_5_capped_at_max() {
+        // shift is capped at 4: 500 << 4 = 8000; counts > 4 return the same value
+        assert_eq!(penalty_weight(5), 8000);
+        assert_eq!(penalty_weight(10), 8000);
+    }
+
+    // 22. recovery_increment(0) == 200
+    #[test] fn recovery_increment_0_is_200() {
+        assert_eq!(recovery_increment(0), 200);
+    }
+
+    // 23. recovery_increment(1) == 100
+    #[test] fn recovery_increment_1_is_100() {
+        assert_eq!(recovery_increment(1), 100);
+    }
+
+    // 24. recovery_increment(2) == 50
+    #[test] fn recovery_increment_2_is_50() {
+        assert_eq!(recovery_increment(2), 50);
+    }
+
+    // 25. recovery_increment(7) == 1 (floor: 200>>7 = 1)
+    #[test] fn recovery_increment_7_is_1() {
+        assert_eq!(recovery_increment(7), 1);
+    }
+
+    // 26. total_penalties counter increments on each penalize call
+    #[test] fn total_penalties_increments_per_call() {
+        let mut f = HysteresisFilter::new();
+        f.register_peer(1);
+        f.penalize(1);
+        f.penalize(1);
+        assert_eq!(f.total_penalties(), 2);
+    }
+
+    // 27. get_peer returns None for unregistered peer
+    #[test] fn get_peer_none_for_unknown() {
+        let f = HysteresisFilter::new();
+        assert!(f.get_peer(9999).is_none());
+    }
+
+    // 28. peer_count increments with each register_peer
+    #[test] fn peer_count_increments() {
+        let mut f = HysteresisFilter::new();
+        assert_eq!(f.peer_count(), 0);
+        f.register_peer(1);
+        assert_eq!(f.peer_count(), 1);
+        f.register_peer(2);
+        assert_eq!(f.peer_count(), 2);
+    }
+
+    // 29. register_peer is idempotent — second call does not overwrite
+    #[test] fn register_peer_idempotent() {
+        let mut f = HysteresisFilter::new();
+        f.register_peer(5);
+        f.penalize(5); // score drops
+        let score_after_penalty = f.get_peer(5).unwrap().score;
+        f.register_peer(5); // second register — should not reset
+        assert_eq!(f.get_peer(5).unwrap().score, score_after_penalty);
+        assert_eq!(f.peer_count(), 1);
+    }
+
+    // 30. penalize auto-registers a peer not previously registered
+    #[test] fn penalize_auto_registers_peer() {
+        let mut f = HysteresisFilter::new();
+        f.penalize(77); // auto-register via or_insert_with
+        assert!(f.get_peer(77).is_some());
+    }
+
+    // 31. recover auto-registers a peer not previously registered
+    #[test] fn recover_auto_registers_peer() {
+        let mut f = HysteresisFilter::new();
+        let score = f.recover(88);
+        assert_eq!(score, MAX_SCORE); // fresh peer: MAX_SCORE + increment → still MAX_SCORE (saturating)
+    }
+
+    // 32. PeerStatus::Trusted when score >= THROTTLE_THRESHOLD
+    #[test] fn peer_trusted_when_score_at_or_above_throttle() {
+        let mut f = HysteresisFilter::new();
+        f.register_peer(10);
+        assert_eq!(f.get_peer(10).unwrap().status(), PeerStatus::Trusted);
+    }
+
+    // 33. PeerStatus::Throttled when score in [QUARANTINE_THRESHOLD, THROTTLE_THRESHOLD)
+    #[test] fn peer_throttled_when_score_in_middle_band() {
+        let r = PeerRecord { peer_id: 1, score: 3000, demotion_count: 0, penalty_events: 0, recovery_events: 0 };
+        assert_eq!(r.status(), PeerStatus::Throttled);
+    }
+
+    // 34. PeerStatus::Quarantined when score < QUARANTINE_THRESHOLD
+    #[test] fn peer_quarantined_when_score_below_threshold() {
+        let r = PeerRecord { peer_id: 1, score: 1999, demotion_count: 0, penalty_events: 0, recovery_events: 0 };
+        assert_eq!(r.status(), PeerStatus::Quarantined);
+        assert!(r.is_quarantined());
+    }
+
+    // 35. active_quarantines is 0 when no peers are quarantined
+    #[test] fn active_quarantines_zero_initially() {
+        let mut f = HysteresisFilter::new();
+        for id in 1..=5u64 { f.register_peer(id); }
+        assert_eq!(f.active_quarantines(), 0);
+    }
+
+    // 36. Default HysteresisFilter has no peers
+    #[test] fn default_filter_no_peers() {
+        let f = HysteresisFilter::default();
+        assert_eq!(f.peer_count(), 0);
+        assert_eq!(f.active_quarantines(), 0);
+        assert_eq!(f.total_penalties(), 0);
+    }
+
+    // 37. quarantined_count cumulative total vs active_quarantines
+    #[test] fn quarantined_count_vs_active_quarantines() {
+        let mut f = HysteresisFilter::new();
+        f.register_peer(1);
+        for _ in 0..8 { f.penalize(1); }
+        // quarantined_count is cumulative (counts every time a penalize transitions to quarantine)
+        assert!(f.quarantined_count() >= 1);
+        assert_eq!(f.active_quarantines(), 1);
+    }
+
+    // 38. recovery_events counter increments on each recover call
+    #[test] fn recovery_events_increments() {
+        let mut f = HysteresisFilter::new();
+        f.register_peer(1);
+        f.recover(1);
+        f.recover(1);
+        assert_eq!(f.get_peer(1).unwrap().recovery_events, 2);
+    }
+
+    // 39. score never drops below 0 (saturating_sub)
+    #[test] fn score_never_below_zero() {
+        let mut f = HysteresisFilter::new();
+        f.register_peer(1);
+        for _ in 0..100 { f.penalize(1); }
+        assert_eq!(f.get_peer(1).unwrap().score, 0);
+    }
+
+    // 40. score never exceeds MAX_SCORE after recovery
+    #[test] fn score_never_exceeds_max_on_recovery() {
+        let mut f = HysteresisFilter::new();
+        f.register_peer(1);
+        for _ in 0..100 { f.recover(1); }
+        assert_eq!(f.get_peer(1).unwrap().score, MAX_SCORE);
+    }
 }

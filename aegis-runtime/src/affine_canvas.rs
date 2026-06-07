@@ -181,4 +181,115 @@ mod tests {
         let canvas = AffineCanvas::new(AffineMatrix::identity());
         assert!(canvas.get_bound(999).is_none());
     }
+
+    // 11. layout_agents with zero agents produces empty canvas
+    #[test] fn layout_zero_agents_empty_canvas() {
+        let mut canvas = AffineCanvas::new(AffineMatrix::identity());
+        canvas.layout_agents(&[]);
+        assert_eq!(canvas.agent_count(), 0);
+    }
+
+    // 12. Identity transform: origin stays at origin
+    #[test] fn identity_origin_stays_at_origin() {
+        let m = AffineMatrix::identity();
+        assert_eq!(m.apply(0, 0), (0, 0));
+    }
+
+    // 13. Scale by 3x: (1000, 2000) → (3000, 6000)
+    #[test] fn scale_3x_coords() {
+        let m = AffineMatrix::scale(3000, 3000);
+        assert_eq!(m.apply(1000, 2000), (3000, 6000));
+    }
+
+    // 14. Translation: non-zero point moves by (dx, dy)
+    #[test] fn translation_shifts_nonzero_point() {
+        let m = AffineMatrix::translate(100, 200);
+        assert_eq!(m.apply(500, 500), (600, 700));
+    }
+
+    // 15. Compose scale then translate: scale first, then shift
+    #[test] fn compose_scale_then_translate() {
+        let scale = AffineMatrix::scale(2000, 2000); // doubles coords
+        let translate = AffineMatrix::translate(500, 500);
+        let composed = scale.compose(&translate);
+        // apply(1000, 0) through scale→translate: scale gives (2000,0), translate gives (2500,500)
+        assert_eq!(composed.apply(1000, 0), (2500, 500));
+    }
+
+    // 16. AffineMatrix equality: two identity matrices are equal
+    #[test] fn identity_matrices_equal() {
+        assert_eq!(AffineMatrix::identity(), AffineMatrix::identity());
+    }
+
+    // 17. AffineMatrix inequality: scale ≠ identity
+    #[test] fn scale_not_equal_to_identity() {
+        assert_ne!(AffineMatrix::scale(2000, 2000), AffineMatrix::identity());
+    }
+
+    // 18. Fingerprint of zero-agent canvas is deterministic
+    #[test] fn empty_canvas_fingerprint_deterministic() {
+        let c1 = AffineCanvas::new(AffineMatrix::identity());
+        let c2 = AffineCanvas::new(AffineMatrix::identity());
+        assert_eq!(c1.fingerprint(), c2.fingerprint());
+    }
+
+    // 19. layout_agents clears previous layout before placing new agents
+    #[test] fn layout_clears_previous_agents() {
+        let mut canvas = AffineCanvas::new(AffineMatrix::identity());
+        canvas.layout_agents(&agents(5));
+        assert_eq!(canvas.agent_count(), 5);
+        canvas.layout_agents(&agents(2));
+        assert_eq!(canvas.agent_count(), 2);
+    }
+
+    // 20. AgentBound width is non-negative after layout (abs applied)
+    #[test] fn agent_bound_width_non_negative() {
+        let mut canvas = AffineCanvas::new(AffineMatrix::identity());
+        canvas.layout_agents(&agents(3));
+        for id in 1u64..=3 {
+            let b = canvas.get_bound(id).unwrap();
+            assert!(b.width >= 0);
+            assert!(b.height >= 0);
+        }
+    }
+
+    // 21. Fingerprint changes when agent layout changes
+    #[test] fn fingerprint_changes_after_layout_change() {
+        let mut canvas = AffineCanvas::new(AffineMatrix::identity());
+        canvas.layout_agents(&agents(2));
+        let fp1 = canvas.fingerprint();
+        canvas.layout_agents(&agents(3));
+        let fp2 = canvas.fingerprint();
+        assert_ne!(fp1, fp2);
+    }
+
+    // 22. apply with negative translation: point moves negatively
+    #[test] fn negative_translation_apply() {
+        let m = AffineMatrix::translate(-500, -300);
+        let (x, y) = m.apply(0, 0);
+        assert_eq!(x, -500);
+        assert_eq!(y, -300);
+    }
+
+    // 23. Compose identity with identity gives identity
+    #[test] fn compose_two_identities() {
+        let i = AffineMatrix::identity();
+        assert_eq!(i.compose(&i), AffineMatrix::identity());
+    }
+
+    // 24. Scale of 0 collapses all points to the translation offset
+    #[test] fn scale_zero_collapses_to_origin() {
+        let m = AffineMatrix::scale(0, 0);
+        assert_eq!(m.apply(5000, 3000), (0, 0));
+    }
+
+    // 25. get_bound returns correct coordinates for a specific agent
+    #[test] fn get_bound_returns_correct_coords() {
+        let mut canvas = AffineCanvas::new(AffineMatrix::identity());
+        let spec = vec![AgentSpec { id: 42, logical_x: 3000, logical_y: 4000, logical_w: 1000, logical_h: 2000 }];
+        canvas.layout_agents(&spec);
+        let b = canvas.get_bound(42).unwrap();
+        assert_eq!(b.x, 3000);
+        assert_eq!(b.y, 4000);
+    }
 }

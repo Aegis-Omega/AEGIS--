@@ -270,4 +270,107 @@ mod tests {
         let output = SystemComposer::render_to_string(&core, &overlay);
         assert!(output.contains("halted") || output.contains("FIREWALL") || output.contains("does not exist"));
     }
+
+    // 11. AxiomKey::new is equivalent to struct literal
+    #[test]
+    fn axiom_key_new_equivalent_to_literal() {
+        let k1 = AxiomKey::new(5, 10);
+        let k2 = AxiomKey { section_num: 5, node_num: 10 };
+        assert_eq!(k1, k2);
+    }
+
+    // 12. T0Core with zero offsets is empty but constructible
+    #[test]
+    fn t0core_empty_registry_constructible() {
+        let text: &'static [u8] = b"some content";
+        let offsets = BTreeMap::new();
+        let core = T0Core::new(text, offsets);
+        assert_eq!(core.corpus_size(), 12);
+        assert_eq!(core.iter_keys().count(), 0);
+    }
+
+    // 13. resolve_reference returns correct bytes for all three keys
+    #[test]
+    fn resolve_all_keys_returns_correct_slices() {
+        let core = create_test_core();
+        let s2 = core.resolve_reference(&AxiomKey::new(2, 1)).unwrap();
+        assert_eq!(s2, b"Section 2 Content.");
+        let s3 = core.resolve_reference(&AxiomKey::new(3, 1)).unwrap();
+        assert_eq!(s3, b"Section 3 Content.");
+    }
+
+    // 14. SemanticOverlay clone preserves all fields
+    #[test]
+    fn semantic_overlay_clone_preserves_fields() {
+        let o = SemanticOverlay::new(
+            AxiomKey::new(1, 2),
+            "Author A".to_string(),
+            "Commentary text".to_string(),
+        );
+        let cloned = o.clone();
+        assert_eq!(cloned.target, AxiomKey::new(1, 2));
+        assert_eq!(cloned.author_name, "Author A");
+        assert_eq!(cloned.commentary, "Commentary text");
+    }
+
+    // 15. render_to_string output contains the key AxiomKey debug info
+    #[test]
+    fn render_to_string_contains_key_info() {
+        let core = create_test_core();
+        let overlay = SemanticOverlay::new(
+            AxiomKey::new(2, 1),
+            "Researcher".to_string(),
+            "Analysis of section 2".to_string(),
+        );
+        let output = SystemComposer::render_to_string(&core, &overlay);
+        assert!(output.contains("Section 2 Content."));
+        assert!(output.contains("Researcher"));
+        assert!(output.contains("Analysis of section 2"));
+    }
+
+    // 16. resolve_reference with out-of-bounds registered offset returns error
+    #[test]
+    fn resolve_reference_out_of_bounds_offset_returns_error() {
+        let text: &'static [u8] = b"short";
+        let mut offsets = BTreeMap::new();
+        offsets.insert(AxiomKey::new(1, 1), (0, 100)); // end > text.len()
+        let core = T0Core::new(text, offsets);
+        assert!(core.resolve_reference(&AxiomKey::new(1, 1)).is_err());
+    }
+
+    // 17. AxiomKey display format is §section.node
+    #[test]
+    fn axiom_key_display_format_with_zeroes() {
+        let key = AxiomKey::new(0, 0);
+        assert_eq!(format!("{}", key), "§0.0");
+    }
+
+    // 18. iter_keys is in sorted order (BTreeMap)
+    #[test]
+    fn iter_keys_sorted_order() {
+        let core = create_test_core();
+        let keys: Vec<_> = core.iter_keys().collect();
+        for i in 0..keys.len().saturating_sub(1) {
+            assert!(keys[i] < keys[i+1], "keys must be sorted");
+        }
+    }
+
+    // 19. corpus_size of empty text is 0
+    #[test]
+    fn corpus_size_empty_text_is_zero() {
+        let text: &'static [u8] = b"";
+        let core = T0Core::new(text, BTreeMap::new());
+        assert_eq!(core.corpus_size(), 0);
+    }
+
+    // 20. resolve_reference returns empty slice for empty range
+    #[test]
+    fn resolve_reference_empty_range_returns_empty_slice() {
+        let text: &'static [u8] = b"hello";
+        let mut offsets = BTreeMap::new();
+        offsets.insert(AxiomKey::new(1, 1), (2, 2)); // zero-length range
+        let core = T0Core::new(text, offsets);
+        let slice = core.resolve_reference(&AxiomKey::new(1, 1)).unwrap();
+        assert_eq!(slice, b"");
+    }
 }

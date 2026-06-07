@@ -349,4 +349,145 @@ mod tests {
 
         assert_ne!(hash1, hash2, "Different states should produce different hashes");
     }
+
+    // 12. Empty states slice produces the FNV-1a offset basis (no XOR)
+    #[test]
+    fn acoustic_hash_empty_slice_is_fnv_basis() {
+        let hash = AcousticAutomaton::compute_acoustic_hash(&[]);
+        assert_eq!(hash, 0xcbf29ce484222325u64);
+    }
+
+    // 13. ClearArticulation duration_multiplier is 1
+    #[test]
+    fn clear_articulation_duration_1() {
+        assert_eq!(AcousticState::ClearArticulation.duration_multiplier(), 1);
+    }
+
+    // 14. VibratingRelease duration_multiplier is 1
+    #[test]
+    fn vibrating_release_duration_1() {
+        assert_eq!(AcousticState::VibratingRelease.duration_multiplier(), 1);
+    }
+
+    // 15. ConcealedResonance duration_multiplier is 1
+    #[test]
+    fn concealed_resonance_duration_1() {
+        assert_eq!(AcousticState::ConcealedResonance.duration_multiplier(), 1);
+    }
+
+    // 16. VibratingRelease label is "VIBRATING"
+    #[test]
+    fn vibrating_release_label() {
+        assert_eq!(AcousticState::VibratingRelease.label(), "VIBRATING");
+    }
+
+    // 17. ConcealedResonance label is "CONCEALED"
+    #[test]
+    fn concealed_resonance_label() {
+        assert_eq!(AcousticState::ConcealedResonance.label(), "CONCEALED");
+    }
+
+    // 18. Prolongation takes priority over gemination (has_prolongation=true + has_shadda=true)
+    #[test]
+    fn prolongation_overrides_gemination() {
+        let (state, duration) = AcousticAutomaton::evaluate_transition('b', Some('b'), true, true);
+        assert_eq!(state, AcousticState::ProlongedEcho);
+        assert_eq!(duration, 2);
+    }
+
+    // 19. Plosive 'k' at end of word → VibratingRelease
+    #[test]
+    fn plosive_k_at_end_vibrating_release() {
+        let (state, duration) = AcousticAutomaton::evaluate_transition('k', None, false, false);
+        assert_eq!(state, AcousticState::VibratingRelease);
+        assert_eq!(duration, 1);
+    }
+
+    // 20. Plosive 't' at end of word → VibratingRelease
+    #[test]
+    fn plosive_t_at_end_vibrating_release() {
+        let (state, duration) = AcousticAutomaton::evaluate_transition('t', None, false, false);
+        assert_eq!(state, AcousticState::VibratingRelease);
+        assert_eq!(duration, 1);
+    }
+
+    // 21. Non-plosive 'a' at end of word → ClearArticulation
+    #[test]
+    fn non_plosive_at_end_clear_articulation() {
+        let (state, duration) = AcousticAutomaton::evaluate_transition('a', None, false, false);
+        assert_eq!(state, AcousticState::ClearArticulation);
+        assert_eq!(duration, 1);
+    }
+
+    // 22. 'n' followed by non-guttural → ClearArticulation (no concealment)
+    #[test]
+    fn nun_before_non_guttural_is_clear() {
+        let (state, _) = AcousticAutomaton::evaluate_transition('n', Some('a'), false, false);
+        assert_eq!(state, AcousticState::ClearArticulation);
+    }
+
+    // 23. Identical chars with shadda, non-identical next → ClearArticulation
+    #[test]
+    fn same_char_no_identical_next_clear() {
+        // current='a', next='b' (not same), has_shadda=true → not merged
+        let (state, _) = AcousticAutomaton::evaluate_transition('a', Some('b'), true, false);
+        assert_eq!(state, AcousticState::ClearArticulation);
+    }
+
+    // 24. process_string on empty string returns empty vec
+    #[test]
+    fn process_empty_string_returns_empty() {
+        let result = AcousticAutomaton::process_string("", &[], &[]);
+        assert!(result.is_empty());
+    }
+
+    // 25. AcousticStream on empty string produces no items
+    #[test]
+    fn acoustic_stream_empty_string_no_items() {
+        let stream: Vec<_> = AcousticStream::new("", &[], &[]).collect();
+        assert!(stream.is_empty());
+    }
+
+    // 26. process_string length matches input char count
+    #[test]
+    fn process_string_length_matches_input() {
+        let input = "testing";
+        let result = AcousticAutomaton::process_string(input, &[], &[]);
+        assert_eq!(result.len(), input.chars().count());
+    }
+
+    // 27. AcousticStream length matches process_string length
+    #[test]
+    fn acoustic_stream_length_matches_process_string() {
+        let input = "hello";
+        let diacritics = vec![false; 5];
+        let prolongations = vec![false; 5];
+        let batch = AcousticAutomaton::process_string(input, &diacritics, &prolongations);
+        let streamed: Vec<_> = AcousticStream::new(input, &diacritics, &prolongations).collect();
+        assert_eq!(batch.len(), streamed.len());
+    }
+
+    // 28. hash of single Clear state is different from single Prolonged state on same char
+    #[test]
+    fn hash_differs_by_state_same_char() {
+        let h1 = AcousticAutomaton::compute_acoustic_hash(&[(AcousticState::ClearArticulation, 'z')]);
+        let h2 = AcousticAutomaton::compute_acoustic_hash(&[(AcousticState::ProlongedEcho, 'z')]);
+        assert_ne!(h1, h2);
+    }
+
+    // 29. hash differs when char changes, state same
+    #[test]
+    fn hash_differs_by_char_same_state() {
+        let h1 = AcousticAutomaton::compute_acoustic_hash(&[(AcousticState::ClearArticulation, 'a')]);
+        let h2 = AcousticAutomaton::compute_acoustic_hash(&[(AcousticState::ClearArticulation, 'b')]);
+        assert_ne!(h1, h2);
+    }
+
+    // 30. Merged assimilation: only when current == next AND has_shadda
+    #[test]
+    fn merged_assimilation_requires_shadda_and_same_char() {
+        // Same char, no shadda → NOT merged
+        let (state, _) = AcousticAutomaton::evaluate_transition('a', Some('a'), false, false);
+        assert_ne!(state, AcousticState::MergedAssimilation);
+    }
 }

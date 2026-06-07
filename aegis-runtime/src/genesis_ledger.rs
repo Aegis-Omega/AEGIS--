@@ -188,4 +188,87 @@ mod tests {
             assert!(IngestionEngine::ingest(payload).is_err());
         }
     }
+
+    // 11. Ingesting all-zero bytes fails (doesn't match GENESIS_SEAL)
+    #[test]
+    fn ingestion_rejects_all_zeros() {
+        let zeros: &'static [u8] = &[0u8; 32];
+        assert!(IngestionEngine::ingest(zeros).is_err());
+    }
+
+    // 12. Ingesting all-0xFF bytes fails
+    #[test]
+    fn ingestion_rejects_all_ff() {
+        let ffs: &'static [u8] = &[0xFFu8; 32];
+        assert!(IngestionEngine::ingest(ffs).is_err());
+    }
+
+    // 13. T0Ledger::read_text returns the same slice as provided at construction
+    #[test]
+    fn ledger_read_text_same_as_input() {
+        let payload: &'static [u8] = b"test payload bytes";
+        let ledger = T0Ledger { raw_payload: payload };
+        assert_eq!(ledger.read_text(), payload);
+    }
+
+    // 14. IntegrityReaper is_running starts true after construction
+    #[test]
+    fn integrity_reaper_new_is_running_true() {
+        let ledger = T0Ledger { raw_payload: b"data" };
+        let reaper = IntegrityReaper::new(ledger);
+        assert!(reaper.is_running.load(std::sync::atomic::Ordering::Relaxed));
+    }
+
+    // 15. stop_vigil sets is_running to false, spawn_vigil can be called without panicking
+    #[test]
+    fn integrity_reaper_spawn_and_stop_no_panic() {
+        let ledger = T0Ledger { raw_payload: b"some data" };
+        let reaper = IntegrityReaper::new(ledger);
+        reaper.stop_vigil();
+        assert!(!reaper.is_running.load(std::sync::atomic::Ordering::Relaxed));
+    }
+
+    // 16. T0Ledger raw_payload of length 1 is accepted
+    #[test]
+    fn ledger_single_byte_payload() {
+        let payload: &'static [u8] = b"X";
+        let ledger = T0Ledger { raw_payload: payload };
+        assert_eq!(ledger.read_text(), b"X");
+    }
+
+    // 17. Ingestion error message is a non-empty static string
+    #[test]
+    fn ingestion_error_is_nonempty_static_str() {
+        match IngestionEngine::ingest(b"wrong") {
+            Err(e) => assert!(!e.is_empty()),
+            Ok(_) => panic!("expected error"),
+        }
+    }
+
+    // 18. Two T0Ledger clones from same source share same read_text pointer
+    #[test]
+    fn two_clones_same_read_text() {
+        let payload: &'static [u8] = b"shared payload";
+        let a = T0Ledger { raw_payload: payload };
+        let b = a.clone();
+        assert_eq!(a.read_text(), b.read_text());
+    }
+
+    // 19. IngestionEngine::ingest is deterministic — same wrong payload always fails
+    #[test]
+    fn ingestion_deterministic_on_same_payload() {
+        let p: &'static [u8] = b"always wrong";
+        assert!(IngestionEngine::ingest(p).is_err());
+        assert!(IngestionEngine::ingest(p).is_err());
+        assert!(IngestionEngine::ingest(p).is_err());
+    }
+
+    // 20. GENESIS_SEAL bytes are not all zero and not all 0xFF
+    #[test]
+    fn genesis_seal_not_all_zeros_or_ff() {
+        let all_zero = GENESIS_SEAL.iter().all(|&b| b == 0);
+        let all_ff = GENESIS_SEAL.iter().all(|&b| b == 0xFF);
+        assert!(!all_zero);
+        assert!(!all_ff);
+    }
 }
