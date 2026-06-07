@@ -185,4 +185,119 @@ mod tests {
         let rec = fw.read_domain0(k(0,1)).unwrap();
         assert_eq!(rec.payload, b"first");
     }
+
+    // 11. Domain0Record::verify() returns true for a freshly constructed record
+    #[test] fn domain0_record_verify_true_on_new() {
+        let rec = Domain0Record::new(k(5, 5), b"payload".to_vec());
+        assert!(rec.verify());
+    }
+
+    // 12. Mutated payload causes Domain0Record::verify() to return false
+    #[test] fn domain0_record_verify_false_after_payload_mutation() {
+        let mut rec = Domain0Record::new(k(5, 5), b"payload".to_vec());
+        rec.payload[0] ^= 0xFF;
+        assert!(!rec.verify());
+    }
+
+    // 13. FirewallError::NotFound display contains key info
+    #[test] fn firewall_error_not_found_display() {
+        let err = FirewallError::NotFound(k(7, 3));
+        let s = format!("{}", err);
+        assert!(s.contains("7") && s.contains("3"));
+    }
+
+    // 14. FirewallError::IntegrityViolation display contains key info
+    #[test] fn firewall_error_integrity_violation_display() {
+        let err = FirewallError::IntegrityViolation(k(11, 22));
+        let s = format!("{}", err);
+        assert!(s.contains("11") && s.contains("22"));
+    }
+
+    // 15. Default firewall has empty domain0 and domain1
+    #[test] fn default_firewall_is_empty() {
+        let fw = DomainFirewall::default();
+        assert_eq!(fw.domain0_len(), 0);
+        assert_eq!(fw.domain1_len(), 0);
+    }
+
+    // 16. write_domain1 and read_domain1 roundtrip correctly
+    #[test] fn domain1_write_read_roundtrip() {
+        let mut fw = DomainFirewall::new();
+        fw.write_domain1(k(3, 7), b"metadata".to_vec());
+        assert_eq!(fw.read_domain1(k(3, 7)), Some(b"metadata".as_slice()));
+    }
+
+    // 17. Overwriting domain1 entry replaces data
+    #[test] fn domain1_overwrite_replaces_data() {
+        let mut fw = DomainFirewall::new();
+        fw.write_domain1(k(0,1), b"v1".to_vec());
+        fw.write_domain1(k(0,1), b"v2".to_vec());
+        assert_eq!(fw.read_domain1(k(0,1)), Some(b"v2".as_slice()));
+    }
+
+    // 18. verify_all_domain0 returns 0 on empty firewall
+    #[test] fn verify_all_domain0_empty_firewall() {
+        let fw = DomainFirewall::new();
+        assert_eq!(fw.verify_all_domain0(), 0);
+    }
+
+    // 19. read_domain0 payload bytes are correct
+    #[test] fn read_domain0_payload_correct() {
+        let mut fw = DomainFirewall::new();
+        fw.register(Domain0Record::new(k(0,1), b"exact_payload".to_vec())).unwrap();
+        let rec = fw.read_domain0(k(0,1)).unwrap();
+        assert_eq!(rec.payload, b"exact_payload");
+    }
+
+    // 20. OpaqueSegmentKey ordering is (domain_id, segment_id) lexicographic
+    #[test] fn opaque_segment_key_ordering() {
+        assert!(k(0, 100) < k(1, 0));
+        assert!(k(2, 1) > k(2, 0));
+        assert_eq!(k(5, 5), k(5, 5));
+    }
+
+    // 21. Multiple domain1 keys do not interfere with domain0
+    #[test] fn domain1_does_not_affect_domain0_verify() {
+        let mut fw = DomainFirewall::new();
+        fw.register(Domain0Record::new(k(0,1), b"core".to_vec())).unwrap();
+        for i in 0..10u32 {
+            fw.write_domain1(k(i, i), vec![i as u8; 8]);
+        }
+        assert_eq!(fw.verify_all_domain0(), 0);
+    }
+
+    // 22. Domain0Record with empty payload verifies correctly
+    #[test] fn domain0_empty_payload_verifies() {
+        let rec = Domain0Record::new(k(0,0), vec![]);
+        assert!(rec.verify());
+        let mut fw = DomainFirewall::new();
+        fw.register(rec).unwrap();
+        assert_eq!(fw.verify_all_domain0(), 0);
+    }
+
+    // 23. FirewallError implements std::error::Error
+    #[test] fn firewall_error_implements_error_trait() {
+        let err: Box<dyn std::error::Error> = Box::new(FirewallError::NotFound(k(0,0)));
+        let s = format!("{}", err);
+        assert!(!s.is_empty());
+    }
+
+    // 24. domain0_len remains stable after failed register
+    #[test] fn domain0_len_stable_after_tampered_register() {
+        let mut fw = DomainFirewall::new();
+        let mut r = Domain0Record::new(k(0,1), b"x".to_vec());
+        r.payload.push(0xFF); // tamper
+        let _ = fw.register(r);
+        assert_eq!(fw.domain0_len(), 0);
+    }
+
+    // 25. Multiple domain0 records all verify correctly
+    #[test] fn multiple_domain0_all_verify() {
+        let mut fw = DomainFirewall::new();
+        for i in 0..10u32 {
+            fw.register(Domain0Record::new(k(i, i), vec![i as u8])).unwrap();
+        }
+        assert_eq!(fw.domain0_len(), 10);
+        assert_eq!(fw.verify_all_domain0(), 0);
+    }
 }

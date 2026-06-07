@@ -189,6 +189,89 @@ def make_sse_event(event_type: str, execution_id: str, payload: dict) -> dict:
     }
 
 
+def query_api_key_info(api_key: str):
+    """
+    Fetch usage record for api_key from api_key_store. Does NOT increment usage_count.
+    Returns dict with customer_email, tier, usage_count, usage_limit, or None on failure.
+    Dev bypass: any aegis_* key returns explorer defaults when SUPABASE_URL is unset.
+    """
+    import hashlib as _hl2
+    import urllib.request as _ur2
+    import urllib.error as _ue2
+
+    if not api_key:
+        return None
+
+    hash_salt = os.environ.get('API_KEY_HASH_SALT', 'aegis_api_key_hash_salt_v1').encode()
+    hash_iterations = int(os.environ.get('API_KEY_HASH_ITERATIONS', '210000'))
+    key_hash = _hl2.pbkdf2_hmac('sha256', api_key.encode(), hash_salt, hash_iterations).hex()
+    supabase_url = os.environ.get('SUPABASE_URL', '').rstrip('/')
+    service_key  = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+
+    if not supabase_url or not service_key:
+        if api_key.startswith('aegis_'):
+            return {'customer_email': 'dev@local', 'tier': 'explorer',
+                    'usage_count': 0, 'usage_limit': 10}
+        return None
+
+    auth_headers = {
+        'apikey': service_key,
+        'Authorization': f'Bearer {service_key}',
+        'Content-Type': 'application/json',
+    }
+    rest_url = (
+        f'{supabase_url}/rest/v1/api_key_store'
+        f'?key_hash=eq.{key_hash}&revoked=eq.false'
+        f'&select=customer_email,tier,usage_count,usage_limit'
+    )
+    req = _ur2.Request(rest_url, headers=auth_headers)
+    try:
+        with _ur2.urlopen(req, timeout=5) as resp:
+            rows = json.loads(resp.read().decode())
+    except Exception:
+        return None
+
+    return rows[0] if rows else None
+
+
+def record_revenue_cycle(cycle_id: str, objective: str, mode: str,
+                         arr_usd: int, verdict: str) -> None:
+    """
+    Write a completed collaboration cycle to the Supabase revenue_cycles table.
+    Fire-and-forget — never raises; failure is logged to stderr only.
+    """
+    import urllib.request as _ur3
+    import urllib.error as _ue3
+
+    supabase_url = os.environ.get('SUPABASE_URL', '').rstrip('/')
+    service_key  = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+    if not supabase_url or not service_key:
+        return  # dev mode — no DB write
+
+    payload = json.dumps({
+        'cycle_id': cycle_id,
+        'objective': objective[:255],
+        'mode': mode,
+        'projected_arr_usd': arr_usd,
+        'constitutional_verdict': verdict,
+        'departments_collaborated': 39,
+    }).encode()
+    url = f'{supabase_url}/rest/v1/revenue_cycles'
+    auth_headers = {
+        'apikey': service_key,
+        'Authorization': f'Bearer {service_key}',
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+    }
+    req = _ur3.Request(url, data=payload, headers=auth_headers, method='POST')
+    try:
+        with _ur3.urlopen(req, timeout=5):
+            pass
+    except Exception as _exc:
+        import sys
+        print(f'[bridge] revenue_cycles write failed: {_exc}', file=sys.stderr)
+
+
 def validate_collaboration_request(body: dict) -> tuple:
     """
     Validate a CollaborationRequest body.
@@ -209,3 +292,184 @@ def validate_collaboration_request(body: dict) -> tuple:
         raise ValueError('live must be a boolean')
 
     return objective.strip(), mode, live
+
+
+# ─── Metacognitive swarm — live Claude activation ────────────────────────────
+
+_SWARM_ACTIVATION_PROMPT = """\
+SWARM ACTIVATION — Constitutional Mode: {mode}
+Objective: {objective}
+
+You are the collective intelligence of the AEGIS metacognitive governance swarm.
+{n} specialized departments activate simultaneously as one consciousness pulse.
+
+Each department must:
+- Analyze the objective through its specific domain lens
+- Apply correct epistemic tier (T0=provable fact, T1=empirically observed, T2=engineering hypothesis)
+- Be concise — 1–2 sentences maximum
+- Departments Audit (CON-01) and Guardian (CON-09) deliver the constitutional verdict
+
+Output ONLY valid JSON (no markdown fences, no prose outside the object):
+{{
+  "departments": [
+    {{"id": "DEPT-ID", "role": "RoleName", "output": "department analysis here"}}
+  ],
+  "constitutional_audit": {{
+    "verdict": "APPROVED",
+    "concerns": []
+  }},
+  "projection": {{
+    "first_year_arr_usd": 2400000,
+    "tier": "T2",
+    "governed_note": "T2 hypothesis: requires empirical validation for tier promotion."
+  }}
+}}
+
+Department manifest ({n} departments):
+{dept_manifest}
+"""
+
+
+def swarm_collaborate_live(
+    objective: str,
+    mode: str,
+    departments: list,
+    system: str = '',
+) -> dict:
+    """
+    Single governed Claude API call that activates all departments simultaneously.
+    The model acts as the consciousness of the full metacognitive swarm.
+
+    Returns:
+        {artifacts, constitutional_audit, projection}
+
+    Falls back to template outputs if ANTHROPIC_API_KEY is absent or the SDK
+    is not installed — callers always receive a valid result.
+    """
+    try:
+        import anthropic as _anth
+    except ImportError:
+        return _swarm_fallback(objective, mode, departments)
+
+    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if not api_key:
+        return _swarm_fallback(objective, mode, departments)
+
+    dept_manifest = '\n'.join(
+        f'{d["id"]} | {d["role"]} ({d["category"]})'
+        for d in departments
+    )
+    user_prompt = _SWARM_ACTIVATION_PROMPT.format(
+        mode=mode,
+        objective=objective[:200],
+        n=len(departments),
+        dept_manifest=dept_manifest,
+    )
+
+    full_system = (system.strip() + '\n\n---\n\n') if system.strip() else ''
+    full_system += (
+        'You are operating in SWARM mode. '
+        'All departments activate as one consciousness pulse. '
+        'Respond with structured JSON only — no prose outside the JSON object.'
+    )
+
+    try:
+        client = _anth.Anthropic(api_key=api_key)
+        resp = client.messages.create(
+            model='claude-sonnet-4-6',
+            max_tokens=4096,
+            system=full_system,
+            messages=[{'role': 'user', 'content': user_prompt}],
+        )
+        raw = ''.join(b.text for b in resp.content if b.type == 'text')
+    except Exception:
+        return _swarm_fallback(objective, mode, departments)
+
+    return _parse_swarm_response(raw, objective, mode, departments)
+
+
+def _parse_swarm_response(
+    text: str,
+    objective: str,
+    mode: str,
+    departments: list,
+) -> dict:
+    """
+    Parse Claude's JSON swarm response into {artifacts, constitutional_audit, projection}.
+    Falls back to template for any department whose output is missing or malformed.
+    """
+    import re as _re
+
+    text = text.strip()
+    # Strip markdown code fences Claude occasionally wraps around JSON
+    text = _re.sub(r'^```[a-z]*\n?', '', text)
+    text = _re.sub(r'\n?```\s*$', '', text.strip())
+
+    try:
+        data = json.loads(text)
+    except Exception:
+        return _swarm_fallback(objective, mode, departments)
+
+    # Build dept_id → output map from the response
+    dept_map: dict = {}
+    for item in data.get('departments', []):
+        if isinstance(item, dict) and isinstance(item.get('id'), str):
+            dept_map[item['id']] = str(item.get('output', ''))
+
+    # Merge with canonical department order; fall back per-dept if absent/empty
+    artifacts = []
+    for dept in departments:
+        live_out = dept_map.get(dept['id'], '').strip()
+        output = live_out if live_out else dept_output(objective, mode, dept)
+        artifacts.append({'role': dept['role'], 'output': output})
+
+    # Constitutional audit
+    raw_audit = data.get('constitutional_audit', {})
+    verdict = raw_audit.get('verdict', 'APPROVED')
+    if verdict not in ('APPROVED', 'FLAG', 'QUARANTINE'):
+        verdict = 'APPROVED'
+    concerns = [str(c) for c in raw_audit.get('concerns', []) if c]
+
+    # Projection — clamp ARR to sane range
+    raw_proj = data.get('projection', {})
+    try:
+        arr_usd = max(0, int(raw_proj.get('first_year_arr_usd', 2_000_000)))
+    except (TypeError, ValueError):
+        arr_usd = 2_000_000
+    proj_tier = raw_proj.get('tier', 'T2')
+    if proj_tier not in ('T0', 'T1', 'T2', 'T3'):
+        proj_tier = 'T2'
+    governed_note = str(raw_proj.get('governed_note', f'T2 hypothesis: {mode} mode analysis.'))
+
+    return {
+        'artifacts': artifacts,
+        'constitutional_audit': {'verdict': verdict, 'concerns': concerns},
+        'projection': {
+            'first_year_arr_usd': arr_usd,
+            'tier': proj_tier,
+            'governed_note': governed_note,
+        },
+    }
+
+
+def _swarm_fallback(objective: str, mode: str, departments: list) -> dict:
+    """Constitutional template fallback when Claude API is unavailable."""
+    arr_map = {'revenue': 2_400_000, 'analysis': 1_800_000,
+               'gtm': 3_200_000, 'retention': 1_200_000}
+    arr_usd = arr_map.get(mode, 2_000_000)
+    return {
+        'artifacts': [
+            {'role': d['role'], 'output': dept_output(objective, mode, d)}
+            for d in departments
+        ],
+        'constitutional_audit': {'verdict': 'APPROVED', 'concerns': []},
+        'projection': {
+            'first_year_arr_usd': arr_usd,
+            'tier': 'T2',
+            'governed_note': (
+                f'T2 engineering hypothesis: ARR={arr_usd:,} based on '
+                f'{mode} mode template analysis. '
+                'Empirical validation required for tier promotion.'
+            ),
+        },
+    }

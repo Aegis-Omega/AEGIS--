@@ -170,4 +170,120 @@ mod tests {
         assert_eq!(f2.agent_state_beta, 20);
         assert_eq!(f2.agent_state_gamma, 30);
     }
+
+    // 11. AEGIS_PROTOCOL_MAGIC is 0xE0E0
+    #[test] fn aegis_magic_value_is_e0e0() {
+        use crate::AEGIS_PROTOCOL_MAGIC;
+        assert_eq!(AEGIS_PROTOCOL_MAGIC, 0xE0E0u16);
+    }
+
+    // 12. Frame with zero local_node_id serializes and parses correctly
+    #[test] fn zero_node_id_roundtrip() {
+        let f = GossipFrame { local_node_id: 0, root_state_pulses: 0, semantic_traversals: 0,
+            agent_state_alpha: 0, agent_state_beta: 0, agent_state_gamma: 0,
+            cluster_consensus_score: 0, network_friction: 0 };
+        let b = f.to_bytes();
+        let f2 = GossipFrame::from_bytes(&b).unwrap();
+        assert_eq!(f2.local_node_id, 0);
+    }
+
+    // 13. Frame with max u16/u64 values serializes and parses correctly
+    #[test] fn max_value_roundtrip() {
+        let f = GossipFrame { local_node_id: u16::MAX, root_state_pulses: u64::MAX,
+            semantic_traversals: u64::MAX, agent_state_alpha: u64::MAX,
+            agent_state_beta: u64::MAX, agent_state_gamma: u64::MAX,
+            cluster_consensus_score: u16::MAX, network_friction: u16::MAX };
+        let b = f.to_bytes();
+        let f2 = GossipFrame::from_bytes(&b).unwrap();
+        assert_eq!(f2.local_node_id, u16::MAX);
+        assert_eq!(f2.root_state_pulses, u64::MAX);
+        assert_eq!(f2.cluster_consensus_score, u16::MAX);
+        assert_eq!(f2.network_friction, u16::MAX);
+    }
+
+    // 14. local_node_id is at bytes [2..4] in little-endian
+    #[test] fn node_id_at_bytes_2_3() {
+        let b = frame().to_bytes();
+        let node_id = u16::from_le_bytes([b[2], b[3]]);
+        assert_eq!(node_id, 7);
+    }
+
+    // 15. cluster_consensus_score is at bytes [60..62] in little-endian
+    #[test] fn cluster_consensus_score_at_bytes_60_61() {
+        let b = frame().to_bytes();
+        let score = u16::from_le_bytes([b[60], b[61]]);
+        assert_eq!(score, 9500);
+    }
+
+    // 16. network_friction is at bytes [62..64] in little-endian
+    #[test] fn network_friction_at_bytes_62_63() {
+        let b = frame().to_bytes();
+        let friction = u16::from_le_bytes([b[62], b[63]]);
+        assert_eq!(friction, 0);
+    }
+
+    // 17. root_state_pulses is at bytes [4..12] in little-endian
+    #[test] fn root_state_pulses_at_bytes_4_12() {
+        let b = frame().to_bytes();
+        let pulses = u64::from_le_bytes(b[4..12].try_into().unwrap());
+        assert_eq!(pulses, 1000);
+    }
+
+    // 18. Two distinct frames produce different byte sequences
+    #[test] fn two_distinct_frames_differ() {
+        let f1 = frame();
+        let f2 = GossipFrame { local_node_id: 99, ..frame() };
+        assert_ne!(f1.to_bytes(), f2.to_bytes());
+    }
+
+    // 19. GossipEmitter::noop() sent_count stays 0 after multiple emits
+    #[test] fn noop_emitter_sent_count_stays_zero() {
+        let mut e = GossipEmitter::noop();
+        for _ in 0..10 {
+            e.emit(&frame()).unwrap();
+        }
+        assert_eq!(e.sent_count(), 0);
+    }
+
+    // 20. from_bytes returns None when magic byte at offset 0 is wrong
+    #[test] fn from_bytes_wrong_first_magic_byte() {
+        let mut b = frame().to_bytes();
+        b[0] = 0x00; // only first byte corrupted
+        assert!(GossipFrame::from_bytes(&b).is_none());
+    }
+
+    // 21. from_bytes returns None when magic byte at offset 1 is wrong
+    #[test] fn from_bytes_wrong_second_magic_byte() {
+        let mut b = frame().to_bytes();
+        b[1] = 0x00; // only second byte corrupted
+        assert!(GossipFrame::from_bytes(&b).is_none());
+    }
+
+    // 22. FRAME_SIZE matches actual to_bytes() output length
+    #[test] fn frame_size_matches_serialized_length() {
+        let serialized = frame().to_bytes();
+        assert_eq!(serialized.len(), FRAME_SIZE);
+    }
+
+    // 23. to_bytes is pure — identical frame → identical bytes every call
+    #[test] fn to_bytes_pure_function_no_side_effects() {
+        let f = frame();
+        let b1 = f.to_bytes();
+        let b2 = f.to_bytes();
+        assert_eq!(b1, b2);
+    }
+
+    // 24. semantic_traversals at bytes [12..20]
+    #[test] fn semantic_traversals_at_bytes_12_20() {
+        let b = frame().to_bytes();
+        let traversals = u64::from_le_bytes(b[12..20].try_into().unwrap());
+        assert_eq!(traversals, 500);
+    }
+
+    // 25. agent_state_alpha at bytes [20..28]
+    #[test] fn agent_state_alpha_at_bytes_20_28() {
+        let b = frame().to_bytes();
+        let alpha = u64::from_le_bytes(b[20..28].try_into().unwrap());
+        assert_eq!(alpha, 10);
+    }
 }

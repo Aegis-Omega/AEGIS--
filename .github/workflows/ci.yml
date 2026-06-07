@@ -175,8 +175,26 @@ jobs:
       - name: Run /platform/* contract tests
         run: python python/tests/test_platform.py
 
-      # test_ledger_persist.py allocates 4 GB (CoreMatrix bytearray) — requires
-      # AMD RX 570 hardware-spec RAM; run locally only, not in CI.
+      - name: Run hardware_config fixed-point tests
+        run: python python/tests/test_hardware_config.py
+
+      - name: Run constitutional identity tests
+        run: python python/tests/test_constitutional_identity.py
+
+      - name: Run TGCS / AFSE tests (mock hardware, no GPU)
+        run: python python/tests/test_tgcs_afse.py
+
+      - name: Install source-attribution deps
+        run: pip install scikit-learn numpy
+
+      - name: Run source attribution tests
+        run: python python/tests/test_source_attribution.py
+
+      - name: Run ledger persistence tests (mock CoreMatrix)
+        run: python python/tests/test_ledger_persist_v2.py
+
+      # test_ledger_persist.py (v1) allocates 4 GB (real CoreMatrix bytearray) —
+      # requires AMD RX 570 hardware-spec RAM; run locally only, not in CI.
 
 # ── INFORMATIONAL — TS coverage thresholds (not in BFT ceremony) ─────────────
   coverage-ts:

@@ -385,4 +385,135 @@ mod tests {
     fn packet_constants_sum_to_total() {
         assert_eq!(PACKET_HEADER_SIZE + PACKET_PAYLOAD_SIZE + PACKET_HARMONY_SIZE, TOTAL_PACKET_SIZE);
     }
+
+    // 11. construct_packet produces exactly TOTAL_PACKET_SIZE bytes
+    #[test]
+    fn construct_packet_size_is_64() {
+        let pkt = construct_packet(1, 0, 0, 0, 0, 0, 0, 0, 100, 0);
+        assert_eq!(pkt.len(), TOTAL_PACKET_SIZE);
+    }
+
+    // 12. parse_packet on a buffer shorter than TOTAL_PACKET_SIZE returns None
+    #[test]
+    fn parse_packet_too_short_returns_none() {
+        let short = vec![0u8; TOTAL_PACKET_SIZE - 1];
+        assert!(parse_packet(&short).is_none());
+    }
+
+    // 13. parse_packet on exactly TOTAL_PACKET_SIZE with correct magic succeeds
+    #[test]
+    fn parse_packet_exact_size_valid_magic() {
+        let pkt = construct_packet(0, 0, 0, 0, 0, 0, 0, 0, 100, 0);
+        assert!(parse_packet(&pkt).is_some());
+    }
+
+    // 14. parse_packet node_id roundtrip
+    #[test]
+    fn parse_packet_node_id_roundtrip() {
+        let pkt = construct_packet(42, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        let (node_id, ..) = parse_packet(&pkt).unwrap();
+        assert_eq!(node_id, 42);
+    }
+
+    // 15. parse_packet harmony roundtrip
+    #[test]
+    fn parse_packet_harmony_roundtrip() {
+        let pkt = construct_packet(0, 0, 0, 0, 0, 0, 0, 0, 77, 0);
+        let (.., harmony, _) = parse_packet(&pkt).unwrap();
+        assert_eq!(harmony, 77);
+    }
+
+    // 16. parse_packet tension roundtrip
+    #[test]
+    fn parse_packet_tension_roundtrip() {
+        let pkt = construct_packet(0, 0, 0, 0, 0, 0, 0, 0, 0, 33);
+        let (.., tension) = parse_packet(&pkt).unwrap();
+        assert_eq!(tension, 33);
+    }
+
+    // 17. magic bytes at [0..2] are RESONANCE_MAGIC in little-endian
+    #[test]
+    fn magic_at_offset_0_is_resonance_magic() {
+        let pkt = construct_packet(1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        let magic = u16::from_le_bytes([pkt[0], pkt[1]]);
+        assert_eq!(magic, RESONANCE_MAGIC);
+    }
+
+    // 18. TelemetryAtomics::new() starts with swarm_harmony_index == 100
+    #[test]
+    fn new_telemetry_harmony_starts_at_100() {
+        let atomics = TelemetryAtomics::new();
+        let (_, _, _, _, _, _, _, harmony, _) = atomics.snapshot_and_reset();
+        assert_eq!(harmony, 100);
+    }
+
+    // 19. TelemetryAtomics::new() starts with hysteresis_tension == 0
+    #[test]
+    fn new_telemetry_tension_starts_at_0() {
+        let atomics = TelemetryAtomics::new();
+        let (_, _, _, _, _, _, _, _, tension) = atomics.snapshot_and_reset();
+        assert_eq!(tension, 0);
+    }
+
+    // 20. pulse_integrity increments t0_integrity_pulse
+    #[test]
+    fn pulse_integrity_increments_counter() {
+        let atomics = TelemetryAtomics::new();
+        atomics.pulse_integrity();
+        atomics.pulse_integrity();
+        atomics.pulse_integrity();
+        let (t0, ..) = atomics.snapshot_and_reset();
+        assert_eq!(t0, 3);
+    }
+
+    // 21. record_traversal increments semantic_traversals
+    #[test]
+    fn record_traversal_increments_counter() {
+        let atomics = TelemetryAtomics::new();
+        atomics.record_traversal();
+        atomics.record_traversal();
+        let (_, sem, ..) = atomics.snapshot_and_reset();
+        assert_eq!(sem, 2);
+    }
+
+    // 22. set_harmony and set_tension update independently
+    #[test]
+    fn set_harmony_and_tension_independent() {
+        let atomics = TelemetryAtomics::new();
+        atomics.set_harmony(50);
+        atomics.set_tension(25);
+        let (_, _, _, _, _, _, _, harmony, tension) = atomics.snapshot_and_reset();
+        assert_eq!(harmony, 50);
+        assert_eq!(tension, 25);
+    }
+
+    // 23. snapshot_and_reset resets t0 and sem to 0
+    #[test]
+    fn snapshot_resets_t0_and_sem() {
+        let atomics = TelemetryAtomics::new();
+        atomics.pulse_integrity();
+        atomics.record_traversal();
+        atomics.snapshot_and_reset();
+        let (t0, sem, ..) = atomics.snapshot_and_reset();
+        assert_eq!(t0, 0);
+        assert_eq!(sem, 0);
+    }
+
+    // 24. with_values produces correct harmony and tension
+    #[test]
+    fn with_values_harmony_100_tension_0() {
+        let atomics = TelemetryAtomics::with_values(100, 0);
+        let (_, _, _, _, _, _, _, harmony, tension) = atomics.snapshot_and_reset();
+        assert_eq!(harmony, 100);
+        assert_eq!(tension, 0);
+    }
+
+    // 25. max value harmony and tension roundtrip through construct_packet
+    #[test]
+    fn max_harmony_tension_roundtrip() {
+        let pkt = construct_packet(0, 0, 0, 0, 0, 0, 0, 0, u16::MAX, u16::MAX);
+        let (.., harmony, tension) = parse_packet(&pkt).unwrap();
+        assert_eq!(harmony, u16::MAX);
+        assert_eq!(tension, u16::MAX);
+    }
 }

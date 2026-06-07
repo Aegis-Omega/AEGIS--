@@ -453,4 +453,128 @@ mod tests {
         let leaf = arena.get_node(1).unwrap();
         assert!(matches!(leaf.node_type, NodeType::DataLeaf(_)));
     }
+
+    // 11. get_node(0) returns the root node
+    #[test]
+    fn get_node_zero_is_root() {
+        let arena = ArenaBuilder::new()
+            .add_root([b'R', b'O', b'T'])
+            .build();
+        let node = arena.get_node(0).unwrap();
+        assert!(matches!(node.node_type, NodeType::Root([b'R', b'O', b'T'])));
+    }
+
+    // 12. bfs_traverse on single-node arena returns [0]
+    #[test]
+    fn bfs_single_node_returns_root_only() {
+        let arena = ArenaBuilder::new()
+            .add_root([b'A', b'B', b'C'])
+            .build();
+        let result = arena.bfs_traverse(0);
+        assert_eq!(result, vec![0]);
+    }
+
+    // 13. trace_growth on leaf node returns just that leaf
+    #[test]
+    fn trace_growth_on_leaf_returns_that_leaf() {
+        let arena = ArenaBuilder::new()
+            .add_root([b'L', b'F', b'N'])
+            .add_leaf(AxiomKey::new(10, 1))
+            .connect(0, 1)
+            .build();
+        // trace from leaf (index 1)
+        let leaves = arena.trace_growth(1);
+        assert_eq!(leaves.len(), 1);
+        assert_eq!(leaves[0], AxiomKey::new(10, 1));
+    }
+
+    // 14. ArenaBuilder::default() is same as ::new()
+    #[test]
+    fn arena_builder_default_same_as_new() {
+        let arena_default = ArenaBuilder::default()
+            .add_root([b'X', b'X', b'X'])
+            .build();
+        assert_eq!(arena_default.node_count(), 1);
+        assert_eq!(arena_default.edge_count(), 0);
+    }
+
+    // 15. MorphOperator repr values are correct
+    #[test]
+    fn morph_operator_repr_values() {
+        assert_eq!(MorphOperator::BaseForm as u8, 0x01);
+        assert_eq!(MorphOperator::Intensive as u8, 0x02);
+        assert_eq!(MorphOperator::Passive as u8, 0x03);
+        assert_eq!(MorphOperator::Causative as u8, 0x04);
+        assert_eq!(MorphOperator::Reflexive as u8, 0x05);
+        assert_eq!(MorphOperator::Reciprocal as u8, 0x06);
+    }
+
+    // 16. NodeType::Root with different consonants are not equal
+    #[test]
+    fn root_node_types_with_different_consonants_differ() {
+        let a = NodeType::Root([b'A', b'B', b'C']);
+        let b = NodeType::Root([b'X', b'Y', b'Z']);
+        assert_ne!(a, b);
+    }
+
+    // 17. SemanticNode::new stores edge_start and edge_count correctly
+    #[test]
+    fn semantic_node_new_stores_fields() {
+        let node = SemanticNode::new(NodeType::Root([b'T', b'S', b'T']), 5, 3);
+        assert_eq!(node.edge_start, 5);
+        assert_eq!(node.edge_count, 3);
+    }
+
+    // 18. FractalArena: trace_growth on out-of-bounds index returns empty
+    #[test]
+    fn empty_arena_trace_out_of_bounds_returns_empty() {
+        // Build arena with only one root and no edges
+        let arena = ArenaBuilder::new()
+            .add_root([b'E', b'M', b'P'])
+            .build();
+        // Out-of-bounds index for trace_growth — get_node returns None → no leaves
+        let trace = arena.trace_growth(999);
+        assert!(trace.is_empty());
+        // BFS from an out-of-bounds index enqueues it but get_node returns None,
+        // so no children are pushed — the index itself is "visited" but node lookup fails.
+        // The returned vec contains the invalid index since BFS just records indices.
+        // We verify trace_growth (which uses get_node properly) returns empty.
+        // bfs_traverse behaviour for out-of-bounds: returns vec![999] since it
+        // pushes the index before checking validity.
+        let bfs = arena.bfs_traverse(999);
+        assert!(bfs.contains(&999)); // index is enqueued even if invalid
+    }
+
+    // 19. Deep tree: root → derived → derived → leaf — trace finds leaf
+    #[test]
+    fn deep_tree_trace_finds_leaf() {
+        let arena = ArenaBuilder::new()
+            .add_root([b'D', b'P', b'T'])        // Node 0
+            .add_derived(MorphOperator::Intensive) // Node 1
+            .add_derived(MorphOperator::Passive)   // Node 2
+            .add_leaf(AxiomKey::new(99, 99))       // Node 3
+            .connect(0, 1)
+            .connect(1, 2)
+            .connect(2, 3)
+            .build();
+        let leaves = arena.trace_growth(0);
+        assert_eq!(leaves, vec![AxiomKey::new(99, 99)]);
+    }
+
+    // 20. BFS on root with two children visits all three nodes
+    #[test]
+    fn bfs_two_children_visits_all() {
+        let arena = ArenaBuilder::new()
+            .add_root([b'T', b'W', b'O'])       // Node 0
+            .add_leaf(AxiomKey::new(1, 1))       // Node 1
+            .add_leaf(AxiomKey::new(1, 2))       // Node 2
+            .connect(0, 1)
+            .connect(0, 2)
+            .build();
+        let bfs = arena.bfs_traverse(0);
+        assert_eq!(bfs.len(), 3);
+        assert!(bfs.contains(&0));
+        assert!(bfs.contains(&1));
+        assert!(bfs.contains(&2));
+    }
 }

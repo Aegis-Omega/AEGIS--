@@ -41,9 +41,12 @@ from platform_helpers import (
     platform_ts as _platform_ts,
     platform_envelope as _platform_envelope,
     verify_api_key as _platform_verify_api_key,
+    query_api_key_info as _platform_query_key_info,
+    record_revenue_cycle as _platform_record_cycle,
     dept_output as _platform_dept_output,
     make_sse_event as _make_sse_event,
     validate_collaboration_request as _validate_collab_req,
+    swarm_collaborate_live as _swarm_live,
 )
 
 # In-memory execution store — keyed by execution_id
@@ -120,7 +123,14 @@ def _platform_run_collaboration(
     mode: str,
     live: bool,
 ) -> None:
-    """Background thread: runs 39-dept collaboration, pushes typed SSE events to queue."""
+    """
+    Background thread: runs 39-dept collaboration, pushes typed SSE events to queue.
+
+    live=True  → single governed Claude call (consciousness pulse) feeds all depts.
+    live=False → constitutional template outputs, no API cost.
+
+    Both paths emit identical SSE event shapes; callers see the same stream contract.
+    """
     import hashlib as _hl_col
     import uuid as _uuid_col
     import time as _time_col
@@ -134,11 +144,44 @@ def _platform_run_collaboration(
 
     try:
         cycle_id = str(_uuid_col.uuid4())
-        artifacts = []
-        arr_map = {'revenue': 2_400_000, 'analysis': 1_800_000,
-                   'gtm': 3_200_000, 'retention': 1_200_000}
-        arr_usd = arr_map.get(mode, 2_000_000)
 
+        # ── CONSCIOUSNESS PULSE ───────────────────────────────────────────────
+        # Live mode: one governed Claude call activates all 39 departments at
+        # once. The model acts as the swarm's unified consciousness — every dept
+        # output is derived from a single T1-tier governed inference.
+        # Demo mode: constitutional template strings, zero API cost.
+        if live:
+            swarm_system = (
+                CONSTITUTIONAL_SYSTEM_COMPACT
+                + '\n\n---\n\n'
+                + _build_live_state_context()
+                + '\n\n---\n\n'
+                + _mc_recent_context(3)
+            )
+            swarm = _swarm_live(objective, mode, _PLATFORM_DEPARTMENTS, system=swarm_system)
+            live_outputs = {
+                dept['id']: swarm['artifacts'][i]['output']
+                for i, dept in enumerate(_PLATFORM_DEPARTMENTS)
+            }
+            constitutional_audit = swarm['constitutional_audit']
+            projection = swarm['projection']
+        else:
+            live_outputs = None
+            arr_map = {'revenue': 2_400_000, 'analysis': 1_800_000,
+                       'gtm': 3_200_000, 'retention': 1_200_000}
+            arr_usd = arr_map.get(mode, 2_000_000)
+            constitutional_audit = {'verdict': 'APPROVED', 'concerns': []}
+            projection = {
+                'first_year_arr_usd': arr_usd,
+                'tier': 'T2',
+                'governed_note': (
+                    f'T2 engineering hypothesis: ARR={arr_usd:,} based on {mode} mode analysis. '
+                    'Empirical validation required for tier promotion.'
+                ),
+            }
+
+        # ── STREAM 39 DEPARTMENT EVENTS ───────────────────────────────────────
+        artifacts = []
         for i, dept in enumerate(_PLATFORM_DEPARTMENTS):
             _emit({
                 'type': 'dag_step',
@@ -150,10 +193,15 @@ def _platform_run_collaboration(
                     'category': dept['category'],
                     'step_index': i,
                     'total_steps': len(_PLATFORM_DEPARTMENTS),
+                    'source': 'live' if live else 'demo',
                 },
             })
 
-            output = _platform_dept_output(objective, mode, dept)
+            output = (
+                live_outputs[dept['id']]
+                if live_outputs is not None
+                else _platform_dept_output(objective, mode, dept)
+            )
             artifacts.append({'role': dept['role'], 'output': output})
 
             _emit({
@@ -164,19 +212,29 @@ def _platform_run_collaboration(
                     'dept_id': dept['id'],
                     'role': dept['role'],
                     'output_preview': output[:120],
+                    'source': 'live' if live else 'demo',
                 },
             })
 
             _time_col.sleep(0.04)
 
+        # ── AUDIT HASH + METACOGNITIVE CHAIN ──────────────────────────────────
         audit_hash = _hl_col.sha256(
             json.dumps({'cycle_id': cycle_id, 'objective': objective}, sort_keys=True).encode()
         ).hexdigest()
 
+        verdict = constitutional_audit['verdict']
         _mc_observe(
             'CONSCIOUSNESS',
-            f'/platform/collaborate cycle={cycle_id[:8]} mode={mode} depts=39 verdict=APPROVED',
+            (
+                f'/platform/collaborate cycle={cycle_id[:8]} mode={mode} depts=39 '
+                f'source={"live" if live else "demo"} verdict={verdict}'
+            ),
             'T1',
+        )
+        _platform_record_cycle(
+            cycle_id, objective, mode,
+            projection['first_year_arr_usd'], verdict,
         )
 
         result = {
@@ -185,18 +243,8 @@ def _platform_run_collaboration(
             'mode': mode,
             'departments_collaborated': len(artifacts),
             'artifacts': artifacts,
-            'projection': {
-                'first_year_arr_usd': arr_usd,
-                'tier': 'T2',
-                'governed_note': (
-                    f'T2 engineering hypothesis: ARR={arr_usd} based on {mode} mode analysis. '
-                    'Empirical validation required for tier promotion.'
-                ),
-            },
-            'constitutional_audit': {
-                'verdict': 'APPROVED',
-                'concerns': [],
-            },
+            'projection': projection,
+            'constitutional_audit': constitutional_audit,
             'chain_valid': True,
             'audit_chain_hash': audit_hash,
             'execution_id': execution_id,
@@ -1324,7 +1372,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._respond(200, {'available': False, 'reason': str(exc)[:80]})
 
         elif self.path == '/platform/status':
-            # GET /platform/status — public health check (no auth required).
+            # GET /platform/status — public health check.
+            # When x-api-key is present, also returns usage info for that customer.
             vcg = matrix.emit_vcg_telemetry()
             corruption = int(vcg.get('corruption_count', 0))
             drift = round(min(float(vcg.get('drift_index', 0.0)) * 0.1, 0.99), 6)
@@ -1333,14 +1382,27 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 terminal = _metacognitive_chain[-1]['entry_hash'] if _metacognitive_chain else _MC_GENESIS
             import uuid as _uuid_st
             eid = str(_uuid_st.uuid4())
-            self._platform_respond(200, _platform_envelope(eid, {
+            status_data: dict = {
                 'version': '1.0.0',
                 'contract_version': _PLATFORM_CONTRACT_VERSION,
                 'total_agents': len(_PLATFORM_DEPARTMENTS),
                 'chain_valid': chain_valid,
                 'audit_chain_hash': terminal,
                 'available': True,
-            }))
+            }
+            api_key = self.headers.get('x-api-key', '')
+            if api_key:
+                info = _platform_query_key_info(api_key)
+                if info:
+                    remaining = max(0, info['usage_limit'] - info['usage_count'])
+                    status_data['usage'] = {
+                        'customer_email': info['customer_email'],
+                        'tier': info['tier'],
+                        'usage_count': info['usage_count'],
+                        'usage_limit': info['usage_limit'],
+                        'remaining_runs': remaining,
+                    }
+            self._platform_respond(200, _platform_envelope(eid, status_data))
 
         elif self.path.startswith('/platform/executions/live'):
             # GET /platform/executions/live?id=<uuid> — SSE stream.

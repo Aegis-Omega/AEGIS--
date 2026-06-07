@@ -165,17 +165,22 @@ def fixed_div(a: int, b: int) -> int:
 
 
 def fixed_sqrt(x: int) -> int:
-    """Integer square root of Q16.16 x. Returns Q16.16 result."""
+    """Integer square root of Q16.16 x. Returns Q16.16 result.
+
+    For Q16.16 (x represents v * 65536): sqrt(v) in Q16.16 = isqrt(x) << 8.
+    Uses integer Newton-Raphson on the raw fixed-point value.
+    """
     if x <= 0:
         return 0
-    # Newton-Raphson in fixed-point: converges in ~8 iterations
-    # Initial estimate: shift right by half the total bits
-    r = x >> (INT_SHIFT_BITS >> 1)
-    if r == 0:
-        r = 1
-    for _ in range(8):
-        r = (r + fixed_div(x, r)) >> 1
-    return r
+    # Integer sqrt of raw value via Newton-Raphson on integers
+    r = x
+    while True:
+        r1 = (r + x // r) >> 1
+        if r1 >= r:
+            break
+        r = r1
+    # r = isqrt(x); convert to Q16.16 by shifting up by SHIFT/2
+    return r << (INT_SHIFT_BITS >> 1)
 
 
 def fixed_exp_decay(value: int, decay: int, target: int) -> int:
