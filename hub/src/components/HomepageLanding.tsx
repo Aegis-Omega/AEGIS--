@@ -44,7 +44,7 @@ export function HomepageLanding() {
           </span>
           <div className="flex items-center gap-8">
             <a href="#industries" className="text-xs text-hub-muted hover:text-hub-text transition-colors hidden sm:block">Industries</a>
-            <a href="#api" className="text-xs text-hub-muted hover:text-hub-text transition-colors hidden sm:block">API</a>
+            <a href="/docs" className="text-xs text-hub-muted hover:text-hub-text transition-colors hidden sm:block">API Docs</a>
             <a href="https://github.com/Aegis-Omega/AEGIS--" target="_blank" rel="noopener noreferrer" className="text-xs text-hub-muted hover:text-hub-text transition-colors hidden sm:block">
               Source
             </a>
@@ -407,8 +407,8 @@ export function HomepageLanding() {
             AEGIS-Ω
           </span>
           <div className="flex items-center gap-6">
-            <a href="/cockpit" className="text-hub-muted text-xs hover:text-hub-text transition-colors">Cockpit</a>
-            <a href="#industries" className="text-hub-muted text-xs hover:text-hub-text transition-colors">Industries</a>
+            <a href="/docs" className="text-hub-muted text-xs hover:text-hub-text transition-colors">API Docs</a>
+            <a href="/pricing" className="text-hub-muted text-xs hover:text-hub-text transition-colors">Pricing</a>
             <a href="https://github.com/Aegis-Omega/AEGIS--" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-hub-muted text-xs hover:text-hub-text transition-colors">
               <GithubIcon size={11} />
               Source
