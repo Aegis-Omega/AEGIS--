@@ -1556,7 +1556,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
 
 def run_bridge(port=None):
-    port = port or int(os.environ.get('SOVEREIGN_BRIDGE_PORT', '7890'))
+    # Cloud Run injects PORT; fall back to SOVEREIGN_BRIDGE_PORT for local dev
+    port = port or int(os.environ.get('PORT', os.environ.get('SOVEREIGN_BRIDGE_PORT', '7890')))
     _register_handlers()
     matrix.start()
     if not matrix.wait_ready(timeout=5.0):
@@ -1575,7 +1576,7 @@ def run_bridge(port=None):
         except CheckpointError as e:
             print(json.dumps({'event_type': 'CHECKPOINT_RESTORE_FAILED', 'reason': str(e)}), flush=True)
 
-    server = HTTPServer(('127.0.0.1', port), BridgeHandler)
+    server = HTTPServer(('0.0.0.0', port), BridgeHandler)
     print(json.dumps({'event_type': 'BRIDGE_READY', 'port': port}), flush=True)
     try:
         server.serve_forever()

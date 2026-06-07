@@ -107,3 +107,22 @@ jobs:
           gcloud builds submit \
             --config cockpit/cloudbuild.yaml \
             --project=$PROJECT_ID .
+
+  deploy-bridge:
+    name: Deploy Bridge (aegis-vertex.aegisomega.com)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Build and push
+        run: |
+          gcloud builds submit \
+            --config sovereign-omega-v2/cloudbuild.yaml \
+            --project=$PROJECT_ID .

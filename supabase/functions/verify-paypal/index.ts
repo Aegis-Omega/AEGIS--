@@ -14,6 +14,16 @@ const PAYPAL_BASE          = PAYPAL_MODE === 'live'
   ? 'https://api-m.paypal.com'
   : 'https://api-m.sandbox.paypal.com'
 
+// Canonical prices (USD). Any captured amount below floor → reject.
+const TIER_MIN_USD: Record<string, number> = {
+  operator:  48.00,  // allow $1 tolerance for currency rounding
+  sovereign: 498.00,
+}
+
+// Free tier: max 1 active key per email, max 100 new keys per day globally
+const EXPLORER_PER_EMAIL_LIMIT  = 1
+const EXPLORER_GLOBAL_DAILY_CAP = 100
+
 async function getPayPalToken(): Promise<string> {
   const creds = btoa(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`)
   const resp = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
@@ -26,14 +36,21 @@ async function getPayPalToken(): Promise<string> {
   return data.access_token as string
 }
 
-async function captureOrder(token: string, orderId: string): Promise<string> {
+interface CaptureResult { status: string; capturedUSD: number }
+
+async function captureOrder(token: string, orderId: string): Promise<CaptureResult> {
   const resp = await fetch(`${PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`, {
     method:  'POST',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
   })
   const data = await resp.json()
   if (!resp.ok) throw new Error(`PayPal capture: ${JSON.stringify(data)}`)
-  return data.status as string
+  // Extract captured amount from the first purchase unit → first capture
+  const capturedUSD = parseFloat(
+    // deno-lint-ignore no-explicit-any
+    (data as any)?.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value ?? '0'
+  )
+  return { status: data.status as string, capturedUSD }
 }
 
 Deno.serve(async (req) => {
@@ -52,7 +69,49 @@ Deno.serve(async (req) => {
   if (!emailNorm || !emailNorm.includes('@'))
     return new Response(JSON.stringify({ error: 'Valid email required' }), { status: 400, headers: CORS })
 
-  // Paid tiers: capture PayPal order before provisioning
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  )
+
+  // Explorer rate limiting: per-email dedup + global daily cap
+  if (tierNorm === 'explorer') {
+    const { count: emailCount, error: emailErr } = await supabase
+      .from('api_key_store')
+      .select('id', { count: 'exact', head: true })
+      .eq('customer_email', emailNorm)
+      .eq('tier', 'explorer')
+      .eq('revoked', false)
+
+    if (emailErr) {
+      console.error('Rate-limit check failed:', emailErr)
+      return new Response(JSON.stringify({ error: 'Rate-limit check failed' }), { status: 500, headers: CORS })
+    }
+    if ((emailCount ?? 0) >= EXPLORER_PER_EMAIL_LIMIT)
+      return new Response(
+        JSON.stringify({ error: 'You already have an active Explorer key. Upgrade to Operator or Sovereign for more runs.' }),
+        { status: 429, headers: CORS },
+      )
+
+    const oneDayAgo = new Date(Date.now() - 86_400_000).toISOString()
+    const { count: dailyCount, error: dailyErr } = await supabase
+      .from('api_key_store')
+      .select('id', { count: 'exact', head: true })
+      .eq('tier', 'explorer')
+      .gte('created_at', oneDayAgo)
+
+    if (dailyErr) {
+      console.error('Daily cap check failed:', dailyErr)
+      return new Response(JSON.stringify({ error: 'Rate-limit check failed' }), { status: 500, headers: CORS })
+    }
+    if ((dailyCount ?? 0) >= EXPLORER_GLOBAL_DAILY_CAP)
+      return new Response(
+        JSON.stringify({ error: 'Free tier is at daily capacity. Try again tomorrow or upgrade.' }),
+        { status: 429, headers: CORS },
+      )
+  }
+
+  // Paid tiers: capture PayPal order + verify amount matches tier price
   if (tierNorm !== 'explorer') {
     const orderId = (body.order_id ?? '').trim()
     if (!orderId)
@@ -61,10 +120,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'PayPal not configured' }), { status: 503, headers: CORS })
 
     try {
-      const token  = await getPayPalToken()
-      const status = await captureOrder(token, orderId)
+      const ppToken = await getPayPalToken()
+      const { status, capturedUSD } = await captureOrder(ppToken, orderId)
       if (status !== 'COMPLETED')
         return new Response(JSON.stringify({ error: `Order not completed (status: ${status})` }), { status: 402, headers: CORS })
+
+      const minUSD = TIER_MIN_USD[tierNorm] ?? 0
+      if (capturedUSD < minUSD)
+        return new Response(
+          JSON.stringify({ error: `Payment amount $${capturedUSD.toFixed(2)} below minimum $${minUSD.toFixed(2)} for ${tierNorm} tier` }),
+          { status: 402, headers: CORS },
+        )
     } catch (e) {
       console.error('PayPal capture error:', e)
       return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: CORS })
@@ -72,10 +138,6 @@ Deno.serve(async (req) => {
   }
 
   // Provision API key via SQL function (security definer, runs with elevated privileges)
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  )
   const { data, error } = await supabase.rpc('provision_platform_key', {
     p_customer_email: emailNorm,
     p_tier:           tierNorm,
