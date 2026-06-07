@@ -1,16 +1,19 @@
+substitutions:
+  _COMMIT_SHA: 'manual'  # overridden automatically when triggered via Cloud Build trigger
+
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - build
       - -t
-      - gcr.io/$PROJECT_ID/aegis-vertex:$COMMIT_SHA
+      - gcr.io/$PROJECT_ID/aegis-vertex:${_COMMIT_SHA}
       - -t
       - gcr.io/$PROJECT_ID/aegis-vertex:latest
       # Build context = sovereign-omega-v2/ so python/ and dist/ land in the image
       - sovereign-omega-v2/
 
   - name: 'gcr.io/cloud-builders/docker'
-    args: [push, gcr.io/$PROJECT_ID/aegis-vertex:$COMMIT_SHA]
+    args: [push, gcr.io/$PROJECT_ID/aegis-vertex:${_COMMIT_SHA}]
 
   - name: 'gcr.io/cloud-builders/docker'
     args: [push, gcr.io/$PROJECT_ID/aegis-vertex:latest]
@@ -21,7 +24,7 @@ steps:
       - run
       - deploy
       - aegis-vertex
-      - --image=gcr.io/$PROJECT_ID/aegis-vertex:$COMMIT_SHA
+      - --image=gcr.io/$PROJECT_ID/aegis-vertex:latest
       - --region=europe-west3
       - --platform=managed
       # anthropic-api-key powers live 39-agent swarm (platform_helpers.swarm_collaborate_live)
@@ -39,7 +42,7 @@ steps:
       - --max-instances=5
 
 images:
-  - gcr.io/$PROJECT_ID/aegis-vertex:$COMMIT_SHA
+  - gcr.io/$PROJECT_ID/aegis-vertex:${_COMMIT_SHA}
   - gcr.io/$PROJECT_ID/aegis-vertex:latest
 
 options:
