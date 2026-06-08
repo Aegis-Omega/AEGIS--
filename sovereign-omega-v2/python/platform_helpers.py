@@ -561,18 +561,10 @@ def swarm_collaborate_live(
     Returns:
         {artifacts, constitutional_audit, projection}
 
-    Falls back to template outputs if ANTHROPIC_API_KEY is absent or the SDK
-    is not installed — callers always receive a valid result.
+    Falls back to template outputs if no Anthropic client is available
+    (no ADC credentials and no ANTHROPIC_API_KEY) — callers always receive
+    a valid result.
     """
-    try:
-        import anthropic as _anth
-    except ImportError:
-        return _swarm_fallback(objective, mode, departments)
-
-    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
-    if not api_key:
-        return _swarm_fallback(objective, mode, departments)
-
     dept_manifest = '\n'.join(
         f'{d["id"]} | {d["role"]} ({d["category"]})'
         for d in departments
@@ -598,20 +590,21 @@ def swarm_collaborate_live(
     )
 
     try:
-        client = _anth.Anthropic(api_key=api_key)
-        # 39 departments each emit a JSON output; 16000 tokens accommodates the
-        # full swarm response without truncation that causes json.loads failure.
+        import anth_client as _ac
+        _client = _ac.get_client()
+        # System prompt cached for 5 min — cache hits cost 10% of normal input
+        # tokens and bypass the input-token rate-limit bucket entirely.
         create_kwargs: dict = {
             'model': SWARM_MODEL,
             'max_tokens': 16000,
-            'system': full_system,
+            'system': _ac.make_cached_system(full_system),
             'messages': [{'role': 'user', 'content': user_prompt}],
         }
         # Adaptive thinking — supported on Opus 4.8/4.7/4.6 and Sonnet 4.6
         if SWARM_THINKING:
             create_kwargs['thinking'] = {'type': 'adaptive'}
 
-        resp = client.messages.create(**create_kwargs)
+        resp = _client.messages.create(**create_kwargs)
         raw = ''.join(b.text for b in resp.content if hasattr(b, 'text'))
     except Exception:
         return _swarm_fallback(objective, mode, departments)
