@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import '../landing.css'
+import { SwarmDemoWidget } from './SwarmDemoWidget'
 
 // ── PostHog analytics ─────────────────────────────────────────────────────────
 
@@ -932,6 +933,7 @@ export function HomepageLanding() {
         <Equation/>
         <Invariants/>
         <PlatformAPI ttv={ttv}/>
+        <SwarmDemoWidget ttv={ttv}/>
         <Limitations/>
         <FinalCTA ttv={ttv}/>
         <Footer/>
