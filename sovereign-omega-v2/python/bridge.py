@@ -419,16 +419,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             # Applies AEGIS system prompt, returns hash-linked response.
             # Body: { "messages": [{role, content}], "model"?, "max_tokens"?, "system"? }
             import hashlib
-            try:
-                import anthropic as _anthropic
-            except ImportError:
-                self._respond(503, {'error': 'anthropic SDK not installed. Run: pip install anthropic'})
-                return
-
-            api_key = os.environ.get('ANTHROPIC_API_KEY')
-            if not api_key:
-                self._respond(503, {'error': 'ANTHROPIC_API_KEY not set in environment'})
-                return
+            import anth_client as _ac
 
             messages = data.get('messages', [])
             model = data.get('model', 'claude-sonnet-4-6')
@@ -449,11 +440,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
             ).encode()).hexdigest()
 
             try:
-                client = _anthropic.Anthropic(api_key=api_key)
-                resp = client.messages.create(
+                _client = _ac.get_client()
+                resp = _client.messages.create(
                     model=model,
                     max_tokens=max_tokens,
-                    system=system_prompt,
+                    system=_ac.make_cached_system(system_prompt),
                     messages=messages,
                 )
                 response_text = ''.join(
@@ -491,16 +482,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         elif self.path == '/claude/stream':
             # SSE streaming Claude endpoint.
             # Body: { "messages": [{role, content}], "model"?, "max_tokens"? }
-            try:
-                import anthropic as _anthropic
-            except ImportError:
-                self._respond(503, {'error': 'anthropic SDK not installed'})
-                return
-
-            api_key = os.environ.get('ANTHROPIC_API_KEY')
-            if not api_key:
-                self._respond(503, {'error': 'ANTHROPIC_API_KEY not set'})
-                return
+            import anth_client as _ac
 
             messages = data.get('messages', [])
             model = data.get('model', 'claude-sonnet-4-6')
@@ -522,11 +504,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
             try:
-                client = _anthropic.Anthropic(api_key=api_key)
-                with client.messages.stream(
+                _client = _ac.get_client()
+                with _client.messages.stream(
                     model=model,
                     max_tokens=max_tokens,
-                    system=stream_system,
+                    system=_ac.make_cached_system(stream_system),
                     messages=messages,
                 ) as stream:
                     for text in stream.text_stream:
