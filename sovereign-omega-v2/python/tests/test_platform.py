@@ -53,6 +53,9 @@ from platform_helpers import (
     sanitize_objective,
     OBJECTIVE_MAX_CHARS,
     _INJECTION_MARKERS,
+    retrieve_prior_artifacts,
+    retrieve_generation_fitness,
+    retrieve_swarm_memory,
 )
 
 PASS = 0
@@ -969,6 +972,71 @@ def test_coherence_gate() -> None:
     _chk('equals martingale ceiling (φ)', abs(COHERENCE_GATE_THRESHOLD - (5 ** 0.5 - 1) / 2) < 1e-6)
 
 
+def test_retrieve_prior_artifacts() -> None:
+    """retrieve_prior_artifacts: returns [] when Supabase absent."""
+    print('\n--- retrieve_prior_artifacts (no-Supabase safe return) ---')
+    saved_url = os.environ.pop('SUPABASE_URL', None)
+    saved_key = os.environ.pop('SUPABASE_SERVICE_ROLE_KEY', None)
+    try:
+        result = retrieve_prior_artifacts('grow ARR', 'revenue')
+        _chk('returns [] without Supabase', result == [])
+        _chk('return type is list', isinstance(result, list))
+        # Empty objective also safe
+        result2 = retrieve_prior_artifacts('', 'analysis')
+        _chk('empty objective returns [] safely', result2 == [])
+    except Exception as exc:
+        _chk('no raise without Supabase', False, str(exc))
+    finally:
+        if saved_url is not None:
+            os.environ['SUPABASE_URL'] = saved_url
+        if saved_key is not None:
+            os.environ['SUPABASE_SERVICE_ROLE_KEY'] = saved_key
+
+
+def test_retrieve_generation_fitness() -> None:
+    """retrieve_generation_fitness: returns [] without Supabase or generation < 1."""
+    print('\n--- retrieve_generation_fitness (no-Supabase safe return) ---')
+    saved_url = os.environ.pop('SUPABASE_URL', None)
+    saved_key = os.environ.pop('SUPABASE_SERVICE_ROLE_KEY', None)
+    try:
+        result = retrieve_generation_fitness('grow ARR', 'revenue', 1)
+        _chk('returns [] without Supabase (gen=1)', result == [])
+        # generation < 1 returns [] unconditionally (no Supabase call)
+        result2 = retrieve_generation_fitness('grow ARR', 'revenue', 0)
+        _chk('generation=0 always returns []', result2 == [])
+        result3 = retrieve_generation_fitness('grow ARR', 'revenue', -1)
+        _chk('generation=-1 always returns []', result3 == [])
+    except Exception as exc:
+        _chk('no raise without Supabase', False, str(exc))
+    finally:
+        if saved_url is not None:
+            os.environ['SUPABASE_URL'] = saved_url
+        if saved_key is not None:
+            os.environ['SUPABASE_SERVICE_ROLE_KEY'] = saved_key
+
+
+def test_retrieve_swarm_memory() -> None:
+    """retrieve_swarm_memory: returns '' when Supabase absent."""
+    print('\n--- retrieve_swarm_memory (no-Supabase safe return) ---')
+    saved_url = os.environ.pop('SUPABASE_URL', None)
+    saved_key = os.environ.pop('SUPABASE_SERVICE_ROLE_KEY', None)
+    try:
+        result = retrieve_swarm_memory('grow ARR', 'revenue')
+        _chk('returns str without Supabase', isinstance(result, str))
+        _chk('returns empty string without Supabase', result == '')
+        # Different modes also safe
+        for mode in ('analysis', 'gtm', 'retention'):
+            r = retrieve_swarm_memory('test', mode)
+            _chk(f'{mode}: returns empty string', r == '')
+    except Exception as exc:
+        _chk('no raise without Supabase', False, str(exc))
+    finally:
+        if saved_url is not None:
+            os.environ['SUPABASE_URL'] = saved_url
+        if saved_key is not None:
+            os.environ['SUPABASE_SERVICE_ROLE_KEY'] = saved_key
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
@@ -1000,6 +1068,9 @@ if __name__ == '__main__':
     test_sanitize_objective()
     test_coherence_gate()
     test_pipeline_constraint_propagation()
+    test_retrieve_prior_artifacts()
+    test_retrieve_generation_fitness()
+    test_retrieve_swarm_memory()
     print(f'\n{"=" * 40}')
     print(f'PASS: {PASS}  FAIL: {FAIL}')
     if FAIL > 0:
