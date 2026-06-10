@@ -590,7 +590,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                _validate_tier_caps(_tier, live)
+                _validate_tier_caps(_tier, live, mode)
             except ValueError as exc:
                 self._platform_respond(403, {'error': str(exc), 'code': 'INVALID_REQUEST'})
                 return
@@ -642,7 +642,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                _validate_tier_caps(_tier, live)
+                _validate_tier_caps(_tier, live, mode)
             except ValueError as exc:
                 self._platform_respond(403, {'error': str(exc), 'code': 'INVALID_REQUEST'})
                 return

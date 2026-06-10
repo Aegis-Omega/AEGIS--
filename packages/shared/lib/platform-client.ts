@@ -178,10 +178,12 @@ export class PlatformClient {
     }
 
     // Consume-side envelope validation (brief §4: validate on both produce AND consume).
-    // Reject responses that are missing required PlatformEnvelope fields.
+    // Reject responses that are missing required PlatformEnvelope fields or carry a
+    // contract_version mismatch — any version drift means the response schema may have
+    // changed and deserialization into our typed interfaces would be unsafe.
     const env = json as Record<string, unknown>
     if (
-      typeof env['contract_version'] !== 'string' ||
+      env['contract_version'] !== '1.0.0' ||
       typeof env['execution_id'] !== 'string' ||
       typeof env['timestamp'] !== 'string' ||
       env['is_replay_reconstructable'] !== true

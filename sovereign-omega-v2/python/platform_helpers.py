@@ -25,24 +25,40 @@ VALID_MODES = frozenset({
     'competitive', 'technical', 'regulatory', 'fundraising',
 })
 
-# ── Tier capability gates (brief §9 — least latitude by default) ──────────────
-# explorer: template/demo only (live=False). Real Claude API calls require at
-# least operator tier. This prevents explorer keys from triggering unbounded
-# inference costs while still letting them test the full 39-dept pipeline.
+# ── Tier capability gates (brief §9/§10 — least latitude by default) ─────────
+# explorer: template/demo only (live=False, base-4 modes only).
+# Real Claude API calls and advanced modes require at least operator tier.
+# This prevents explorer keys from triggering unbounded inference costs while
+# still letting them test the full 39-dept pipeline in template mode.
 TIER_LIVE_ALLOWED: frozenset = frozenset({'operator', 'sovereign'})
 
+# explorer tier: restricted to the four foundational analysis modes.
+# operator/sovereign: all 8 modes available.
+EXPLORER_MODES: frozenset = frozenset({'revenue', 'analysis', 'gtm', 'retention'})
 
-def validate_tier_capabilities(tier: str, live: bool) -> None:
+
+def validate_tier_capabilities(tier: str, live: bool, mode: str = '') -> None:
     """
-    Enforce least-latitude capability gate (brief §9).
+    Enforce least-latitude capability gate (brief §9/§10).
 
-    Raises ValueError if the requested capability exceeds the tier's grant.
+    Raises ValueError if the requested capability exceeds the tier's grant:
+      - live=True requires operator or sovereign tier.
+      - Advanced modes (outside EXPLORER_MODES) require operator or sovereign tier.
+
     The bridge calls this after verify_api_key() and before executing the swarm.
+    mode defaults to '' which skips the mode check (backward-compatible).
     """
     if live and tier not in TIER_LIVE_ALLOWED:
         raise ValueError(
             f'live=True requires operator or sovereign tier (current: {tier!r}). '
             'Upgrade your API key at aegisomega.com to enable live Claude collaboration.'
+        )
+    if mode and tier not in TIER_LIVE_ALLOWED and mode not in EXPLORER_MODES:
+        raise ValueError(
+            f'{mode!r} mode requires operator or sovereign tier (current: {tier!r}). '
+            'Available modes for explorer: revenue, analysis, gtm, retention. '
+            'Upgrade your API key at aegisomega.com for advanced analysis modes: '
+            'competitive, technical, regulatory, fundraising.'
         )
 
 
@@ -232,14 +248,15 @@ def verify_api_key(api_key: str):
         'Content-Type': 'application/json',
     }
 
-    rest_url = (
-        f'{supabase_url}/rest/v1/api_key_store'
-        f'?key_hash=eq.{key_hash}&revoked=eq.false'
-        f'&select=customer_email,tier,usage_count,usage_limit'
-    )
-    req = _ur.Request(rest_url, headers=auth_headers)
+    # Atomic verify-and-increment via RPC — avoids the TOCTOU race between the
+    # read (select usage_count) and the write (PATCH usage_count+1) that the old
+    # two-step pattern exposed under concurrent requests.
+    # The function returns one row on success; zero rows means invalid/revoked/exhausted.
+    rpc_url = f'{supabase_url}/rest/v1/rpc/verify_and_increment_api_key'
+    rpc_body = json.dumps({'p_key_hash': key_hash}).encode()
+    rpc_req = _ur.Request(rpc_url, data=rpc_body, headers=auth_headers)
     try:
-        with _ur.urlopen(req, timeout=5) as resp:
+        with _ur.urlopen(rpc_req, timeout=5) as resp:
             rows = json.loads(resp.read().decode())
     except _ue.HTTPError as exc:
         raise ValueError(f'Supabase error: HTTP {exc.code}')
@@ -250,21 +267,11 @@ def verify_api_key(api_key: str):
         raise ValueError('Invalid or revoked API key')
 
     row = rows[0]
-    if row['usage_count'] >= row['usage_limit']:
+    # usage_count in the response is post-increment; if it equals usage_limit
+    # the caller exhausted their last request — still serve this one, but any
+    # future call will return zero rows (usage_count < usage_limit fails).
+    if row['usage_count'] > row['usage_limit']:
         raise ValueError('Usage limit reached')
-
-    patch_url = f'{supabase_url}/rest/v1/api_key_store?key_hash=eq.{key_hash}'
-    patch_data = json.dumps({'usage_count': row['usage_count'] + 1}).encode()
-    patch_req = _ur.Request(
-        patch_url, data=patch_data,
-        headers={**auth_headers, 'Prefer': 'return=minimal'},
-        method='PATCH',
-    )
-    try:
-        with _ur.urlopen(patch_req, timeout=5):
-            pass
-    except Exception:
-        pass  # don't fail if usage increment fails
 
     return row['customer_email'], row['tier']
 
@@ -278,32 +285,32 @@ _MODE_OUTPUTS = {
     'analysis':     (
         '{role}: Market analysis for "{obj}" — 2 competitive gaps found. '
         'Differentiation lever: constitutional governance layer. '
-        'Entry timing: Q3 2026. Market size: $340M TAM.'
+        'Entry timing: Q3 2026. Market size: $340M TAM. T2 hypothesis: empirical validation required.'
     ),
     'gtm':          (
         '{role}: GTM for "{obj}" — 4-phase launch. '
         'Phase 1: design-partner beta (8 wks). '
-        'Phase 2: Product Hunt + HN. Phase 3: EU enterprise push. CAC: $1,200.'
+        'Phase 2: Product Hunt + HN. Phase 3: EU enterprise push. CAC: $1,200. T2 projection.'
     ),
     'retention':    (
         '{role}: Retention strategy for "{obj}" — 3 churn vectors. '
         'Fix: governance dashboard stickiness, API key continuity, '
-        'operator success program. Expected lift: +15% NRR.'
+        'operator success program. Expected lift: +15% NRR. T2 projection.'
     ),
     'competitive':  (
         '{role}: Competitive intelligence for "{obj}" — 3 direct rivals mapped. '
         'Moat: constitutional audit chain (no rival has T0-grade tamper-evidence). '
-        'Vulnerability: price. Opportunity: EU compliance deadline forcing urgency.'
+        'Vulnerability: price. Opportunity: EU compliance deadline forcing urgency. T2 assessment.'
     ),
     'technical':    (
         '{role}: Technical assessment of "{obj}" — architecture scored. '
         'Scalability ceiling: 10k req/s with current NEG topology. '
-        'Critical path: Supabase read latency. Recommendation: read replica + caching.'
+        'Critical path: Supabase read latency. Recommendation: read replica + caching. T2 hypothesis.'
     ),
     'regulatory':   (
         '{role}: Regulatory mapping for "{obj}" — EU AI Act Article 12 status: MAPPED. '
         'GDPR Article 22 (automated decisions): MITIGATED via audit chain. '
-        'Action: apply for AI Act sandbox (Article 57) before Q4 2026.'
+        'Action: apply for AI Act sandbox (Article 57) before Q4 2026. T1 compliance status.'
     ),
     'fundraising':  (
         '{role}: Fundraising analysis for "{obj}" — Series A readiness: EARLY. '

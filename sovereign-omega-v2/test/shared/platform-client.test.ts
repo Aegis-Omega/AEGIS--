@@ -81,6 +81,17 @@ describe('PlatformClient envelope validation', () => {
     mockFetch({ ...VALID_ENVELOPE, is_replay_reconstructable: 1 })
     await expect(client.status()).rejects.toThrow(PlatformApiError)
   })
+
+  it('rejects response with contract_version !== 1.0.0', async () => {
+    mockFetch({ ...VALID_ENVELOPE, contract_version: '2.0.0' })
+    await expect(client.status()).rejects.toThrow(PlatformApiError)
+    await expect(client.status()).rejects.toMatchObject({ code: 'INTERNAL' })
+  })
+
+  it('rejects response with contract_version as numeric 1', async () => {
+    mockFetch({ ...VALID_ENVELOPE, contract_version: 1 })
+    await expect(client.status()).rejects.toThrow(PlatformApiError)
+  })
 })
 
 describe('PlatformClient collaborate/startExecution envelope validation', () => {

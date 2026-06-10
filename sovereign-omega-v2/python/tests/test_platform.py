@@ -58,6 +58,7 @@ from platform_helpers import (
     retrieve_swarm_memory,
     validate_tier_capabilities,
     TIER_LIVE_ALLOWED,
+    EXPLORER_MODES,
     store_swarm_memory,
 )
 
@@ -210,7 +211,8 @@ def test_dept_output():
     print('\ndept_output():')
     objective = 'Launch AEGIS-Ω to enterprise market'
 
-    for mode in ('revenue', 'analysis', 'gtm', 'retention'):
+    for mode in ('revenue', 'analysis', 'gtm', 'retention',
+                 'competitive', 'technical', 'regulatory', 'fundraising'):
         dept = PLATFORM_DEPARTMENTS[0]  # REV-01 Strategy
         out = dept_output(objective, mode, dept)
         _chk(f'mode={mode} returns non-empty string', isinstance(out, str) and len(out) > 20)
@@ -239,6 +241,24 @@ def test_dept_output():
     long_obj = 'A' * 100
     out_trunc = dept_output(long_obj, 'revenue', PLATFORM_DEPARTMENTS[0])
     _chk('objective truncated to 55 chars', 'A' * 56 not in out_trunc)
+
+    # T-tier reasoning legibility (brief §11) — every mode must carry an explicit
+    # epistemic tier label so callers know the provenance of each recommendation.
+    _tier_labels = {
+        'revenue':     'T2',
+        'analysis':    'T2',
+        'gtm':         'T2',
+        'retention':   'T2',
+        'competitive': 'T2',
+        'technical':   'T2',
+        'regulatory':  'T1',  # regulatory is T1 (compliance status, empirically validated)
+        'fundraising': 'T2',
+    }
+    for mode, expected_tier in _tier_labels.items():
+        out = dept_output(objective, mode, PLATFORM_DEPARTMENTS[0])
+        _chk(f'mode={mode} output contains {expected_tier} tier label',
+             expected_tier in out,
+             f'output={out!r}')
 
 
 # ── make_sse_event() ──────────────────────────────────────────────────────────
@@ -273,7 +293,8 @@ def test_validate_collaboration_request():
     _chk('valid: generation defaults to 0', gen == 0)
     _chk('valid: memory_context defaults to empty string', mem == '')
 
-    for m in ('revenue', 'analysis', 'gtm', 'retention'):
+    for m in ('revenue', 'analysis', 'gtm', 'retention',
+              'competitive', 'technical', 'regulatory', 'fundraising'):
         _o, m2, _l, _g, _mc = validate_collaboration_request(
             {'objective': 'x', 'mode': m, 'live': True}
         )
@@ -749,6 +770,18 @@ def test_swarm_fallback() -> None:
     for mode, expected_arr in (('revenue', 2_400_000), ('gtm', 3_200_000), ('retention', 1_200_000)):
         r = _swarm_fallback('test', mode, PLATFORM_DEPARTMENTS)
         _chk(f'{mode} arr == {expected_arr}', r['projection']['first_year_arr_usd'] == expected_arr)
+    # governed_note must be present and explicitly label this as template/T2 analysis
+    # (PR review: fallback always-APPROVED must be documented as template mode, not live inference)
+    note = result['projection'].get('governed_note', '')
+    _chk('governed_note present', bool(note), f'got {note!r}')
+    _chk('governed_note mentions T2 (template tier label)', 'T2' in note,
+         f'got {note!r}')
+    # Verify all 8 modes produce a governed_note indicating template analysis
+    for mode in ('revenue', 'analysis', 'gtm', 'retention',
+                 'competitive', 'technical', 'regulatory', 'fundraising'):
+        r = _swarm_fallback('test', mode, PLATFORM_DEPARTMENTS)
+        n = r['projection'].get('governed_note', '')
+        _chk(f'fallback mode={mode} has governed_note', bool(n))
 
 
 def test_parse_swarm_response() -> None:
@@ -976,7 +1009,7 @@ def test_coherence_gate() -> None:
 
 
 def test_validate_tier_capabilities() -> None:
-    """validate_tier_capabilities: least-latitude gate (brief §9)."""
+    """validate_tier_capabilities: least-latitude gate (brief §9/§10)."""
     print('\n--- validate_tier_capabilities (tier capability gate) ---')
 
     # explorer tier: live=False always passes
@@ -1022,6 +1055,118 @@ def test_validate_tier_capabilities() -> None:
     _chk('operator in TIER_LIVE_ALLOWED', 'operator' in TIER_LIVE_ALLOWED)
     _chk('sovereign in TIER_LIVE_ALLOWED', 'sovereign' in TIER_LIVE_ALLOWED)
     _chk('explorer not in TIER_LIVE_ALLOWED', 'explorer' not in TIER_LIVE_ALLOWED)
+
+    # §10 mode gate: explorer restricted to EXPLORER_MODES
+    for mode in ('revenue', 'analysis', 'gtm', 'retention'):
+        try:
+            validate_tier_capabilities('explorer', False, mode)
+            _chk(f'explorer + mode={mode} passes', True)
+        except ValueError:
+            _chk(f'explorer + mode={mode} passes', False)
+
+    for mode in ('competitive', 'technical', 'regulatory', 'fundraising'):
+        caught_mode = False
+        try:
+            validate_tier_capabilities('explorer', False, mode)
+        except ValueError as exc:
+            caught_mode = True
+            _chk(f'mode={mode} error mentions upgrade', 'operator' in str(exc) or 'sovereign' in str(exc))
+        _chk(f'explorer + advanced mode={mode} raises ValueError', caught_mode)
+
+    # operator/sovereign: all 8 modes pass (no mode restriction)
+    for tier in ('operator', 'sovereign'):
+        for mode in ('revenue', 'analysis', 'gtm', 'retention',
+                     'competitive', 'technical', 'regulatory', 'fundraising'):
+            try:
+                validate_tier_capabilities(tier, False, mode)
+                _chk(f'{tier} + mode={mode} passes', True)
+            except ValueError:
+                _chk(f'{tier} + mode={mode} passes', False)
+
+    # Empty mode string skips mode check (backward-compat)
+    try:
+        validate_tier_capabilities('explorer', False, '')
+        _chk('explorer + empty mode skips mode check', True)
+    except ValueError:
+        _chk('explorer + empty mode skips mode check', False)
+
+    # EXPLORER_MODES set invariants
+    _chk('EXPLORER_MODES is frozenset', isinstance(EXPLORER_MODES, frozenset))
+    _chk('EXPLORER_MODES has 4 entries', len(EXPLORER_MODES) == 4)
+    for m in ('revenue', 'analysis', 'gtm', 'retention'):
+        _chk(f'{m} in EXPLORER_MODES', m in EXPLORER_MODES)
+    for m in ('competitive', 'technical', 'regulatory', 'fundraising'):
+        _chk(f'{m} not in EXPLORER_MODES', m not in EXPLORER_MODES)
+
+
+def test_mode_tier_gate() -> None:
+    """
+    Mode-based capability gate (brief §10): explorer keys restricted to EXPLORER_MODES.
+
+    The gate applies at the API boundary before swarm execution so that
+    advanced modes (competitive, technical, regulatory, fundraising) never
+    incur Claude API costs for explorer-tier callers.
+    """
+    print('\n--- mode tier gate (brief §10) ---')
+
+    _explorer_modes = list(EXPLORER_MODES)
+    _advanced_modes = [m for m in
+                       ('competitive', 'technical', 'regulatory', 'fundraising')]
+
+    # All EXPLORER_MODES pass for every tier × live=False combination
+    for tier in ('explorer', 'operator', 'sovereign'):
+        for mode in _explorer_modes:
+            try:
+                validate_tier_capabilities(tier, False, mode)
+                _chk(f'{tier}/{mode}/live=False: passes', True)
+            except ValueError:
+                _chk(f'{tier}/{mode}/live=False: passes', False)
+
+    # Advanced modes pass for operator/sovereign regardless of live
+    for tier in ('operator', 'sovereign'):
+        for mode in _advanced_modes:
+            for live in (False, True):
+                try:
+                    validate_tier_capabilities(tier, live, mode)
+                    _chk(f'{tier}/{mode}/live={live}: passes', True)
+                except ValueError:
+                    _chk(f'{tier}/{mode}/live={live}: passes', False)
+
+    # Advanced modes fail for explorer regardless of live value
+    for mode in _advanced_modes:
+        for live in (False, True):
+            caught = False
+            try:
+                validate_tier_capabilities('explorer', live, mode)
+            except ValueError as exc:
+                caught = True
+                exc_str = str(exc)
+                # live=False: error fires on mode gate → must name the mode
+                # live=True:  live-gate fires first → names "live=True" not mode
+                if not live:
+                    _chk(f'explorer/{mode}/live=False error names mode', mode in exc_str)
+                _chk(f'explorer/{mode} error names upgrade path',
+                     'operator' in exc_str or 'sovereign' in exc_str)
+            _chk(f'explorer/{mode}/live={live}: raises ValueError', caught)
+
+    # Determinism: calling the gate twice with same args gives same outcome
+    try:
+        validate_tier_capabilities('explorer', False, 'revenue')
+        validate_tier_capabilities('explorer', False, 'revenue')
+        _chk('gate is deterministic (EXPLORER_MODES pass)', True)
+    except ValueError:
+        _chk('gate is deterministic (EXPLORER_MODES pass)', False)
+
+    caught1 = caught2 = False
+    try:
+        validate_tier_capabilities('explorer', False, 'competitive')
+    except ValueError:
+        caught1 = True
+    try:
+        validate_tier_capabilities('explorer', False, 'competitive')
+    except ValueError:
+        caught2 = True
+    _chk('gate is deterministic (advanced mode rejected)', caught1 and caught2)
 
 
 def test_retrieve_prior_artifacts() -> None:
@@ -1228,6 +1373,7 @@ if __name__ == '__main__':
     test_coherence_gate()
     test_pipeline_constraint_propagation()
     test_validate_tier_capabilities()
+    test_mode_tier_gate()
     test_store_swarm_memory()
     test_retrieve_prior_artifacts()
     test_retrieve_generation_fitness()
