@@ -25,6 +25,13 @@ VALID_MODES = frozenset({
     'competitive', 'technical', 'regulatory', 'fundraising',
 })
 
+# ── Coherence gate (brief §5 — explicit named stop condition) ─────────────────
+# The swarm "collapses" to a user-facing answer only when the constitutional
+# audit returns APPROVED and the fitness score exceeds this threshold.
+# Below it, the caller should iterate or escalate rather than emit.
+# Named as a constant so callers can override via env and CI can assert it.
+COHERENCE_GATE_THRESHOLD: float = (5 ** 0.5 - 1) / 2  # φ ≈ 0.6180339887 — consistent with martingale ceiling
+
 # ── Prompt injection defence (T1 — layered; model-level robustness is separate) ─
 OBJECTIVE_MAX_CHARS = 4_000
 
@@ -422,6 +429,8 @@ def validate_collaboration_request(body: dict) -> tuple:
     memory_context = body.get('memory_context', '')
     if not isinstance(memory_context, str):
         raise ValueError('memory_context must be a string')
+    if memory_context:
+        sanitize_objective(memory_context)  # same injection markers apply to this field
 
     return objective.strip(), mode, live, generation, memory_context
 
