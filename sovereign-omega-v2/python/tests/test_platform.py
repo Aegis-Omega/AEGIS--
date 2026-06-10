@@ -1113,6 +1113,52 @@ def test_retrieve_swarm_memory() -> None:
             os.environ['SUPABASE_SERVICE_ROLE_KEY'] = saved_key
 
 
+def test_python_ts_contract_agreement() -> None:
+    """
+    Cross-language spec-drift guard: Python PLATFORM_DEPARTMENTS must match
+    the TypeScript canonical source in packages/shared/lib/platform-contract.ts.
+
+    If this test fails, the two canonical sources have diverged — fix the
+    Python copy or the TypeScript source before proceeding.
+    """
+    import re as _re_ct
+
+    print('\n--- Python ↔ TypeScript PLATFORM_DEPARTMENTS agreement ---')
+
+    # Locate the TS file relative to this test file
+    tests_dir = os.path.dirname(os.path.abspath(__file__))
+    ts_path = os.path.join(tests_dir, '..', '..', '..', 'packages', 'shared', 'lib', 'platform-contract.ts')
+    ts_path = os.path.normpath(ts_path)
+
+    if not os.path.exists(ts_path):
+        _chk('platform-contract.ts found', False, f'not found at {ts_path}')
+        return
+
+    ts_text = open(ts_path, encoding='utf-8').read()
+    matches = _re_ct.findall(
+        r"\{ id: '([A-Z0-9-]+)', role: '([^']+)', *category: '([^']+)' \}",
+        ts_text,
+    )
+
+    _chk('TS has 39 departments', len(matches) == 39, f'got {len(matches)}')
+    _chk('PY has 39 departments', len(PLATFORM_DEPARTMENTS) == 39)
+
+    ts_ids = [m[0] for m in matches]
+    py_ids = [d['id'] for d in PLATFORM_DEPARTMENTS]
+    _chk('count matches', len(ts_ids) == len(py_ids))
+    _chk('all IDs identical', set(ts_ids) == set(py_ids),
+         f'PY-only={set(py_ids)-set(ts_ids)} TS-only={set(ts_ids)-set(py_ids)}')
+    _chk('ordering is identical', ts_ids == py_ids,
+         'IDs match but ordering diverged')
+
+    for ts_match, py_dept in zip(matches, PLATFORM_DEPARTMENTS):
+        ts_id, ts_role, ts_cat = ts_match
+        _chk(f'{ts_id} role matches', ts_role == py_dept['role'],
+             f'TS={ts_role!r} PY={py_dept["role"]!r}')
+        _chk(f'{ts_id} category matches', ts_cat == py_dept['category'],
+             f'TS={ts_cat!r} PY={py_dept["category"]!r}')
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
@@ -1149,6 +1195,7 @@ if __name__ == '__main__':
     test_retrieve_prior_artifacts()
     test_retrieve_generation_fitness()
     test_retrieve_swarm_memory()
+    test_python_ts_contract_agreement()
     print(f'\n{"=" * 40}')
     print(f'PASS: {PASS}  FAIL: {FAIL}')
     if FAIL > 0:
