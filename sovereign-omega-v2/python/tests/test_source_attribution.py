@@ -38,7 +38,7 @@ def fail(name: str, reason: str) -> None:
     print(f'  FAIL  {name}: {reason}')
 
 
-def test(name: str, condition: bool, reason: str = '') -> None:
+def _chk(name: str, condition: bool, reason: str = '') -> None:
     if condition:
         ok(name)
     else:
@@ -60,25 +60,25 @@ def expect_raises(name: str, exc_type, fn) -> None:
 def test_constants():
     print('\nmodule constants:')
 
-    test('VCG_WINDOW_SIZE == 500', VCG_WINDOW_SIZE == 500)
-    test('VCG_WINDOW_SIZE is int', isinstance(VCG_WINDOW_SIZE, int))
-    test('VCG_WINDOW_SIZE > 0', VCG_WINDOW_SIZE > 0)
+    _chk('VCG_WINDOW_SIZE == 500', VCG_WINDOW_SIZE == 500)
+    _chk('VCG_WINDOW_SIZE is int', isinstance(VCG_WINDOW_SIZE, int))
+    _chk('VCG_WINDOW_SIZE > 0', VCG_WINDOW_SIZE > 0)
 
-    test('_N_COMPONENTS == 3', _N_COMPONENTS == 3)
-    test('_N_COMPONENTS is int', isinstance(_N_COMPONENTS, int))
-    test('_N_COMPONENTS > 0', _N_COMPONENTS > 0)
+    _chk('_N_COMPONENTS == 3', _N_COMPONENTS == 3)
+    _chk('_N_COMPONENTS is int', isinstance(_N_COMPONENTS, int))
+    _chk('_N_COMPONENTS > 0', _N_COMPONENTS > 0)
 
-    test('_COMPONENT_LABELS is tuple', isinstance(_COMPONENT_LABELS, tuple))
-    test('_COMPONENT_LABELS has 3 entries', len(_COMPONENT_LABELS) == 3)
-    test('_COMPONENT_LABELS[0] == gpu_inference',
+    _chk('_COMPONENT_LABELS is tuple', isinstance(_COMPONENT_LABELS, tuple))
+    _chk('_COMPONENT_LABELS has 3 entries', len(_COMPONENT_LABELS) == 3)
+    _chk('_COMPONENT_LABELS[0] == gpu_inference',
          _COMPONENT_LABELS[0] == 'gpu_inference')
-    test('_COMPONENT_LABELS[1] == governance',
+    _chk('_COMPONENT_LABELS[1] == governance',
          _COMPONENT_LABELS[1] == 'governance')
-    test('_COMPONENT_LABELS[2] == os_noise',
+    _chk('_COMPONENT_LABELS[2] == os_noise',
          _COMPONENT_LABELS[2] == 'os_noise')
-    test('_COMPONENT_LABELS contains gpu_inference', 'gpu_inference' in _COMPONENT_LABELS)
-    test('_COMPONENT_LABELS contains governance', 'governance' in _COMPONENT_LABELS)
-    test('_COMPONENT_LABELS contains os_noise', 'os_noise' in _COMPONENT_LABELS)
+    _chk('_COMPONENT_LABELS contains gpu_inference', 'gpu_inference' in _COMPONENT_LABELS)
+    _chk('_COMPONENT_LABELS contains governance', 'governance' in _COMPONENT_LABELS)
+    _chk('_COMPONENT_LABELS contains os_noise', 'os_noise' in _COMPONENT_LABELS)
 
 
 # ── TelemetrySample dataclass ─────────────────────────────────────────────────
@@ -93,15 +93,15 @@ def test_telemetry_sample_creation():
         pgcs_compressed_bytes=1024,
     )
 
-    test('sequence field correct', s.sequence == 42)
-    test('afse_score field correct', s.afse_score == 0.85)
-    test('tgcs_stretch_ms field correct', s.tgcs_stretch_ms == 10.0)
-    test('pgcs_compressed_bytes field correct', s.pgcs_compressed_bytes == 1024)
+    _chk('sequence field correct', s.sequence == 42)
+    _chk('afse_score field correct', s.afse_score == 0.85)
+    _chk('tgcs_stretch_ms field correct', s.tgcs_stretch_ms == 10.0)
+    _chk('pgcs_compressed_bytes field correct', s.pgcs_compressed_bytes == 1024)
 
-    test('sequence is int', isinstance(s.sequence, int))
-    test('afse_score is float', isinstance(s.afse_score, float))
-    test('tgcs_stretch_ms is float', isinstance(s.tgcs_stretch_ms, float))
-    test('pgcs_compressed_bytes is int', isinstance(s.pgcs_compressed_bytes, int))
+    _chk('sequence is int', isinstance(s.sequence, int))
+    _chk('afse_score is float', isinstance(s.afse_score, float))
+    _chk('tgcs_stretch_ms is float', isinstance(s.tgcs_stretch_ms, float))
+    _chk('pgcs_compressed_bytes is int', isinstance(s.pgcs_compressed_bytes, int))
 
 
 def test_telemetry_sample_frozen():
@@ -125,10 +125,10 @@ def test_telemetry_sample_zero_values():
 
     s = TelemetrySample(sequence=0, afse_score=0.0, tgcs_stretch_ms=0.0,
                         pgcs_compressed_bytes=0)
-    test('sequence=0 ok', s.sequence == 0)
-    test('afse_score=0.0 ok', s.afse_score == 0.0)
-    test('tgcs_stretch_ms=0.0 ok', s.tgcs_stretch_ms == 0.0)
-    test('pgcs_compressed_bytes=0 ok', s.pgcs_compressed_bytes == 0)
+    _chk('sequence=0 ok', s.sequence == 0)
+    _chk('afse_score=0.0 ok', s.afse_score == 0.0)
+    _chk('tgcs_stretch_ms=0.0 ok', s.tgcs_stretch_ms == 0.0)
+    _chk('pgcs_compressed_bytes=0 ok', s.pgcs_compressed_bytes == 0)
 
 
 def test_telemetry_sample_large_values():
@@ -140,10 +140,10 @@ def test_telemetry_sample_large_values():
         tgcs_stretch_ms=50.0,
         pgcs_compressed_bytes=10_000_000,
     )
-    test('large sequence ok', s.sequence == 1_000_000)
-    test('afse_score=1.0 ok', s.afse_score == 1.0)
-    test('tgcs_stretch_ms=50.0 ok', s.tgcs_stretch_ms == 50.0)
-    test('large pgcs_compressed_bytes ok', s.pgcs_compressed_bytes == 10_000_000)
+    _chk('large sequence ok', s.sequence == 1_000_000)
+    _chk('afse_score=1.0 ok', s.afse_score == 1.0)
+    _chk('tgcs_stretch_ms=50.0 ok', s.tgcs_stretch_ms == 50.0)
+    _chk('large pgcs_compressed_bytes ok', s.pgcs_compressed_bytes == 10_000_000)
 
 
 def test_telemetry_sample_equality():
@@ -156,8 +156,8 @@ def test_telemetry_sample_equality():
     s3 = TelemetrySample(sequence=6, afse_score=0.5, tgcs_stretch_ms=1.0,
                          pgcs_compressed_bytes=100)
 
-    test('equal samples compare equal', s1 == s2)
-    test('different sequence → not equal', s1 != s3)
+    _chk('equal samples compare equal', s1 == s2)
+    _chk('different sequence → not equal', s1 != s3)
 
 
 # ── SourceAttribution dataclass ───────────────────────────────────────────────
@@ -175,21 +175,21 @@ def test_source_attribution_creation():
         determinism_class='observational',
     )
 
-    test('gpu_inference field', sa.gpu_inference == 0.5)
-    test('governance field', sa.governance == 0.3)
-    test('os_noise field', sa.os_noise == 0.2)
-    test('window_size field', sa.window_size == 100)
-    test('sequence_start field', sa.sequence_start == 0)
-    test('sequence_end field', sa.sequence_end == 99)
-    test('determinism_class field', sa.determinism_class == 'observational')
+    _chk('gpu_inference field', sa.gpu_inference == 0.5)
+    _chk('governance field', sa.governance == 0.3)
+    _chk('os_noise field', sa.os_noise == 0.2)
+    _chk('window_size field', sa.window_size == 100)
+    _chk('sequence_start field', sa.sequence_start == 0)
+    _chk('sequence_end field', sa.sequence_end == 99)
+    _chk('determinism_class field', sa.determinism_class == 'observational')
 
-    test('gpu_inference is float', isinstance(sa.gpu_inference, float))
-    test('governance is float', isinstance(sa.governance, float))
-    test('os_noise is float', isinstance(sa.os_noise, float))
-    test('window_size is int', isinstance(sa.window_size, int))
-    test('sequence_start is int', isinstance(sa.sequence_start, int))
-    test('sequence_end is int', isinstance(sa.sequence_end, int))
-    test('determinism_class is str', isinstance(sa.determinism_class, str))
+    _chk('gpu_inference is float', isinstance(sa.gpu_inference, float))
+    _chk('governance is float', isinstance(sa.governance, float))
+    _chk('os_noise is float', isinstance(sa.os_noise, float))
+    _chk('window_size is int', isinstance(sa.window_size, int))
+    _chk('sequence_start is int', isinstance(sa.sequence_start, int))
+    _chk('sequence_end is int', isinstance(sa.sequence_end, int))
+    _chk('determinism_class is str', isinstance(sa.determinism_class, str))
 
 
 def test_source_attribution_determinism_class():
@@ -200,7 +200,7 @@ def test_source_attribution_determinism_class():
         window_size=50, sequence_start=10, sequence_end=60,
         determinism_class='observational',
     )
-    test('determinism_class is observational', sa.determinism_class == 'observational')
+    _chk('determinism_class is observational', sa.determinism_class == 'observational')
 
 
 def test_source_attribution_frozen():
@@ -231,26 +231,26 @@ def test_source_attribution_to_dict():
     )
 
     d = sa.to_dict()
-    test('to_dict returns dict', isinstance(d, dict))
-    test('dict has gpu_inference', 'gpu_inference' in d)
-    test('dict has governance', 'governance' in d)
-    test('dict has os_noise', 'os_noise' in d)
-    test('dict has window_size', 'window_size' in d)
-    test('dict has sequence_start', 'sequence_start' in d)
-    test('dict has sequence_end', 'sequence_end' in d)
-    test('dict has determinism_class', 'determinism_class' in d)
+    _chk('to_dict returns dict', isinstance(d, dict))
+    _chk('dict has gpu_inference', 'gpu_inference' in d)
+    _chk('dict has governance', 'governance' in d)
+    _chk('dict has os_noise', 'os_noise' in d)
+    _chk('dict has window_size', 'window_size' in d)
+    _chk('dict has sequence_start', 'sequence_start' in d)
+    _chk('dict has sequence_end', 'sequence_end' in d)
+    _chk('dict has determinism_class', 'determinism_class' in d)
 
-    test('gpu_inference rounded to 4 decimal places',
+    _chk('gpu_inference rounded to 4 decimal places',
          d['gpu_inference'] == round(0.5123456, 4))
-    test('governance rounded to 4 decimal places',
+    _chk('governance rounded to 4 decimal places',
          d['governance'] == round(0.3234567, 4))
-    test('os_noise rounded to 4 decimal places',
+    _chk('os_noise rounded to 4 decimal places',
          d['os_noise'] == round(0.1641977, 4))
 
-    test('window_size in dict == 200', d['window_size'] == 200)
-    test('sequence_start in dict == 100', d['sequence_start'] == 100)
-    test('sequence_end in dict == 299', d['sequence_end'] == 299)
-    test('determinism_class in dict is observational',
+    _chk('window_size in dict == 200', d['window_size'] == 200)
+    _chk('sequence_start in dict == 100', d['sequence_start'] == 100)
+    _chk('sequence_end in dict == 299', d['sequence_end'] == 299)
+    _chk('determinism_class in dict is observational',
          d['determinism_class'] == 'observational')
 
 
@@ -265,7 +265,7 @@ def test_source_attribution_to_dict_all_keys():
     d = sa.to_dict()
     expected_keys = {'gpu_inference', 'governance', 'os_noise',
                      'window_size', 'sequence_start', 'sequence_end', 'determinism_class'}
-    test('to_dict has all 7 keys', set(d.keys()) == expected_keys,
+    _chk('to_dict has all 7 keys', set(d.keys()) == expected_keys,
          f'missing: {expected_keys - set(d.keys())}')
 
 
@@ -275,7 +275,7 @@ def test_source_attributor_empty():
     print('\nSourceAttributor empty buffer:')
 
     attr = SourceAttributor()
-    test('attribute() None when empty', attr.attribute() is None)
+    _chk('attribute() None when empty', attr.attribute() is None)
 
 
 def test_source_attributor_too_few_samples():
@@ -286,12 +286,12 @@ def test_source_attributor_too_few_samples():
     # 1 sample — too few
     attr.push(TelemetrySample(sequence=0, afse_score=0.5, tgcs_stretch_ms=1.0,
                               pgcs_compressed_bytes=100))
-    test('attribute() None with 1 sample', attr.attribute() is None)
+    _chk('attribute() None with 1 sample', attr.attribute() is None)
 
     # 2 samples — still too few for NMF (needs >= _N_COMPONENTS=3)
     attr.push(TelemetrySample(sequence=1, afse_score=0.6, tgcs_stretch_ms=2.0,
                               pgcs_compressed_bytes=200))
-    test('attribute() None with 2 samples', attr.attribute() is None)
+    _chk('attribute() None with 2 samples', attr.attribute() is None)
 
 
 def test_source_attributor_all_zero():
@@ -302,7 +302,7 @@ def test_source_attributor_all_zero():
         attr.push(TelemetrySample(sequence=i, afse_score=0.0, tgcs_stretch_ms=0.0,
                                   pgcs_compressed_bytes=0))
     # All signals zero → degenerate window → returns None
-    test('all-zero signals → attribute() is None', attr.attribute() is None)
+    _chk('all-zero signals → attribute() is None', attr.attribute() is None)
 
 
 def test_source_attributor_push_no_raise():
@@ -330,7 +330,7 @@ def test_source_attributor_window_cap():
         attr.push(TelemetrySample(sequence=i, afse_score=0.5,
                                   tgcs_stretch_ms=1.0, pgcs_compressed_bytes=100))
 
-    test('buffer length == window_size after overflow',
+    _chk('buffer length == window_size after overflow',
          len(attr._buf) == window_size,
          f'got {len(attr._buf)}, expected {window_size}')
 
@@ -339,14 +339,14 @@ def test_source_attributor_window_default():
     print('\nSourceAttributor default window size:')
 
     attr = SourceAttributor()
-    test('default window_size == VCG_WINDOW_SIZE',
+    _chk('default window_size == VCG_WINDOW_SIZE',
          attr._window_size == VCG_WINDOW_SIZE)
 
     # Push VCG_WINDOW_SIZE + 100 samples
     for i in range(VCG_WINDOW_SIZE + 100):
         attr.push(TelemetrySample(sequence=i, afse_score=0.5,
                                   tgcs_stretch_ms=1.0, pgcs_compressed_bytes=100))
-    test('buffer capped at VCG_WINDOW_SIZE',
+    _chk('buffer capped at VCG_WINDOW_SIZE',
          len(attr._buf) == VCG_WINDOW_SIZE,
          f'got {len(attr._buf)}')
 
@@ -355,7 +355,7 @@ def test_source_attributor_sequence_range():
     print('\nSourceAttributor sequence range in attribution:')
 
     if not _NMF_AVAILABLE:
-        test('NMF not available — skipping sequence range test', True)
+        _chk('NMF not available — skipping sequence range test', True)
         return
 
     attr = SourceAttributor(window_size=50)
@@ -369,18 +369,18 @@ def test_source_attributor_sequence_range():
 
     result = attr.attribute()
     if result is not None:
-        test('sequence_start <= sequence_end',
+        _chk('sequence_start <= sequence_end',
              result.sequence_start <= result.sequence_end,
              f'start={result.sequence_start}, end={result.sequence_end}')
-        test('determinism_class is observational',
+        _chk('determinism_class is observational',
              result.determinism_class == 'observational')
-        test('window_size > 0', result.window_size > 0)
-        test('gpu_inference >= 0', result.gpu_inference >= 0.0)
-        test('governance >= 0', result.governance >= 0.0)
-        test('os_noise >= 0', result.os_noise >= 0.0)
+        _chk('window_size > 0', result.window_size > 0)
+        _chk('gpu_inference >= 0', result.gpu_inference >= 0.0)
+        _chk('governance >= 0', result.governance >= 0.0)
+        _chk('os_noise >= 0', result.os_noise >= 0.0)
     else:
         # NMF convergence failure is acceptable
-        test('attribute() returns None on NMF convergence issue', True)
+        _chk('attribute() returns None on NMF convergence issue', True)
 
 
 def test_source_attributor_nmf_unavailable():
@@ -400,7 +400,7 @@ def test_source_attributor_nmf_unavailable():
             attr.push(TelemetrySample(sequence=i, afse_score=0.5,
                                       tgcs_stretch_ms=1.0, pgcs_compressed_bytes=100))
         result = attr.attribute()
-        test('attribute() returns None when NMF unavailable', result is None)
+        _chk('attribute() returns None when NMF unavailable', result is None)
     finally:
         sa_module._NMF_AVAILABLE = original
 
@@ -421,13 +421,13 @@ def test_source_attributor_100_nonzero_samples():
     if _NMF_AVAILABLE:
         # Should either succeed or fail gracefully
         if result is not None:
-            test('result is SourceAttribution', isinstance(result, SourceAttribution))
-            test('determinism_class is observational', result.determinism_class == 'observational')
-            test('window_size matches buffer', result.window_size == len(attr._buf))
+            _chk('result is SourceAttribution', isinstance(result, SourceAttribution))
+            _chk('determinism_class is observational', result.determinism_class == 'observational')
+            _chk('window_size matches buffer', result.window_size == len(attr._buf))
         else:
-            test('NMF returned None gracefully', True)
+            _chk('NMF returned None gracefully', True)
     else:
-        test('no NMF → returns None', result is None)
+        _chk('no NMF → returns None', result is None)
 
 
 def test_source_attributor_custom_window():
@@ -435,12 +435,12 @@ def test_source_attributor_custom_window():
 
     for ws in (10, 50, 100):
         attr = SourceAttributor(window_size=ws)
-        test(f'window_size={ws} stored correctly', attr._window_size == ws)
+        _chk(f'window_size={ws} stored correctly', attr._window_size == ws)
 
         for i in range(ws + 20):
             attr.push(TelemetrySample(sequence=i, afse_score=0.5,
                                       tgcs_stretch_ms=0.0, pgcs_compressed_bytes=0))
-        test(f'buffer capped at {ws}', len(attr._buf) == ws)
+        _chk(f'buffer capped at {ws}', len(attr._buf) == ws)
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

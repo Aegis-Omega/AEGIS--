@@ -48,7 +48,7 @@ def fail(name: str, reason: str) -> None:
     print(f'  FAIL  {name}: {reason}')
 
 
-def test(name: str, condition: bool, reason: str = '') -> None:
+def _chk(name: str, condition: bool, reason: str = '') -> None:
     if condition:
         ok(name)
     else:
@@ -79,16 +79,16 @@ def test_tgcs_telemetry_dataclass():
         passes_criterion=True,
     )
 
-    test('sequence field correct', t.sequence == 5)
-    test('temperature_c field correct', t.temperature_c == 75.0)
-    test('cycle_stretch_ms field correct', t.cycle_stretch_ms == 10.0)
-    test('throttle_active field correct', t.throttle_active is True)
-    test('run_variance field correct', t.run_variance == 0.0)
-    test('passes_criterion field correct', t.passes_criterion is True)
-    test('passes_criterion is bool', isinstance(t.passes_criterion, bool))
-    test('run_variance is float', isinstance(t.run_variance, float))
-    test('cycle_stretch_ms is float', isinstance(t.cycle_stretch_ms, float))
-    test('sequence is int', isinstance(t.sequence, int))
+    _chk('sequence field correct', t.sequence == 5)
+    _chk('temperature_c field correct', t.temperature_c == 75.0)
+    _chk('cycle_stretch_ms field correct', t.cycle_stretch_ms == 10.0)
+    _chk('throttle_active field correct', t.throttle_active is True)
+    _chk('run_variance field correct', t.run_variance == 0.0)
+    _chk('passes_criterion field correct', t.passes_criterion is True)
+    _chk('passes_criterion is bool', isinstance(t.passes_criterion, bool))
+    _chk('run_variance is float', isinstance(t.run_variance, float))
+    _chk('cycle_stretch_ms is float', isinstance(t.cycle_stretch_ms, float))
+    _chk('sequence is int', isinstance(t.sequence, int))
 
     # passes_criterion semantics: True when variance == TGCS_VARIANCE_TARGET
     t2 = TGCSTelemetry(
@@ -96,14 +96,14 @@ def test_tgcs_telemetry_dataclass():
         throttle_active=False, run_variance=0.0,
         passes_criterion=abs(0.0) <= TGCS_VARIANCE_TARGET,
     )
-    test('passes_criterion True when variance=0.0', t2.passes_criterion is True)
+    _chk('passes_criterion True when variance=0.0', t2.passes_criterion is True)
 
     t3 = TGCSTelemetry(
         sequence=0, temperature_c=None, cycle_stretch_ms=0.0,
         throttle_active=False, run_variance=1.0,
         passes_criterion=abs(1.0) <= TGCS_VARIANCE_TARGET,
     )
-    test('passes_criterion False when variance=1.0', t3.passes_criterion is False)
+    _chk('passes_criterion False when variance=1.0', t3.passes_criterion is False)
 
     # Frozen — cannot mutate
     expect_raises('TGCSTelemetry frozen', (AttributeError, TypeError),
@@ -114,7 +114,7 @@ def test_tgcs_telemetry_dataclass():
         sequence=1, temperature_c=None, cycle_stretch_ms=0.0,
         throttle_active=False, run_variance=0.0, passes_criterion=True,
     )
-    test('temperature_c can be None', t4.temperature_c is None)
+    _chk('temperature_c can be None', t4.temperature_c is None)
 
 
 # ── TGCSController — basic calls ──────────────────────────────────────────────
@@ -125,15 +125,15 @@ def test_tgcs_controller_basic():
     ctrl = TGCSController(hw_profile=MOCK_HW)
     tel = ctrl.regulate_cycle(sequence=0)
 
-    test('regulate_cycle returns TGCSTelemetry', isinstance(tel, TGCSTelemetry))
-    test('no thermal path → temperature_c is None', tel.temperature_c is None)
-    test('no thermal path → throttle_active is False', tel.throttle_active is False)
-    test('no thermal path → cycle_stretch_ms == 0.0', tel.cycle_stretch_ms == 0.0)
-    test('first call sequence field matches', tel.sequence == 0)
+    _chk('regulate_cycle returns TGCSTelemetry', isinstance(tel, TGCSTelemetry))
+    _chk('no thermal path → temperature_c is None', tel.temperature_c is None)
+    _chk('no thermal path → throttle_active is False', tel.throttle_active is False)
+    _chk('no thermal path → cycle_stretch_ms == 0.0', tel.cycle_stretch_ms == 0.0)
+    _chk('first call sequence field matches', tel.sequence == 0)
 
     # With 1 sample, variance=0.0 → passes_criterion True
-    test('first call passes_criterion True', tel.passes_criterion is True)
-    test('first call run_variance == 0.0', tel.run_variance == 0.0)
+    _chk('first call passes_criterion True', tel.passes_criterion is True)
+    _chk('first call run_variance == 0.0', tel.run_variance == 0.0)
 
 
 def test_tgcs_controller_seq_tracking():
@@ -144,15 +144,15 @@ def test_tgcs_controller_seq_tracking():
     # 10 sequential calls: constant intervals = zero variance
     for i in range(10):
         tel = ctrl.regulate_cycle(sequence=i)
-        test(f'seq={i} field matches', tel.sequence == i)
+        _chk(f'seq={i} field matches', tel.sequence == i)
 
     # All 10 calls: variance = 0 (constant interval 1)
     final = ctrl.regulate_cycle(sequence=10)
-    test('constant intervals → variance = 0.0', final.run_variance == 0.0)
-    test('constant intervals → passes_criterion True', final.passes_criterion is True)
+    _chk('constant intervals → variance = 0.0', final.run_variance == 0.0)
+    _chk('constant intervals → passes_criterion True', final.passes_criterion is True)
 
     # Internal buffer tracks sequences
-    test('_cycle_seqs has correct count', len(ctrl._cycle_seqs) == 11)
+    _chk('_cycle_seqs has correct count', len(ctrl._cycle_seqs) == 11)
 
 
 def test_tgcs_controller_buffer_cap():
@@ -164,10 +164,10 @@ def test_tgcs_controller_buffer_cap():
     for i in range(1200):
         ctrl.regulate_cycle(sequence=i)
 
-    test('_cycle_seqs capped at 1000', len(ctrl._cycle_seqs) == 1000)
+    _chk('_cycle_seqs capped at 1000', len(ctrl._cycle_seqs) == 1000)
 
     # Most recent value should be 1199
-    test('most recent seq is last pushed', ctrl._cycle_seqs[-1] == 1199)
+    _chk('most recent seq is last pushed', ctrl._cycle_seqs[-1] == 1199)
 
 
 def test_tgcs_controller_variance_uniform():
@@ -180,14 +180,14 @@ def test_tgcs_controller_variance_uniform():
         ctrl.regulate_cycle(sequence=i)
 
     tel = ctrl.regulate_cycle(sequence=50)
-    test('uniform seq (step=1) → variance = 0.0', tel.run_variance == 0.0)
+    _chk('uniform seq (step=1) → variance = 0.0', tel.run_variance == 0.0)
 
     # Uniform step=5: same, variance = 0
     ctrl2 = TGCSController(hw_profile=MOCK_HW)
     for i in range(0, 50, 5):
         ctrl2.regulate_cycle(sequence=i)
     tel2 = ctrl2.regulate_cycle(sequence=50)
-    test('uniform seq (step=5) → variance = 0.0', tel2.run_variance == 0.0)
+    _chk('uniform seq (step=5) → variance = 0.0', tel2.run_variance == 0.0)
 
 
 def test_tgcs_controller_variance_nonuniform():
@@ -207,9 +207,9 @@ def test_tgcs_controller_variance_nonuniform():
         ctrl.regulate_cycle(sequence=s)
 
     tel = ctrl.regulate_cycle(sequence=seqs[-1] + 1)
-    test('alternating intervals → variance > 0.0', tel.run_variance > 0.0,
+    _chk('alternating intervals → variance > 0.0', tel.run_variance > 0.0,
          f'got {tel.run_variance}')
-    test('non-zero variance → passes_criterion False', tel.passes_criterion is False)
+    _chk('non-zero variance → passes_criterion False', tel.passes_criterion is False)
 
 
 # ── _compute_variance internals ───────────────────────────────────────────────
@@ -220,18 +220,18 @@ def test_compute_variance_internals():
     ctrl = TGCSController(hw_profile=MOCK_HW)
 
     # 0 samples → variance = 0.0
-    test('0 samples → variance = 0.0', ctrl._compute_variance() == 0.0)
+    _chk('0 samples → variance = 0.0', ctrl._compute_variance() == 0.0)
 
     # 1 sample → variance = 0.0
     ctrl.regulate_cycle(sequence=0)
-    test('1 sample → variance = 0.0', ctrl._compute_variance() == 0.0)
+    _chk('1 sample → variance = 0.0', ctrl._compute_variance() == 0.0)
 
     # 2 identical intervals → variance = 0.0
     ctrl2 = TGCSController(hw_profile=MOCK_HW)
     ctrl2.regulate_cycle(sequence=0)
     ctrl2.regulate_cycle(sequence=1)
     ctrl2.regulate_cycle(sequence=2)
-    test('2 uniform intervals → variance = 0.0', ctrl2._compute_variance() == 0.0)
+    _chk('2 uniform intervals → variance = 0.0', ctrl2._compute_variance() == 0.0)
 
     # Non-uniform: [0, 1, 10] → intervals [1, 9] → mean=5, variance=16
     ctrl3 = TGCSController(hw_profile=MOCK_HW)
@@ -239,7 +239,7 @@ def test_compute_variance_internals():
     ctrl3.regulate_cycle(sequence=1)
     ctrl3.regulate_cycle(sequence=10)
     v = ctrl3._compute_variance()
-    test('intervals [1,9] → variance = 16.0', abs(v - 16.0) < 0.001,
+    _chk('intervals [1,9] → variance = 16.0', abs(v - 16.0) < 0.001,
          f'got {v}')
 
 
@@ -257,14 +257,14 @@ def test_afse_telemetry_dataclass():
         passes_criterion=True,
     )
 
-    test('sequence field correct', t.sequence == 100)
-    test('local_throughput field correct', t.local_throughput == 500.0)
-    test('distributed_baseline field correct', t.distributed_baseline == 1000.0)
-    test('r_squared field correct', t.r_squared == 0.99)
-    test('scaling_factor field correct', t.scaling_factor == 0.5)
-    test('passes_criterion field correct', t.passes_criterion is True)
-    test('passes_criterion is bool', isinstance(t.passes_criterion, bool))
-    test('r_squared is float', isinstance(t.r_squared, float))
+    _chk('sequence field correct', t.sequence == 100)
+    _chk('local_throughput field correct', t.local_throughput == 500.0)
+    _chk('distributed_baseline field correct', t.distributed_baseline == 1000.0)
+    _chk('r_squared field correct', t.r_squared == 0.99)
+    _chk('scaling_factor field correct', t.scaling_factor == 0.5)
+    _chk('passes_criterion field correct', t.passes_criterion is True)
+    _chk('passes_criterion is bool', isinstance(t.passes_criterion, bool))
+    _chk('r_squared is float', isinstance(t.r_squared, float))
 
     # passes_criterion semantics
     t2 = AFSETelemetry(
@@ -272,14 +272,14 @@ def test_afse_telemetry_dataclass():
         r_squared=0.98, scaling_factor=0.8,
         passes_criterion=0.98 >= AFSE_R2_THRESHOLD,
     )
-    test('passes_criterion True when r_squared == 0.98', t2.passes_criterion is True)
+    _chk('passes_criterion True when r_squared == 0.98', t2.passes_criterion is True)
 
     t3 = AFSETelemetry(
         sequence=0, local_throughput=800.0, distributed_baseline=1000.0,
         r_squared=0.97, scaling_factor=0.8,
         passes_criterion=0.97 >= AFSE_R2_THRESHOLD,
     )
-    test('passes_criterion False when r_squared == 0.97', t3.passes_criterion is False)
+    _chk('passes_criterion False when r_squared == 0.97', t3.passes_criterion is False)
 
     # Frozen
     expect_raises('AFSETelemetry frozen', (AttributeError, TypeError),
@@ -296,13 +296,13 @@ def test_afse_controller_record_event():
     # First 99 events return None
     for i in range(99):
         result = ctrl.record_event(i)
-        test(f'event {i}: returns None before 100', result is None,
+        _chk(f'event {i}: returns None before 100', result is None,
              f'got {result}') if i < 5 else None  # only test first 5 to keep output manageable
 
     # Test that events 0-98 all return None (sampling approach)
     ctrl2 = AFSEController()
     nones = [ctrl2.record_event(i) for i in range(99)]
-    test('first 99 events all return None', all(r is None for r in nones))
+    _chk('first 99 events all return None', all(r is None for r in nones))
 
     # Event 100 may return None or AFSETelemetry (needs elapsed time > 0)
     # No assertion on this because of time.monotonic dependency
@@ -314,25 +314,25 @@ def test_afse_controller_get_r2():
     ctrl = AFSEController()
 
     # < 2 samples → R² = 0.0
-    test('get_r2 with no samples returns 0.0', ctrl.get_r2() == 0.0)
+    _chk('get_r2 with no samples returns 0.0', ctrl.get_r2() == 0.0)
 
     # After 1 sample
     ctrl._local_samples.append(500.0)
-    test('get_r2 with 1 sample returns 0.0', ctrl.get_r2() == 0.0)
+    _chk('get_r2 with 1 sample returns 0.0', ctrl.get_r2() == 0.0)
 
     # After 2+ identical samples → R² = 1.0 (zero variance)
     ctrl._local_samples.append(500.0)
     r2 = ctrl.get_r2()
-    test('get_r2 with 2 identical samples returns 1.0', r2 == 1.0, f'got {r2}')
+    _chk('get_r2 with 2 identical samples returns 1.0', r2 == 1.0, f'got {r2}')
 
     # Variable samples → R² < 1.0
     ctrl2 = AFSEController()
     ctrl2._local_samples.extend([100.0, 500.0, 200.0, 800.0, 50.0])
     r2_var = ctrl2.get_r2()
-    test('variable samples → R² in [0, 1]', 0.0 <= r2_var <= 1.0, f'got {r2_var}')
+    _chk('variable samples → R² in [0, 1]', 0.0 <= r2_var <= 1.0, f'got {r2_var}')
 
     # get_r2 returns float
-    test('get_r2 returns float', isinstance(ctrl.get_r2(), float))
+    _chk('get_r2 returns float', isinstance(ctrl.get_r2(), float))
 
 
 def test_afse_controller_r2_bounds():
@@ -343,7 +343,7 @@ def test_afse_controller_r2_bounds():
     # Many identical samples: R² = 1.0
     ctrl._local_samples.extend([1000.0] * 50)
     r2_uniform = ctrl.get_r2()
-    test('uniform samples → R² = 1.0', r2_uniform == 1.0, f'got {r2_uniform}')
+    _chk('uniform samples → R² = 1.0', r2_uniform == 1.0, f'got {r2_uniform}')
 
     # Highly variable samples: R² < 1.0
     ctrl2 = AFSEController()
@@ -351,13 +351,13 @@ def test_afse_controller_r2_bounds():
     random.seed(42)
     ctrl2._local_samples.extend([random.uniform(0.1, 1000.0) for _ in range(100)])
     r2_var = ctrl2.get_r2()
-    test('variable samples → R² < 1.0', r2_var < 1.0, f'got {r2_var}')
-    test('variable samples → R² >= 0.0', r2_var >= 0.0, f'got {r2_var}')
+    _chk('variable samples → R² < 1.0', r2_var < 1.0, f'got {r2_var}')
+    _chk('variable samples → R² >= 0.0', r2_var >= 0.0, f'got {r2_var}')
 
     # Exactly 1 sample
     ctrl3 = AFSEController()
     ctrl3._local_samples.append(500.0)
-    test('1 sample → R² = 0.0', ctrl3.get_r2() == 0.0)
+    _chk('1 sample → R² = 0.0', ctrl3.get_r2() == 0.0)
 
 
 # ── AFSEController — throughput_entropy ───────────────────────────────────────
@@ -366,26 +366,26 @@ def test_afse_throughput_entropy():
     print('\nAFSEController throughput_entropy:')
 
     ctrl = AFSEController()
-    test('entropy with 0 samples = 0.0', ctrl.throughput_entropy() == 0.0)
+    _chk('entropy with 0 samples = 0.0', ctrl.throughput_entropy() == 0.0)
 
     ctrl2 = AFSEController()
     ctrl2._local_samples.append(500.0)
-    test('entropy with 1 sample = 0.0', ctrl2.throughput_entropy() == 0.0)
+    _chk('entropy with 1 sample = 0.0', ctrl2.throughput_entropy() == 0.0)
 
     # Uniform throughput (all same value): hi == lo → entropy = 0.0
     ctrl3 = AFSEController()
     ctrl3._local_samples.extend([500.0] * 20)
-    test('uniform throughput → entropy = 0.0', ctrl3.throughput_entropy() == 0.0)
+    _chk('uniform throughput → entropy = 0.0', ctrl3.throughput_entropy() == 0.0)
 
     # Non-uniform: entropy > 0.0
     ctrl4 = AFSEController()
     ctrl4._local_samples.extend([100.0, 200.0, 300.0, 400.0, 500.0,
                                    100.0, 200.0, 300.0, 400.0, 500.0] * 10)
     ent = ctrl4.throughput_entropy()
-    test('non-uniform throughput → entropy >= 0.0', ent >= 0.0, f'got {ent}')
+    _chk('non-uniform throughput → entropy >= 0.0', ent >= 0.0, f'got {ent}')
 
     # Returns float
-    test('throughput_entropy returns float', isinstance(ctrl4.throughput_entropy(), float))
+    _chk('throughput_entropy returns float', isinstance(ctrl4.throughput_entropy(), float))
 
 
 # ── AFSEController — effective_bandwidth ──────────────────────────────────────
@@ -394,14 +394,14 @@ def test_afse_effective_bandwidth():
     print('\nAFSEController effective_bandwidth:')
 
     ctrl = AFSEController()
-    test('effective_bandwidth with no samples = 0.0', ctrl.effective_bandwidth() == 0.0)
+    _chk('effective_bandwidth with no samples = 0.0', ctrl.effective_bandwidth() == 0.0)
 
     # Some samples
     ctrl2 = AFSEController()
     ctrl2._local_samples.extend([500.0] * 20)
     eb = ctrl2.effective_bandwidth()
-    test('effective_bandwidth >= 0.0', eb >= 0.0, f'got {eb}')
-    test('effective_bandwidth with uniform tp = mean (entropy=0, factor=1)',
+    _chk('effective_bandwidth >= 0.0', eb >= 0.0, f'got {eb}')
+    _chk('effective_bandwidth with uniform tp = mean (entropy=0, factor=1)',
          abs(eb - 500.0) < 1.0, f'got {eb}, expected ~500.0')
 
     # Highly variable samples: effective_bandwidth < mean (entropy penalises)
@@ -409,9 +409,9 @@ def test_afse_effective_bandwidth():
     ctrl3._local_samples.extend([1.0, 999.0, 1.0, 999.0, 1.0, 999.0] * 10)
     mean_tp = sum(ctrl3._local_samples) / len(ctrl3._local_samples)
     eb3 = ctrl3.effective_bandwidth()
-    test('variable tp → effective_bandwidth <= mean', eb3 <= mean_tp + 1.0,
+    _chk('variable tp → effective_bandwidth <= mean', eb3 <= mean_tp + 1.0,
          f'eb={eb3}, mean={mean_tp}')
-    test('effective_bandwidth returns float', isinstance(eb3, float))
+    _chk('effective_bandwidth returns float', isinstance(eb3, float))
 
 
 # ── AFSEController — holonic_scaling_score ────────────────────────────────────
@@ -420,22 +420,22 @@ def test_afse_holonic_scaling():
     print('\nAFSEController holonic_scaling_score:')
 
     ctrl = AFSEController()
-    test('holonic_scaling_score with no samples = 0.0',
+    _chk('holonic_scaling_score with no samples = 0.0',
          ctrl.holonic_scaling_score() == 0.0)
 
     ctrl2 = AFSEController()
     ctrl2._local_samples.extend([500.0] * 20)
     score = ctrl2.holonic_scaling_score()
-    test('holonic_scaling_score >= 0.0', score >= 0.0, f'got {score}')
+    _chk('holonic_scaling_score >= 0.0', score >= 0.0, f'got {score}')
 
     # With uniform 1000 eps (= DISTRIBUTED_BASELINE_EPS): R²=1.0, EB=1000, score≈1.0
     ctrl3 = AFSEController()
     ctrl3._local_samples.extend([1000.0] * 50)
     score3 = ctrl3.holonic_scaling_score()
-    test('uniform at baseline → score ≈ 1.0', abs(score3 - 1.0) < 0.01,
+    _chk('uniform at baseline → score ≈ 1.0', abs(score3 - 1.0) < 0.01,
          f'got {score3}')
 
-    test('holonic_scaling_score returns float',
+    _chk('holonic_scaling_score returns float',
          isinstance(ctrl.holonic_scaling_score(), float))
 
 

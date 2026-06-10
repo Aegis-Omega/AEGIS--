@@ -43,7 +43,7 @@ def fail(name: str, reason: str) -> None:
     print(f'  FAIL  {name}: {reason}')
 
 
-def test(name: str, condition: bool, reason: str = '') -> None:
+def _chk(name: str, condition: bool, reason: str = '') -> None:
     if condition:
         ok(name)
     else:
@@ -98,16 +98,16 @@ def test_save_returns_metadata():
     path = _tmp_path()
     try:
         meta = save_checkpoint(mx, path)
-        test('meta has sequence', 'sequence' in meta)
-        test('meta has epoch', 'epoch' in meta)
-        test('meta has era', 'era' in meta)
-        test('meta has integrity_hash', 'integrity_hash' in meta)
-        test('meta has path', 'path' in meta)
-        test('meta sequence == 5', meta['sequence'] == 5)
-        test('meta epoch == 1', meta['epoch'] == 1)
-        test('meta era == 0', meta['era'] == 0)
-        test('meta path matches', meta['path'] == path)
-        test('integrity_hash is non-empty str', isinstance(meta['integrity_hash'], str)
+        _chk('meta has sequence', 'sequence' in meta)
+        _chk('meta has epoch', 'epoch' in meta)
+        _chk('meta has era', 'era' in meta)
+        _chk('meta has integrity_hash', 'integrity_hash' in meta)
+        _chk('meta has path', 'path' in meta)
+        _chk('meta sequence == 5', meta['sequence'] == 5)
+        _chk('meta epoch == 1', meta['epoch'] == 1)
+        _chk('meta era == 0', meta['era'] == 0)
+        _chk('meta path matches', meta['path'] == path)
+        _chk('integrity_hash is non-empty str', isinstance(meta['integrity_hash'], str)
              and len(meta['integrity_hash']) > 0)
     finally:
         try:
@@ -128,20 +128,20 @@ def test_save_json_contents():
         with open(path, 'r') as f:
             cp = json.load(f)
 
-        test('JSON has checkpoint_version', 'checkpoint_version' in cp)
-        test('checkpoint_version == 1.0.0', cp['checkpoint_version'] == CHECKPOINT_VERSION)
-        test('is_replay_reconstructable == True', cp.get('is_replay_reconstructable') is True)
-        test('JSON has integrity_hash', 'integrity_hash' in cp)
-        test('JSON has last_m1_entry_hex', 'last_m1_entry_hex' in cp)
-        test('JSON has sequence', 'sequence' in cp)
-        test('JSON has epoch', 'epoch' in cp)
-        test('JSON has era', 'era' in cp)
+        _chk('JSON has checkpoint_version', 'checkpoint_version' in cp)
+        _chk('checkpoint_version == 1.0.0', cp['checkpoint_version'] == CHECKPOINT_VERSION)
+        _chk('is_replay_reconstructable == True', cp.get('is_replay_reconstructable') is True)
+        _chk('JSON has integrity_hash', 'integrity_hash' in cp)
+        _chk('JSON has last_m1_entry_hex', 'last_m1_entry_hex' in cp)
+        _chk('JSON has sequence', 'sequence' in cp)
+        _chk('JSON has epoch', 'epoch' in cp)
+        _chk('JSON has era', 'era' in cp)
 
         entry_hex = cp['last_m1_entry_hex']
-        test('last_m1_entry_hex is str', isinstance(entry_hex, str))
-        test('last_m1_entry_hex is 80 hex chars', len(entry_hex) == _M1_ENTRY_BYTES * 2,
+        _chk('last_m1_entry_hex is str', isinstance(entry_hex, str))
+        _chk('last_m1_entry_hex is 80 hex chars', len(entry_hex) == _M1_ENTRY_BYTES * 2,
              f'got {len(entry_hex)}, expected {_M1_ENTRY_BYTES * 2}')
-        test('last_m1_entry_hex is valid hex', all(c in '0123456789abcdef' for c in entry_hex))
+        _chk('last_m1_entry_hex is valid hex', all(c in '0123456789abcdef' for c in entry_hex))
     finally:
         try:
             os.unlink(path)
@@ -160,9 +160,9 @@ def test_save_sequence_zero():
             cp = json.load(f)
 
         entry_hex = cp['last_m1_entry_hex']
-        test('seq=0 last_m1_entry_hex is 80 zeros', entry_hex == '0' * 80,
+        _chk('seq=0 last_m1_entry_hex is 80 zeros', entry_hex == '0' * 80,
              f'got {entry_hex}')
-        test('seq=0 sequence in JSON is 0', cp['sequence'] == 0)
+        _chk('seq=0 sequence in JSON is 0', cp['sequence'] == 0)
     finally:
         try:
             os.unlink(path)
@@ -186,11 +186,11 @@ def test_save_sequence_42():
             cp = json.load(f)
 
         entry_hex = cp['last_m1_entry_hex']
-        test('seq=42 last_m1_entry_hex is 80 hex chars', len(entry_hex) == 80)
-        test('seq=42 last_m1_entry_hex is not all zeros', entry_hex != '0' * 80)
-        test('seq=42 sequence in JSON is 42', cp['sequence'] == 42)
-        test('seq=42 epoch in JSON is 7', cp['epoch'] == 7)
-        test('seq=42 era in JSON is 2', cp['era'] == 2)
+        _chk('seq=42 last_m1_entry_hex is 80 hex chars', len(entry_hex) == 80)
+        _chk('seq=42 last_m1_entry_hex is not all zeros', entry_hex != '0' * 80)
+        _chk('seq=42 sequence in JSON is 42', cp['sequence'] == 42)
+        _chk('seq=42 epoch in JSON is 7', cp['epoch'] == 7)
+        _chk('seq=42 era in JSON is 2', cp['era'] == 2)
     finally:
         try:
             os.unlink(path)
@@ -217,7 +217,7 @@ def test_save_integrity_hash_verifies():
         expected = hashlib.sha256(
             f'{sequence}:{epoch}:{era}:{entry_hex}'.encode()
         ).hexdigest()
-        test('integrity_hash matches independently computed hash', stored_hash == expected)
+        _chk('integrity_hash matches independently computed hash', stored_hash == expected)
     finally:
         try:
             os.unlink(path)
@@ -238,14 +238,14 @@ def test_load_roundtrip():
         mx2 = MockMatrix()
         result = load_checkpoint(mx2, path)
 
-        test('load restores sequence', mx2._sequence == 15)
-        test('load restores epoch', mx2._epoch == 3)
-        test('load restores era', mx2._era == 1)
-        test('result has sequence', result['sequence'] == 15)
-        test('result has epoch', result['epoch'] == 3)
-        test('result has era', result['era'] == 1)
-        test('result has integrity_hash', 'integrity_hash' in result)
-        test('result has path', result['path'] == path)
+        _chk('load restores sequence', mx2._sequence == 15)
+        _chk('load restores epoch', mx2._epoch == 3)
+        _chk('load restores era', mx2._era == 1)
+        _chk('result has sequence', result['sequence'] == 15)
+        _chk('result has epoch', result['epoch'] == 3)
+        _chk('result has era', result['era'] == 1)
+        _chk('result has integrity_hash', 'integrity_hash' in result)
+        _chk('result has path', result['path'] == path)
     finally:
         try:
             os.unlink(path)
@@ -262,9 +262,9 @@ def test_load_seq0_roundtrip():
         save_checkpoint(mx, path)
         mx2 = MockMatrix(sequence=99, epoch=5, era=3)  # non-zero state
         load_checkpoint(mx2, path)
-        test('seq=0 restored correctly', mx2._sequence == 0)
-        test('epoch=0 restored correctly', mx2._epoch == 0)
-        test('era=0 restored correctly', mx2._era == 0)
+        _chk('seq=0 restored correctly', mx2._sequence == 0)
+        _chk('epoch=0 restored correctly', mx2._epoch == 0)
+        _chk('era=0 restored correctly', mx2._era == 0)
     finally:
         try:
             os.unlink(path)
@@ -277,23 +277,23 @@ def test_load_seq0_roundtrip():
 def test_checkpoint_exists():
     print('\ncheckpoint_exists:')
 
-    test('nonexistent path → False',
+    _chk('nonexistent path → False',
          checkpoint_exists('/tmp/__nonexistent_aegis_test_path_xyz.json') is False)
 
     mx = MockMatrix()
     path = _tmp_path()
     try:
-        test('before save → False', checkpoint_exists(path) is False or True)
+        _chk('before save → False', checkpoint_exists(path) is False or True)
         # File exists because mkstemp created it; after save it should exist
         save_checkpoint(mx, path)
-        test('after save → True', checkpoint_exists(path) is True)
+        _chk('after save → True', checkpoint_exists(path) is True)
     finally:
         try:
             os.unlink(path)
         except OSError:
             pass
 
-    test('after delete → False', checkpoint_exists(path) is False)
+    _chk('after delete → False', checkpoint_exists(path) is False)
 
 
 # ── CheckpointError cases ─────────────────────────────────────────────────────
@@ -446,9 +446,9 @@ def test_checkpoint_error_matrix_untouched():
         except CheckpointError:
             pass
 
-        test('sequence unchanged after integrity failure', mx2._sequence == original_seq)
-        test('epoch unchanged after integrity failure', mx2._epoch == 1)
-        test('era unchanged after integrity failure', mx2._era == 0)
+        _chk('sequence unchanged after integrity failure', mx2._sequence == original_seq)
+        _chk('epoch unchanged after integrity failure', mx2._epoch == 1)
+        _chk('era unchanged after integrity failure', mx2._era == 0)
     finally:
         try:
             os.unlink(path)
@@ -467,27 +467,27 @@ def test_atomic_write():
         save_checkpoint(mx, path)
 
         # File exists after save
-        test('file exists after save', os.path.exists(path))
+        _chk('file exists after save', os.path.exists(path))
 
         # File is valid JSON
         with open(path, 'r') as f:
             cp = json.load(f)
-        test('file is valid JSON after save', isinstance(cp, dict))
+        _chk('file is valid JSON after save', isinstance(cp, dict))
 
         # No temp files left behind
         dir_ = os.path.dirname(os.path.abspath(path))
         tmp_files = [f for f in os.listdir(dir_)
                      if f.endswith('.tmp') and 'aegis' in f.lower()]
         # General check: no dangling .tmp files for our checkpoint
-        test('no temp files left in dir', len(tmp_files) == 0,
+        _chk('no temp files left in dir', len(tmp_files) == 0,
              f'found: {tmp_files}')
 
         # Overwrite: save again, still valid
         save_checkpoint(mx, path)
         with open(path, 'r') as f:
             cp2 = json.load(f)
-        test('overwrite still valid JSON', isinstance(cp2, dict))
-        test('overwrite has correct checkpoint_version',
+        _chk('overwrite still valid JSON', isinstance(cp2, dict))
+        _chk('overwrite has correct checkpoint_version',
              cp2['checkpoint_version'] == CHECKPOINT_VERSION)
     finally:
         try:
@@ -504,7 +504,7 @@ def test_deterministic_hash():
     try:
         meta1 = save_checkpoint(mx, path)
         meta2 = save_checkpoint(mx, path)
-        test('same state saved twice → same integrity_hash',
+        _chk('same state saved twice → same integrity_hash',
              meta1['integrity_hash'] == meta2['integrity_hash'])
     finally:
         try:
@@ -523,7 +523,7 @@ def test_different_epochs_different_hash():
     try:
         meta1 = save_checkpoint(mx1, path1)
         meta2 = save_checkpoint(mx2, path2)
-        test('different epoch → different integrity_hash',
+        _chk('different epoch → different integrity_hash',
              meta1['integrity_hash'] != meta2['integrity_hash'])
     finally:
         for p in (path1, path2):
@@ -543,9 +543,9 @@ def test_multiple_roundtrips():
             save_checkpoint(mx, path)
             mx2 = MockMatrix()
             load_checkpoint(mx2, path)
-            test(f'round-trip seq={seq}', mx2._sequence == seq)
-            test(f'round-trip epoch={epoch}', mx2._epoch == epoch)
-            test(f'round-trip era={era}', mx2._era == era)
+            _chk(f'round-trip seq={seq}', mx2._sequence == seq)
+            _chk(f'round-trip epoch={epoch}', mx2._epoch == epoch)
+            _chk(f'round-trip era={era}', mx2._era == era)
         finally:
             try:
                 os.unlink(path)
