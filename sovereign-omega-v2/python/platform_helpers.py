@@ -25,6 +25,48 @@ VALID_MODES = frozenset({
     'competitive', 'technical', 'regulatory', 'fundraising',
 })
 
+# ── Prompt injection defence (T1 — layered; model-level robustness is separate) ─
+OBJECTIVE_MAX_CHARS = 4_000
+
+# Case-insensitive substrings that indicate injection attempts at the API boundary.
+# This list is heuristic — it catches common patterns but is not exhaustive.
+# Each entry is lowercase for efficient comparison via `lower_obj in marker`.
+_INJECTION_MARKERS: tuple = (
+    '\n\nhuman:', '\n\nassistant:', '\n\nuser:',       # conversation-format injection
+    '<system>', '</system>', '<human>', '</human>',    # XML/tag injection
+    '[inst]', '[/inst]', '<<sys>>', '<</sys>>',        # llama-style injection
+    'ignore previous instructions',                    # classic override phrase
+    'disregard previous instructions',
+    'ignore all prior instructions',
+    'disregard all prior instructions',
+    'you are now a',                                   # persona-hijack pattern
+    '\x00',                                            # null byte
+)
+
+
+def sanitize_objective(objective: str) -> str:
+    """
+    Sanitize a user-supplied objective at the API ingestion boundary.
+
+    Raises ValueError if the input contains known prompt-injection markers or
+    exceeds OBJECTIVE_MAX_CHARS. Returns the validated objective unchanged.
+
+    This is a heuristic first layer — it does not replace model-level robustness.
+    Defense is always layered (system card lesson: model robustness is necessary
+    but never sufficient for prompt injection).
+    """
+    if len(objective) > OBJECTIVE_MAX_CHARS:
+        raise ValueError(
+            f'objective must be ≤ {OBJECTIVE_MAX_CHARS} chars (got {len(objective)})'
+        )
+    lower = objective.lower()
+    for marker in _INJECTION_MARKERS:
+        if marker in lower:
+            raise ValueError(
+                f'objective rejected: contains prompt-injection marker ({marker!r})'
+            )
+    return objective
+
 PLATFORM_DEPARTMENTS = [
     {'id': 'REV-01', 'role': 'Strategy',    'category': 'revenue'},
     {'id': 'REV-02', 'role': 'Finance',     'category': 'revenue'},
@@ -363,6 +405,7 @@ def validate_collaboration_request(body: dict) -> tuple:
     objective = body.get('objective', '')
     if not isinstance(objective, str) or not objective.strip():
         raise ValueError('objective must be a non-empty string')
+    sanitize_objective(objective.strip())  # raises ValueError on injection attempt
 
     mode = body.get('mode', '')
     if mode not in VALID_MODES:
