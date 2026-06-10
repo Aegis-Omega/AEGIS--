@@ -177,6 +177,22 @@ export class PlatformClient {
       )
     }
 
+    // Consume-side envelope validation (brief §4: validate on both produce AND consume).
+    // Reject responses that are missing required PlatformEnvelope fields.
+    const env = json as Record<string, unknown>
+    if (
+      typeof env['contract_version'] !== 'string' ||
+      typeof env['execution_id'] !== 'string' ||
+      typeof env['timestamp'] !== 'string' ||
+      env['is_replay_reconstructable'] !== true
+    ) {
+      throw new PlatformApiError(
+        'Response failed PlatformEnvelope schema validation',
+        'INTERNAL',
+        resp.status,
+      )
+    }
+
     return json as PlatformEnvelope<T>
   }
 
