@@ -58,6 +58,7 @@ from platform_helpers import (
     retrieve_swarm_memory,
     validate_tier_capabilities,
     TIER_LIVE_ALLOWED,
+    store_swarm_memory,
 )
 
 PASS = 0
@@ -1066,6 +1067,30 @@ def test_retrieve_generation_fitness() -> None:
             os.environ['SUPABASE_SERVICE_ROLE_KEY'] = saved_key
 
 
+def test_store_swarm_memory() -> None:
+    """store_swarm_memory: fire-and-forget — never raises without Supabase."""
+    print('\n--- store_swarm_memory fire-and-forget ---')
+    saved_url = os.environ.pop('SUPABASE_URL', None)
+    saved_key = os.environ.pop('SUPABASE_SERVICE_ROLE_KEY', None)
+    try:
+        store_swarm_memory(
+            email='dev@local',
+            objective='grow ARR',
+            mode='revenue',
+            artifacts=[{'role': 'Strategy', 'output': 'test'}],
+            projection={'first_year_arr_usd': 2_400_000, 'tier': 'T2'},
+            verdict='APPROVED',
+        )
+        _chk('no raise without Supabase', True)
+    except Exception as exc:
+        _chk('no raise without Supabase', False, str(exc))
+    finally:
+        if saved_url is not None:
+            os.environ['SUPABASE_URL'] = saved_url
+        if saved_key is not None:
+            os.environ['SUPABASE_SERVICE_ROLE_KEY'] = saved_key
+
+
 def test_retrieve_swarm_memory() -> None:
     """retrieve_swarm_memory: returns '' when Supabase absent."""
     print('\n--- retrieve_swarm_memory (no-Supabase safe return) ---')
@@ -1120,6 +1145,7 @@ if __name__ == '__main__':
     test_coherence_gate()
     test_pipeline_constraint_propagation()
     test_validate_tier_capabilities()
+    test_store_swarm_memory()
     test_retrieve_prior_artifacts()
     test_retrieve_generation_fitness()
     test_retrieve_swarm_memory()
