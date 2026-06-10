@@ -40,7 +40,7 @@ def fail(name: str, reason: str) -> None:
     print(f'  FAIL  {name}: {reason}')
 
 
-def test(name: str, condition: bool, reason: str = '') -> None:
+def _chk(name: str, condition: bool, reason: str = '') -> None:
     if condition:
         ok(name)
     else:
@@ -62,28 +62,28 @@ def expect_raises(name: str, exc_type, fn) -> None:
 def test_constants():
     print('\nconstants:')
 
-    test('RAM_TOTAL_BYTES == 8 * 1024**3', RAM_TOTAL_BYTES == 8 * 1024 ** 3)
-    test('VRAM_TOTAL_BYTES == 8 * 1024**3', VRAM_TOTAL_BYTES == 8 * 1024 ** 3)
-    test('INT_SHIFT_BITS == 16', INT_SHIFT_BITS == 16)
-    test('INT_SCALE == 65536', INT_SCALE == 65536)
-    test('INT_SCALE == 1 << INT_SHIFT_BITS', INT_SCALE == (1 << INT_SHIFT_BITS))
-    test('INT_MAX == 2**31 - 1', INT_MAX == 2 ** 31 - 1)
-    test('INT_MAX is positive', INT_MAX > 0)
-    test('BOUNDED_DELTA_INT_MAX == INT_SCALE', BOUNDED_DELTA_INT_MAX == INT_SCALE)
-    test('PGCS_TRIGGER_FRACTION == 0.92', PGCS_TRIGGER_FRACTION == 0.92)
-    test('PGCS_TARGET_FRACTION == 0.75', PGCS_TARGET_FRACTION == 0.75)
-    test('PGCS_MAX_COMPRESSION == 50', PGCS_MAX_COMPRESSION == 50)
-    test('THERMAL_THROTTLE_C == 80', THERMAL_THROTTLE_C == 80)
-    test('THERMAL_EMERGENCY_C == 90', THERMAL_EMERGENCY_C == 90)
-    test('AFSE_R2_THRESHOLD == 0.98', AFSE_R2_THRESHOLD == 0.98)
-    test('TGCS_VARIANCE_TARGET == 0.0', TGCS_VARIANCE_TARGET == 0.0)
-    test('PGCS_TRIGGER_FRACTION > PGCS_TARGET_FRACTION',
+    _chk('RAM_TOTAL_BYTES == 8 * 1024**3', RAM_TOTAL_BYTES == 8 * 1024 ** 3)
+    _chk('VRAM_TOTAL_BYTES == 8 * 1024**3', VRAM_TOTAL_BYTES == 8 * 1024 ** 3)
+    _chk('INT_SHIFT_BITS == 16', INT_SHIFT_BITS == 16)
+    _chk('INT_SCALE == 65536', INT_SCALE == 65536)
+    _chk('INT_SCALE == 1 << INT_SHIFT_BITS', INT_SCALE == (1 << INT_SHIFT_BITS))
+    _chk('INT_MAX == 2**31 - 1', INT_MAX == 2 ** 31 - 1)
+    _chk('INT_MAX is positive', INT_MAX > 0)
+    _chk('BOUNDED_DELTA_INT_MAX == INT_SCALE', BOUNDED_DELTA_INT_MAX == INT_SCALE)
+    _chk('PGCS_TRIGGER_FRACTION == 0.92', PGCS_TRIGGER_FRACTION == 0.92)
+    _chk('PGCS_TARGET_FRACTION == 0.75', PGCS_TARGET_FRACTION == 0.75)
+    _chk('PGCS_MAX_COMPRESSION == 50', PGCS_MAX_COMPRESSION == 50)
+    _chk('THERMAL_THROTTLE_C == 80', THERMAL_THROTTLE_C == 80)
+    _chk('THERMAL_EMERGENCY_C == 90', THERMAL_EMERGENCY_C == 90)
+    _chk('AFSE_R2_THRESHOLD == 0.98', AFSE_R2_THRESHOLD == 0.98)
+    _chk('TGCS_VARIANCE_TARGET == 0.0', TGCS_VARIANCE_TARGET == 0.0)
+    _chk('PGCS_TRIGGER_FRACTION > PGCS_TARGET_FRACTION',
          PGCS_TRIGGER_FRACTION > PGCS_TARGET_FRACTION)
-    test('THERMAL_EMERGENCY_C > THERMAL_THROTTLE_C',
+    _chk('THERMAL_EMERGENCY_C > THERMAL_THROTTLE_C',
          THERMAL_EMERGENCY_C > THERMAL_THROTTLE_C)
-    test('PGCS_MAX_COMPRESSION is int', isinstance(PGCS_MAX_COMPRESSION, int))
-    test('RAM_TOTAL_BYTES is int', isinstance(RAM_TOTAL_BYTES, int))
-    test('VRAM_TOTAL_BYTES is int', isinstance(VRAM_TOTAL_BYTES, int))
+    _chk('PGCS_MAX_COMPRESSION is int', isinstance(PGCS_MAX_COMPRESSION, int))
+    _chk('RAM_TOTAL_BYTES is int', isinstance(RAM_TOTAL_BYTES, int))
+    _chk('VRAM_TOTAL_BYTES is int', isinstance(VRAM_TOTAL_BYTES, int))
 
 
 # ── to_fixed / from_fixed ─────────────────────────────────────────────────────
@@ -91,21 +91,21 @@ def test_constants():
 def test_to_from_fixed():
     print('\nto_fixed / from_fixed:')
 
-    test('from_fixed(to_fixed(0.0)) == 0.0', from_fixed(to_fixed(0.0)) == 0.0)
-    test('from_fixed(to_fixed(1.0)) == 1.0', from_fixed(to_fixed(1.0)) == 1.0)
-    test('from_fixed(to_fixed(0.5)) == 0.5', from_fixed(to_fixed(0.5)) == 0.5)
-    test('from_fixed(to_fixed(-1.0)) == -1.0', from_fixed(to_fixed(-1.0)) == -1.0)
-    test('to_fixed(1.0) == INT_SCALE', to_fixed(1.0) == INT_SCALE)
-    test('to_fixed(0.0) == 0', to_fixed(0.0) == 0)
-    test('to_fixed(2.0) == 2 * INT_SCALE', to_fixed(2.0) == 2 * INT_SCALE)
-    test('to_fixed(0.25) == INT_SCALE // 4', to_fixed(0.25) == INT_SCALE // 4)
-    test('to_fixed(-0.5) == -INT_SCALE // 2', to_fixed(-0.5) == -(INT_SCALE // 2))
-    test('from_fixed(INT_SCALE) == 1.0', from_fixed(INT_SCALE) == 1.0)
-    test('from_fixed(0) == 0.0', from_fixed(0) == 0.0)
-    test('from_fixed(2 * INT_SCALE) == 2.0', from_fixed(2 * INT_SCALE) == 2.0)
-    test('from_fixed(-INT_SCALE) == -1.0', from_fixed(-INT_SCALE) == -1.0)
-    test('to_fixed returns int', isinstance(to_fixed(1.5), int))
-    test('from_fixed returns float', isinstance(from_fixed(INT_SCALE), float))
+    _chk('from_fixed(to_fixed(0.0)) == 0.0', from_fixed(to_fixed(0.0)) == 0.0)
+    _chk('from_fixed(to_fixed(1.0)) == 1.0', from_fixed(to_fixed(1.0)) == 1.0)
+    _chk('from_fixed(to_fixed(0.5)) == 0.5', from_fixed(to_fixed(0.5)) == 0.5)
+    _chk('from_fixed(to_fixed(-1.0)) == -1.0', from_fixed(to_fixed(-1.0)) == -1.0)
+    _chk('to_fixed(1.0) == INT_SCALE', to_fixed(1.0) == INT_SCALE)
+    _chk('to_fixed(0.0) == 0', to_fixed(0.0) == 0)
+    _chk('to_fixed(2.0) == 2 * INT_SCALE', to_fixed(2.0) == 2 * INT_SCALE)
+    _chk('to_fixed(0.25) == INT_SCALE // 4', to_fixed(0.25) == INT_SCALE // 4)
+    _chk('to_fixed(-0.5) == -INT_SCALE // 2', to_fixed(-0.5) == -(INT_SCALE // 2))
+    _chk('from_fixed(INT_SCALE) == 1.0', from_fixed(INT_SCALE) == 1.0)
+    _chk('from_fixed(0) == 0.0', from_fixed(0) == 0.0)
+    _chk('from_fixed(2 * INT_SCALE) == 2.0', from_fixed(2 * INT_SCALE) == 2.0)
+    _chk('from_fixed(-INT_SCALE) == -1.0', from_fixed(-INT_SCALE) == -1.0)
+    _chk('to_fixed returns int', isinstance(to_fixed(1.5), int))
+    _chk('from_fixed returns float', isinstance(from_fixed(INT_SCALE), float))
 
 
 # ── fixed_mul ─────────────────────────────────────────────────────────────────
@@ -113,21 +113,21 @@ def test_to_from_fixed():
 def test_fixed_mul():
     print('\nfixed_mul:')
 
-    test('1.0 * 1.0 = 1.0', fixed_mul(INT_SCALE, INT_SCALE) == INT_SCALE)
-    test('0.5 * 1.0 = 0.5', fixed_mul(INT_SCALE // 2, INT_SCALE) == INT_SCALE // 2)
-    test('0 * 1.0 = 0', fixed_mul(0, INT_SCALE) == 0)
-    test('1.0 * 0 = 0', fixed_mul(INT_SCALE, 0) == 0)
+    _chk('1.0 * 1.0 = 1.0', fixed_mul(INT_SCALE, INT_SCALE) == INT_SCALE)
+    _chk('0.5 * 1.0 = 0.5', fixed_mul(INT_SCALE // 2, INT_SCALE) == INT_SCALE // 2)
+    _chk('0 * 1.0 = 0', fixed_mul(0, INT_SCALE) == 0)
+    _chk('1.0 * 0 = 0', fixed_mul(INT_SCALE, 0) == 0)
     # 0.5 * 0.5 = 0.25; INT_SCALE // 4 = 16384; result should be within 1
     result = fixed_mul(INT_SCALE // 2, INT_SCALE // 2)
     expected = INT_SCALE // 4
-    test('0.5 * 0.5 ≈ 0.25 (within 1)', abs(result - expected) <= 1,
+    _chk('0.5 * 0.5 ≈ 0.25 (within 1)', abs(result - expected) <= 1,
          f'got {result}, expected ~{expected}')
-    test('2.0 * 2.0 = 4.0', fixed_mul(2 * INT_SCALE, 2 * INT_SCALE) == 4 * INT_SCALE)
-    test('fixed_mul returns int', isinstance(fixed_mul(INT_SCALE, INT_SCALE), int))
-    test('1.0 * 0.5 = 0.5 (commutative)',
+    _chk('2.0 * 2.0 = 4.0', fixed_mul(2 * INT_SCALE, 2 * INT_SCALE) == 4 * INT_SCALE)
+    _chk('fixed_mul returns int', isinstance(fixed_mul(INT_SCALE, INT_SCALE), int))
+    _chk('1.0 * 0.5 = 0.5 (commutative)',
          fixed_mul(INT_SCALE, INT_SCALE // 2) == fixed_mul(INT_SCALE // 2, INT_SCALE))
-    test('0 * 0 = 0', fixed_mul(0, 0) == 0)
-    test('negative mul: -1.0 * 1.0 = -1.0',
+    _chk('0 * 0 = 0', fixed_mul(0, 0) == 0)
+    _chk('negative mul: -1.0 * 1.0 = -1.0',
          fixed_mul(-INT_SCALE, INT_SCALE) == -INT_SCALE)
 
 
@@ -136,20 +136,20 @@ def test_fixed_mul():
 def test_fixed_clamp():
     print('\nfixed_clamp:')
 
-    test('clamp(0, 0, S) == 0', fixed_clamp(0, 0, INT_SCALE) == 0)
-    test('clamp(S, 0, S) == S', fixed_clamp(INT_SCALE, 0, INT_SCALE) == INT_SCALE)
-    test('clamp(-1, 0, S) == 0', fixed_clamp(-1, 0, INT_SCALE) == 0)
-    test('clamp(S+1, 0, S) == S', fixed_clamp(INT_SCALE + 1, 0, INT_SCALE) == INT_SCALE)
-    test('clamp(S//2, 0, S) == S//2', fixed_clamp(INT_SCALE // 2, 0, INT_SCALE) == INT_SCALE // 2)
-    test('result always >= lo', fixed_clamp(-1000, 0, INT_SCALE) >= 0)
-    test('result always <= hi', fixed_clamp(INT_MAX, 0, INT_SCALE) <= INT_SCALE)
-    test('clamp within range is identity', fixed_clamp(100, 50, 200) == 100)
-    test('clamp below lo', fixed_clamp(10, 50, 200) == 50)
-    test('clamp above hi', fixed_clamp(300, 50, 200) == 200)
-    test('lo == hi: only value possible', fixed_clamp(0, 5, 5) == 5)
-    test('negative range', fixed_clamp(-3, -10, -1) == -3)
-    test('clamp below negative range', fixed_clamp(-15, -10, -1) == -10)
-    test('clamp above negative range', fixed_clamp(0, -10, -1) == -1)
+    _chk('clamp(0, 0, S) == 0', fixed_clamp(0, 0, INT_SCALE) == 0)
+    _chk('clamp(S, 0, S) == S', fixed_clamp(INT_SCALE, 0, INT_SCALE) == INT_SCALE)
+    _chk('clamp(-1, 0, S) == 0', fixed_clamp(-1, 0, INT_SCALE) == 0)
+    _chk('clamp(S+1, 0, S) == S', fixed_clamp(INT_SCALE + 1, 0, INT_SCALE) == INT_SCALE)
+    _chk('clamp(S//2, 0, S) == S//2', fixed_clamp(INT_SCALE // 2, 0, INT_SCALE) == INT_SCALE // 2)
+    _chk('result always >= lo', fixed_clamp(-1000, 0, INT_SCALE) >= 0)
+    _chk('result always <= hi', fixed_clamp(INT_MAX, 0, INT_SCALE) <= INT_SCALE)
+    _chk('clamp within range is identity', fixed_clamp(100, 50, 200) == 100)
+    _chk('clamp below lo', fixed_clamp(10, 50, 200) == 50)
+    _chk('clamp above hi', fixed_clamp(300, 50, 200) == 200)
+    _chk('lo == hi: only value possible', fixed_clamp(0, 5, 5) == 5)
+    _chk('negative range', fixed_clamp(-3, -10, -1) == -3)
+    _chk('clamp below negative range', fixed_clamp(-15, -10, -1) == -10)
+    _chk('clamp above negative range', fixed_clamp(0, -10, -1) == -1)
 
 
 # ── fixed_div ─────────────────────────────────────────────────────────────────
@@ -157,20 +157,20 @@ def test_fixed_clamp():
 def test_fixed_div():
     print('\nfixed_div:')
 
-    test('1.0 / 1.0 = 1.0', fixed_div(INT_SCALE, INT_SCALE) == INT_SCALE)
-    test('0 / 1.0 = 0', fixed_div(0, INT_SCALE) == 0)
+    _chk('1.0 / 1.0 = 1.0', fixed_div(INT_SCALE, INT_SCALE) == INT_SCALE)
+    _chk('0 / 1.0 = 0', fixed_div(0, INT_SCALE) == 0)
     # 1.0 / 2.0 = 0.5
     result = fixed_div(INT_SCALE, 2 * INT_SCALE)
-    test('1.0 / 2.0 = 0.5', result == INT_SCALE // 2,
+    _chk('1.0 / 2.0 = 0.5', result == INT_SCALE // 2,
          f'got {result}, expected {INT_SCALE // 2}')
-    test('div by zero (positive) returns INT_MAX',
+    _chk('div by zero (positive) returns INT_MAX',
          fixed_div(INT_SCALE, 0) == INT_MAX)
-    test('div by zero (negative) returns -INT_MAX',
+    _chk('div by zero (negative) returns -INT_MAX',
          fixed_div(-INT_SCALE, 0) == -INT_MAX)
     # 2.0 / 1.0 = 2.0
-    test('2.0 / 1.0 = 2.0', fixed_div(2 * INT_SCALE, INT_SCALE) == 2 * INT_SCALE)
-    test('fixed_div returns int', isinstance(fixed_div(INT_SCALE, INT_SCALE), int))
-    test('0 / 0 → INT_MAX (0 >= 0)', fixed_div(0, 0) == INT_MAX)
+    _chk('2.0 / 1.0 = 2.0', fixed_div(2 * INT_SCALE, INT_SCALE) == 2 * INT_SCALE)
+    _chk('fixed_div returns int', isinstance(fixed_div(INT_SCALE, INT_SCALE), int))
+    _chk('0 / 0 → INT_MAX (0 >= 0)', fixed_div(0, 0) == INT_MAX)
 
 
 # ── fixed_sqrt ────────────────────────────────────────────────────────────────
@@ -178,23 +178,23 @@ def test_fixed_div():
 def test_fixed_sqrt():
     print('\nfixed_sqrt:')
 
-    test('sqrt(0) == 0', fixed_sqrt(0) == 0)
+    _chk('sqrt(0) == 0', fixed_sqrt(0) == 0)
     # sqrt(1.0) = 1.0
     r = fixed_sqrt(INT_SCALE)
     tol = INT_SCALE // 100  # 1%
-    test('sqrt(1.0) ≈ 1.0 (within 1%)',
+    _chk('sqrt(1.0) ≈ 1.0 (within 1%)',
          abs(r - INT_SCALE) <= tol, f'got {r}, expected ~{INT_SCALE}')
     # sqrt(4.0) = 2.0
     r4 = fixed_sqrt(4 * INT_SCALE)
-    test('sqrt(4.0) ≈ 2.0 (within 1%)',
+    _chk('sqrt(4.0) ≈ 2.0 (within 1%)',
          abs(r4 - 2 * INT_SCALE) <= 2 * tol, f'got {r4}, expected ~{2 * INT_SCALE}')
-    test('sqrt(-1) == 0 (negative clamped)', fixed_sqrt(-1) == 0)
-    test('sqrt returns int', isinstance(fixed_sqrt(INT_SCALE), int))
+    _chk('sqrt(-1) == 0 (negative clamped)', fixed_sqrt(-1) == 0)
+    _chk('sqrt returns int', isinstance(fixed_sqrt(INT_SCALE), int))
     # sqrt(9.0) = 3.0
     r9 = fixed_sqrt(9 * INT_SCALE)
-    test('sqrt(9.0) ≈ 3.0 (within 1%)',
+    _chk('sqrt(9.0) ≈ 3.0 (within 1%)',
          abs(r9 - 3 * INT_SCALE) <= 3 * tol, f'got {r9}, expected ~{3 * INT_SCALE}')
-    test('sqrt(0.25) ≈ 0.5 (within 1%)',
+    _chk('sqrt(0.25) ≈ 0.5 (within 1%)',
          abs(fixed_sqrt(INT_SCALE // 4) - INT_SCALE // 2) <= tol)
 
 
@@ -207,32 +207,32 @@ def test_fixed_exp_decay():
     val = 10 * INT_SCALE
     target = 5 * INT_SCALE
     r = fixed_exp_decay(val, INT_SCALE, target)
-    test('decay=1.0 keeps value', r == val, f'got {r}, expected {val}')
+    _chk('decay=1.0 keeps value', r == val, f'got {r}, expected {val}')
 
     # When decay = 0: value * 0 + target * 1.0 = target
     r0 = fixed_exp_decay(val, 0, target)
-    test('decay=0 equals target', r0 == target, f'got {r0}, expected {target}')
+    _chk('decay=0 equals target', r0 == target, f'got {r0}, expected {target}')
 
     # Intermediate decay: result between value and target
     half = INT_SCALE // 2
     r_half = fixed_exp_decay(val, half, target)
     lo = min(val, target)
     hi = max(val, target)
-    test('intermediate decay result in [target, value]',
+    _chk('intermediate decay result in [target, value]',
          lo <= r_half <= hi, f'got {r_half}, expected in [{lo}, {hi}]')
 
     # decay=0.9: result closer to value than to target
     decay_90 = INT_SCALE * 9 // 10
     r90 = fixed_exp_decay(val, decay_90, target)
-    test('decay=0.9 result closer to value than target',
+    _chk('decay=0.9 result closer to value than target',
          abs(r90 - val) < abs(r90 - target),
          f'got {r90}, val={val}, target={target}')
 
     # Self-decay to same target: stationary
     r_same = fixed_exp_decay(val, half, val)
-    test('decay to self stays the same', r_same == val, f'got {r_same}, expected {val}')
+    _chk('decay to self stays the same', r_same == val, f'got {r_same}, expected {val}')
 
-    test('fixed_exp_decay returns int', isinstance(fixed_exp_decay(INT_SCALE, INT_SCALE // 2, 0), int))
+    _chk('fixed_exp_decay returns int', isinstance(fixed_exp_decay(INT_SCALE, INT_SCALE // 2, 0), int))
 
 
 # ── popcount32 ────────────────────────────────────────────────────────────────
@@ -240,26 +240,26 @@ def test_fixed_exp_decay():
 def test_popcount32():
     print('\npopcount32:')
 
-    test('popcount32(0) == 0', popcount32(0) == 0)
-    test('popcount32(1) == 1', popcount32(1) == 1)
-    test('popcount32(0xFFFFFFFF) == 32', popcount32(0xFFFFFFFF) == 32)
-    test('popcount32(0x55555555) == 16', popcount32(0x55555555) == 16)
-    test('popcount32(0xAAAAAAAA) == 16', popcount32(0xAAAAAAAA) == 16)
-    test('popcount32(2) == 1', popcount32(2) == 1)
-    test('popcount32(3) == 2', popcount32(3) == 2)
-    test('popcount32(7) == 3', popcount32(7) == 3)
-    test('popcount32(8) == 1', popcount32(8) == 1)
-    test('popcount32(0x0F0F0F0F) == 16', popcount32(0x0F0F0F0F) == 16)
-    test('popcount32(0xF0F0F0F0) == 16', popcount32(0xF0F0F0F0) == 16)
-    test('popcount32(0x80000000) == 1', popcount32(0x80000000) == 1)
-    test('popcount32(0x00010000) == 1', popcount32(0x00010000) == 1)
-    test('popcount32(0x00FF00FF) == 16', popcount32(0x00FF00FF) == 16)
+    _chk('popcount32(0) == 0', popcount32(0) == 0)
+    _chk('popcount32(1) == 1', popcount32(1) == 1)
+    _chk('popcount32(0xFFFFFFFF) == 32', popcount32(0xFFFFFFFF) == 32)
+    _chk('popcount32(0x55555555) == 16', popcount32(0x55555555) == 16)
+    _chk('popcount32(0xAAAAAAAA) == 16', popcount32(0xAAAAAAAA) == 16)
+    _chk('popcount32(2) == 1', popcount32(2) == 1)
+    _chk('popcount32(3) == 2', popcount32(3) == 2)
+    _chk('popcount32(7) == 3', popcount32(7) == 3)
+    _chk('popcount32(8) == 1', popcount32(8) == 1)
+    _chk('popcount32(0x0F0F0F0F) == 16', popcount32(0x0F0F0F0F) == 16)
+    _chk('popcount32(0xF0F0F0F0) == 16', popcount32(0xF0F0F0F0) == 16)
+    _chk('popcount32(0x80000000) == 1', popcount32(0x80000000) == 1)
+    _chk('popcount32(0x00010000) == 1', popcount32(0x00010000) == 1)
+    _chk('popcount32(0x00FF00FF) == 16', popcount32(0x00FF00FF) == 16)
     # High bits beyond 32 are masked off
-    test('popcount32 masks beyond 32 bits', popcount32(0xFFFFFFFF + 1) == 0,
+    _chk('popcount32 masks beyond 32 bits', popcount32(0xFFFFFFFF + 1) == 0,
          'bit 32 should be masked')
-    test('popcount32 returns int', isinstance(popcount32(42), int))
-    test('popcount32(255) == 8', popcount32(255) == 8)
-    test('popcount32(0x12345678) == known', popcount32(0x12345678) == 13)
+    _chk('popcount32 returns int', isinstance(popcount32(42), int))
+    _chk('popcount32(255) == 8', popcount32(255) == 8)
+    _chk('popcount32(0x12345678) == known', popcount32(0x12345678) == 13)
 
 
 # ── bit_interleave ────────────────────────────────────────────────────────────
@@ -267,25 +267,25 @@ def test_popcount32():
 def test_bit_interleave():
     print('\nbit_interleave:')
 
-    test('bit_interleave(0, 0) == 0', bit_interleave(0, 0) == 0)
-    test('bit_interleave(1, 0) == 1', bit_interleave(1, 0) == 1)
-    test('bit_interleave(0, 1) == 2', bit_interleave(0, 1) == 2)
-    test('bit_interleave(1, 1) == 3', bit_interleave(1, 1) == 3)
-    test('bit_interleave(2, 0) == 4', bit_interleave(2, 0) == 4)
-    test('bit_interleave(0, 2) == 8', bit_interleave(0, 2) == 8)
-    test('bit_interleave(3, 0) == 5', bit_interleave(3, 0) == 5)
-    test('bit_interleave(0, 3) == 10', bit_interleave(0, 3) == 10)
+    _chk('bit_interleave(0, 0) == 0', bit_interleave(0, 0) == 0)
+    _chk('bit_interleave(1, 0) == 1', bit_interleave(1, 0) == 1)
+    _chk('bit_interleave(0, 1) == 2', bit_interleave(0, 1) == 2)
+    _chk('bit_interleave(1, 1) == 3', bit_interleave(1, 1) == 3)
+    _chk('bit_interleave(2, 0) == 4', bit_interleave(2, 0) == 4)
+    _chk('bit_interleave(0, 2) == 8', bit_interleave(0, 2) == 8)
+    _chk('bit_interleave(3, 0) == 5', bit_interleave(3, 0) == 5)
+    _chk('bit_interleave(0, 3) == 10', bit_interleave(0, 3) == 10)
     # 0xFFFF in lower 16 bits of a: even bits of result all set = 0x55555555
-    test('bit_interleave(0xFFFF, 0) == 0x55555555',
+    _chk('bit_interleave(0xFFFF, 0) == 0x55555555',
          bit_interleave(0xFFFF, 0) == 0x55555555)
     # 0xFFFF in lower 16 bits of b: odd bits of result all set = 0xAAAAAAAA
-    test('bit_interleave(0, 0xFFFF) == 0xAAAAAAAA',
+    _chk('bit_interleave(0, 0xFFFF) == 0xAAAAAAAA',
          bit_interleave(0, 0xFFFF) == 0xAAAAAAAA)
-    test('bit_interleave(0xFFFF, 0xFFFF) == 0xFFFFFFFF',
+    _chk('bit_interleave(0xFFFF, 0xFFFF) == 0xFFFFFFFF',
          bit_interleave(0xFFFF, 0xFFFF) == 0xFFFFFFFF)
-    test('bit_interleave returns int', isinstance(bit_interleave(1, 1), int))
-    test('bit_interleave(4, 0) == 16', bit_interleave(4, 0) == 16)
-    test('bit_interleave(0, 4) == 32', bit_interleave(0, 4) == 32)
+    _chk('bit_interleave returns int', isinstance(bit_interleave(1, 1), int))
+    _chk('bit_interleave(4, 0) == 16', bit_interleave(4, 0) == 16)
+    _chk('bit_interleave(0, 4) == 32', bit_interleave(0, 4) == 32)
 
 
 # ── shannon_entropy_fixed ─────────────────────────────────────────────────────
@@ -294,45 +294,45 @@ def test_shannon_entropy():
     print('\nshannon_entropy_fixed:')
 
     # Certain distribution [INT_SCALE]: entropy == 0
-    test('entropy of certain dist == 0',
+    _chk('entropy of certain dist == 0',
          shannon_entropy_fixed([INT_SCALE]) == 0)
 
     # Uniform over 2: entropy = 1.0 bit
     half = INT_SCALE // 2
     h2 = shannon_entropy_fixed([half, half])
-    test('uniform 2-symbol entropy ≈ 1.0 bit (within 1%)',
+    _chk('uniform 2-symbol entropy ≈ 1.0 bit (within 1%)',
          abs(h2 - INT_SCALE) <= INT_SCALE // 100,
          f'got {h2}, expected ~{INT_SCALE}')
 
     # Uniform over 4: entropy = 2.0 bits (within 5%)
     quarter = INT_SCALE // 4
     h4 = shannon_entropy_fixed([quarter, quarter, quarter, quarter])
-    test('uniform 4-symbol entropy ≈ 2.0 bits (within 5%)',
+    _chk('uniform 4-symbol entropy ≈ 2.0 bits (within 5%)',
          abs(h4 - 2 * INT_SCALE) <= INT_SCALE // 10,
          f'got {h4}, expected ~{2 * INT_SCALE}')
 
     # Zero probs skipped without error
     h_zero = shannon_entropy_fixed([INT_SCALE, 0, 0])
-    test('zero probs skipped — certain dist returns 0',
+    _chk('zero probs skipped — certain dist returns 0',
          h_zero == 0)
 
     # Entropy is non-negative
-    test('entropy non-negative', h2 >= 0)
-    test('entropy non-negative for 4-symbol', h4 >= 0)
+    _chk('entropy non-negative', h2 >= 0)
+    _chk('entropy non-negative for 4-symbol', h4 >= 0)
 
     # Uniform 8: entropy = 3.0 bits (within 5%)
     eighth = INT_SCALE // 8
     h8 = shannon_entropy_fixed([eighth] * 8)
-    test('uniform 8-symbol entropy ≈ 3.0 bits (within 5%)',
+    _chk('uniform 8-symbol entropy ≈ 3.0 bits (within 5%)',
          abs(h8 - 3 * INT_SCALE) <= INT_SCALE // 5,
          f'got {h8}, expected ~{3 * INT_SCALE}')
 
     # More symbols → higher entropy (monotonicity of uniform distributions)
-    test('H(uniform 4) > H(uniform 2)', h4 > h2)
-    test('H(uniform 8) > H(uniform 4)', h8 > h4)
+    _chk('H(uniform 4) > H(uniform 2)', h4 > h2)
+    _chk('H(uniform 8) > H(uniform 4)', h8 > h4)
 
     # Returns int
-    test('entropy returns int', isinstance(shannon_entropy_fixed([half, half]), int))
+    _chk('entropy returns int', isinstance(shannon_entropy_fixed([half, half]), int))
 
 
 # ── kl_divergence_fixed ───────────────────────────────────────────────────────
@@ -344,29 +344,29 @@ def test_kl_divergence():
     quarter = INT_SCALE // 4
 
     # KL(P||P) = 0
-    test('KL(P||P) = 0 for uniform 2',
+    _chk('KL(P||P) = 0 for uniform 2',
          kl_divergence_fixed([half, half], [half, half]) == 0)
-    test('KL(P||P) = 0 for uniform 4',
+    _chk('KL(P||P) = 0 for uniform 4',
          kl_divergence_fixed([quarter] * 4, [quarter] * 4) == 0)
 
     # KL(P||Q) > 0 when P != Q
     kl = kl_divergence_fixed([half, half], [quarter, 3 * quarter])
-    test('KL(P||Q) > 0 when P != Q', kl > 0, f'got {kl}')
+    _chk('KL(P||Q) > 0 when P != Q', kl > 0, f'got {kl}')
 
     # q_i = 0 and p_i > 0 → returns INT_MAX
-    test('KL undefined (q=0, p>0) → INT_MAX',
+    _chk('KL undefined (q=0, p>0) → INT_MAX',
          kl_divergence_fixed([half, half], [INT_SCALE, 0]) == INT_MAX)
 
     # p_i = 0 → term skipped (no division by zero concern)
     kl_skip = kl_divergence_fixed([INT_SCALE, 0], [half, half])
-    test('KL with p_i=0 term skipped does not raise', isinstance(kl_skip, int))
+    _chk('KL with p_i=0 term skipped does not raise', isinstance(kl_skip, int))
 
     # Non-negative
     kl2 = kl_divergence_fixed([3 * quarter, quarter], [half, half])
-    test('KL non-negative', kl2 >= 0, f'got {kl2}')
+    _chk('KL non-negative', kl2 >= 0, f'got {kl2}')
 
     # Returns int
-    test('KL returns int', isinstance(kl_divergence_fixed([half, half], [half, half]), int))
+    _chk('KL returns int', isinstance(kl_divergence_fixed([half, half], [half, half]), int))
 
 
 # ── cross_entropy_fixed ───────────────────────────────────────────────────────
@@ -381,32 +381,32 @@ def test_cross_entropy():
     ce = cross_entropy_fixed([half, half], [half, half])
     h = shannon_entropy_fixed([half, half])
     tol = max(1, h // 20)
-    test('cross_entropy(P,P) ≈ H(P) within 5%',
+    _chk('cross_entropy(P,P) ≈ H(P) within 5%',
          abs(ce - h) <= tol, f'ce={ce}, H={h}')
 
     # cross_entropy ≥ shannon_entropy (non-negativity of KL means H(P,Q) ≥ H(P))
     ce2 = cross_entropy_fixed([half, half], [quarter, 3 * quarter])
-    test('cross_entropy >= shannon_entropy', ce2 >= h - 1,
+    _chk('cross_entropy >= shannon_entropy', ce2 >= h - 1,
          f'ce={ce2}, h={h}')
 
     # Returns INT_MAX when q=0 and p>0
-    test('cross_entropy → INT_MAX when q=0, p>0',
+    _chk('cross_entropy → INT_MAX when q=0, p>0',
          cross_entropy_fixed([half, half], [INT_SCALE, 0]) == INT_MAX)
 
     # p=0 terms are skipped
     ce3 = cross_entropy_fixed([INT_SCALE, 0], [half, half])
-    test('cross_entropy with p=0 term skipped returns int', isinstance(ce3, int))
+    _chk('cross_entropy with p=0 term skipped returns int', isinstance(ce3, int))
 
     # Non-negative
-    test('cross_entropy non-negative', ce >= 0)
+    _chk('cross_entropy non-negative', ce >= 0)
 
     # Returns int
-    test('cross_entropy returns int', isinstance(ce, int))
+    _chk('cross_entropy returns int', isinstance(ce, int))
 
     # 4-symbol uniform
     ce4 = cross_entropy_fixed([quarter] * 4, [quarter] * 4)
     h4 = shannon_entropy_fixed([quarter] * 4)
-    test('cross_entropy(P,P) ≈ H(P) for 4-symbol (within 5%)',
+    _chk('cross_entropy(P,P) ≈ H(P) for 4-symbol (within 5%)',
          abs(ce4 - h4) <= max(1, h4 // 20), f'ce={ce4}, h={h4}')
 
 
@@ -416,41 +416,41 @@ def test_compression_ratio():
     print('\ncompression_ratio_fixed:')
 
     # ratio = 1.0 when equal sizes
-    test('ratio == 1.0 when equal',
+    _chk('ratio == 1.0 when equal',
          compression_ratio_fixed(100, 100) == INT_SCALE,
          f'got {compression_ratio_fixed(100, 100)}')
 
     # ratio = 0.5 when compressed is half of original
     r_half = compression_ratio_fixed(200, 100)
-    test('ratio ≈ 0.5 when compressed=100, original=200',
+    _chk('ratio ≈ 0.5 when compressed=100, original=200',
          abs(r_half - INT_SCALE // 2) <= 2,
          f'got {r_half}, expected {INT_SCALE // 2}')
 
     # original=0 → INT_SCALE (edge case)
-    test('ratio == INT_SCALE when original=0',
+    _chk('ratio == INT_SCALE when original=0',
          compression_ratio_fixed(0, 100) == INT_SCALE)
 
     # ratio < INT_SCALE when compressed < original
-    test('ratio < 1.0 when compressed < original',
+    _chk('ratio < 1.0 when compressed < original',
          compression_ratio_fixed(1000, 500) < INT_SCALE)
 
     # ratio > INT_SCALE when compressed > original (expansion)
-    test('ratio > 1.0 when compressed > original',
+    _chk('ratio > 1.0 when compressed > original',
          compression_ratio_fixed(100, 200) > INT_SCALE)
 
     # Returns int
-    test('compression_ratio returns int',
+    _chk('compression_ratio returns int',
          isinstance(compression_ratio_fixed(100, 50), int))
 
     # ratio = 2.0 when compressed is double original
     r_double = compression_ratio_fixed(100, 200)
-    test('ratio = 2.0 when compressed is double',
+    _chk('ratio = 2.0 when compressed is double',
          abs(r_double - 2 * INT_SCALE) <= 2,
          f'got {r_double}, expected {2 * INT_SCALE}')
 
     # Ratio with perfect compression (1 byte from 50)
     r_good = compression_ratio_fixed(50, 1)
-    test('ratio is small for good compression', r_good < INT_SCALE)
+    _chk('ratio is small for good compression', r_good < INT_SCALE)
 
 
 # ── HardwareProfile dataclass ─────────────────────────────────────────────────
@@ -467,14 +467,14 @@ def test_hardware_profile():
         thermal_path=None,
     )
 
-    test('ram_bytes correct', hw.ram_bytes == 8 * 1024 ** 3)
-    test('vram_bytes correct', hw.vram_bytes == 8 * 1024 ** 3)
-    test('cpu_cores correct', hw.cpu_cores == 4)
-    test('platform is string', isinstance(hw.platform, str))
-    test('platform value correct', hw.platform == 'Linux')
-    test('is_target_hardware is bool', isinstance(hw.is_target_hardware, bool))
-    test('is_target_hardware is True', hw.is_target_hardware is True)
-    test('thermal_path can be None', hw.thermal_path is None)
+    _chk('ram_bytes correct', hw.ram_bytes == 8 * 1024 ** 3)
+    _chk('vram_bytes correct', hw.vram_bytes == 8 * 1024 ** 3)
+    _chk('cpu_cores correct', hw.cpu_cores == 4)
+    _chk('platform is string', isinstance(hw.platform, str))
+    _chk('platform value correct', hw.platform == 'Linux')
+    _chk('is_target_hardware is bool', isinstance(hw.is_target_hardware, bool))
+    _chk('is_target_hardware is True', hw.is_target_hardware is True)
+    _chk('thermal_path can be None', hw.thermal_path is None)
 
     # Frozen — cannot mutate
     expect_raises('frozen: cannot set ram_bytes', (AttributeError, TypeError),
@@ -491,10 +491,10 @@ def test_hardware_profile():
         is_target_hardware=False,
         thermal_path='/sys/class/hwmon/hwmon0/temp1_input',
     )
-    test('thermal_path can be str', isinstance(hw2.thermal_path, str))
-    test('is_target_hardware False', hw2.is_target_hardware is False)
-    test('different platform', hw2.platform == 'Windows')
-    test('fewer cpu_cores', hw2.cpu_cores == 8)
+    _chk('thermal_path can be str', isinstance(hw2.thermal_path, str))
+    _chk('is_target_hardware False', hw2.is_target_hardware is False)
+    _chk('different platform', hw2.platform == 'Windows')
+    _chk('fewer cpu_cores', hw2.cpu_cores == 8)
 
     # Equality based on fields
     hw3 = HardwareProfile(
@@ -505,7 +505,7 @@ def test_hardware_profile():
         is_target_hardware=True,
         thermal_path=None,
     )
-    test('equal profiles compare equal', hw == hw3)
+    _chk('equal profiles compare equal', hw == hw3)
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
