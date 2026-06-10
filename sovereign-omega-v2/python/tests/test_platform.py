@@ -892,6 +892,66 @@ def test_sanitize_objective() -> None:
     _chk('empty memory_context passes sanitizer', clean_ok)
 
 
+def test_pipeline_constraint_propagation() -> None:
+    """
+    Specification-drift test for multi-hop pipeline (brief §14).
+
+    For each A→B→C hop, assert that explicit AND implicit constraints survive:
+      validate_collaboration_request → _swarm_fallback → evaluate_generation_fitness
+
+    Invariants tested:
+      - QUARANTINE verdict hard-caps fitness at CONSTITUTIONAL_FACTORS['QUARANTINE']
+      - APPROVED verdict allows fitness to reach full metric value
+      - Fallback mode-specific ARR projection is mode-specific (not default)
+      - Fallback objective words propagate into output artifacts
+      - Constitutional factor monotonicity: APPROVED ≥ FLAG ≥ QUARANTINE
+    """
+    print('\n--- pipeline constraint propagation (spec-drift) ---')
+
+    # Constraint 1: QUARANTINE hard-caps fitness (no reward hacking escapes quarantine)
+    prev = [{'role': 'Strategy', 'output': 'grow revenue through enterprise sales'}]
+    curr = [{'role': 'Strategy', 'output': 'grow revenue through enterprise sales and partnerships'}]
+    quarantine_scores = evaluate_generation_fitness(prev, curr, 'grow revenue', 'QUARANTINE')
+    q_score = quarantine_scores['Strategy']['fitness_score']
+    max_q = CONSTITUTIONAL_FACTORS['QUARANTINE']
+    _chk('QUARANTINE fitness ≤ CONSTITUTIONAL_FACTORS[QUARANTINE]', q_score <= max_q + 1e-9)
+
+    # Constraint 2: APPROVED allows fitness to reach actual metric value
+    approved_scores = evaluate_generation_fitness(prev, curr, 'grow revenue', 'APPROVED')
+    a_score = approved_scores['Strategy']['fitness_score']
+    _chk('APPROVED fitness > QUARANTINE fitness', a_score > q_score)
+    _chk('APPROVED fitness ≤ 1.0', a_score <= 1.0)
+
+    # Constraint 3: constitutional_factor monotonicity (APPROVED ≥ FLAG ≥ QUARANTINE)
+    flag_scores = evaluate_generation_fitness(prev, curr, 'grow revenue', 'FLAG')
+    f_score = flag_scores['Strategy']['fitness_score']
+    _chk('APPROVED fitness ≥ FLAG fitness', a_score >= f_score - 1e-9)
+    _chk('FLAG fitness ≥ QUARANTINE fitness', f_score >= q_score - 1e-9)
+
+    # Constraint 4: fallback mode-specific ARR (constraints survive objective→fallback hop)
+    modes_and_arr = [
+        ('revenue',    2_400_000),
+        ('gtm',        3_200_000),
+        ('retention',  1_200_000),
+        ('analysis',   1_800_000),
+    ]
+    for mode, expected_arr in modes_and_arr:
+        result = _swarm_fallback('test objective', mode, PLATFORM_DEPARTMENTS)
+        actual_arr = result['projection'].get('first_year_arr_usd', 0)
+        _chk(f'fallback mode={mode!r} → mode-specific ARR', actual_arr == expected_arr)
+
+    # Constraint 5: objective words propagate into fallback artifacts (no silent drop)
+    marker_words = ['phenotypic', 'discriminative', 'hyperparameter']  # unusual words unlikely in generic output
+    for word in marker_words:
+        result = _swarm_fallback(f'use {word} approach', 'technical', PLATFORM_DEPARTMENTS)
+        # Fallback uses dept_output() which includes the objective — check it's there
+        any_artifact_has_word = any(
+            word.lower() in a.get('output', '').lower()
+            for a in result['artifacts']
+        )
+        _chk(f'objective word {word!r} propagates to at least one artifact', any_artifact_has_word)
+
+
 def test_coherence_gate() -> None:
     """
     COHERENCE_GATE_THRESHOLD — named stop condition (brief §5).
@@ -939,6 +999,7 @@ if __name__ == '__main__':
     test_parse_swarm_response()
     test_sanitize_objective()
     test_coherence_gate()
+    test_pipeline_constraint_propagation()
     print(f'\n{"=" * 40}')
     print(f'PASS: {PASS}  FAIL: {FAIL}')
     if FAIL > 0:
