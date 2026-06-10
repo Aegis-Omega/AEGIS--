@@ -1205,3 +1205,88 @@ def _swarm_fallback(objective: str, mode: str, departments: list) -> dict:
             ),
         },
     }
+
+
+# ── Grace chain (T2) ──────────────────────────────────────────────────────────
+# "Each agent gives the next agent a grace."
+# Graces flow forward through the 39-dept swarm, mirroring the hash chain.
+# A dept whose output passes constitutional audit earns a grace and passes it
+# to the next dept. The chain never breaks — fire-and-forget toward Supabase.
+
+def award_graces_for_cycle(cycle_id: str, artifacts: list, verdict: str) -> None:
+    """
+    Award grace tokens through the dept sequence for one collaboration cycle.
+
+    artifacts: list of {'role': str, 'output': str} dicts — ordered by dept sequence.
+    verdict:   constitutional verdict ('APPROVED', 'FLAG', 'QUARANTINE').
+
+    Only APPROVED and FLAG cycles award graces; QUARANTINE awards none.
+    Grace flows from dept[i] → dept[i+1] for every dept whose output is non-empty.
+    The first dept in the chain receives its grace from '__genesis__' (the cycle itself).
+
+    Fire-and-forget — never raises; Supabase errors logged to stderr only.
+    """
+    import urllib.request as _urG
+    import urllib.error as _ueG
+    import sys
+
+    if verdict == 'QUARANTINE':
+        return  # no graces for quarantined cycles
+
+    supabase_url = os.environ.get('SUPABASE_URL', '').rstrip('/')
+    service_key  = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+    if not supabase_url or not service_key:
+        return  # dev mode — no DB write
+
+    auth_headers = {
+        'apikey':        service_key,
+        'Authorization': f'Bearer {service_key}',
+        'Content-Type':  'application/json',
+    }
+    rpc_url = f'{supabase_url}/rest/v1/rpc/award_grace'
+
+    # Build ordered list of depts with non-empty output
+    active = [a['role'] for a in artifacts if a.get('output', '').strip()]
+    if not active:
+        return
+
+    for i, to_dept in enumerate(active):
+        from_dept = active[i - 1] if i > 0 else None
+        payload = json.dumps({
+            'p_cycle_id':        cycle_id,
+            'p_from_dept':       from_dept,   # null → __genesis__ handled in SQL
+            'p_to_dept':         to_dept,
+            'p_graces':          1,
+            'p_viability_score': None,         # optional enrichment; skip for speed
+        }).encode()
+        req = _urG.Request(rpc_url, data=payload, headers=auth_headers, method='POST')
+        try:
+            with _urG.urlopen(req, timeout=3):
+                pass
+        except Exception as exc:
+            print(f'[bridge] grace award failed ({to_dept}): {exc}', file=sys.stderr)
+
+
+def fetch_grace_leaderboard() -> list:
+    """
+    Read the grace_chain_summary view — all depts sorted by lifetime_graces desc.
+    Returns [] when SUPABASE_URL is unset (dev mode) or on error.
+    """
+    import urllib.request as _urGL
+    import urllib.error as _ueGL
+
+    supabase_url = os.environ.get('SUPABASE_URL', '').rstrip('/')
+    service_key  = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+    if not supabase_url or not service_key:
+        return []
+
+    url = f'{supabase_url}/rest/v1/grace_chain_summary?select=*&limit=50'
+    req = _urGL.Request(url, headers={
+        'apikey':        service_key,
+        'Authorization': f'Bearer {service_key}',
+    })
+    try:
+        with _urGL.urlopen(req, timeout=5) as resp:
+            return json.loads(resp.read().decode())
+    except Exception:
+        return []

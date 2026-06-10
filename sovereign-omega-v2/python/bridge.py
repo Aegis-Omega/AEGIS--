@@ -53,6 +53,8 @@ from platform_helpers import (
     evaluate_generation_fitness as _eval_fitness,
     store_generation_fitness as _store_fitness,
     retrieve_prior_artifacts as _retrieve_prior_artifacts,
+    award_graces_for_cycle as _award_graces,
+    fetch_grace_leaderboard as _fetch_graces,
 )
 
 # In-memory execution store — keyed by execution_id
@@ -267,6 +269,8 @@ def _platform_run_collaboration(
             cycle_id, objective, mode,
             projection['first_year_arr_usd'], verdict,
         )
+        # Grace chain: each dept passes a grace to the next (forward-only, fire-and-forget)
+        _award_graces(cycle_id, artifacts, verdict)
 
         result = {
             'cycle_id': cycle_id,
@@ -1421,6 +1425,19 @@ class BridgeHandler(BaseHTTPRequestHandler):
                         'remaining_runs': remaining,
                     }
             self._platform_respond(200, _platform_envelope(eid, status_data))
+
+        elif self.path == '/platform/graces':
+            # GET /platform/graces — public grace chain leaderboard.
+            # Returns all 39 dept token balances sorted by lifetime_graces desc.
+            # No auth required — grace flow is constitutional telemetry, not private data.
+            import uuid as _uuid_gr
+            eid = str(_uuid_gr.uuid4())
+            leaderboard = _fetch_graces()
+            self._platform_respond(200, _platform_envelope(eid, {
+                'graces': leaderboard,
+                'total_depts': len(leaderboard),
+                'description': 'Each agent gives the next agent a grace.',
+            }))
 
         elif self.path.startswith('/platform/executions/live'):
             # GET /platform/executions/live?id=<uuid> — SSE stream.

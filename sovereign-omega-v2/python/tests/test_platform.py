@@ -60,6 +60,8 @@ from platform_helpers import (
     TIER_LIVE_ALLOWED,
     EXPLORER_MODES,
     store_swarm_memory,
+    award_graces_for_cycle,
+    fetch_grace_leaderboard,
 )
 
 PASS = 0
@@ -1341,6 +1343,55 @@ def test_python_ts_contract_agreement() -> None:
              f'TS={ts_cat!r} PY={py_dept["category"]!r}')
 
 
+# ── Grace chain tests ─────────────────────────────────────────────────────────
+
+def test_grace_chain() -> None:
+    """award_graces_for_cycle and fetch_grace_leaderboard — dev-mode behaviour."""
+    print('\ngrace chain — dev-mode (no SUPABASE_URL):')
+
+    artifacts = [
+        {'role': 'Strategy',   'output': 'Grow ARR to $10M via enterprise.'},
+        {'role': 'Technical',  'output': 'Implement Redis cache layer.'},
+        {'role': 'Legal',      'output': 'GDPR compliance framework in place.'},
+    ]
+
+    # Dev mode: SUPABASE_URL unset → fire-and-forget returns silently, no exception
+    for key in ('SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'):
+        os.environ.pop(key, None)
+
+    cycle_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+
+    # APPROVED cycle — no exception even in dev mode
+    award_graces_for_cycle(cycle_id, artifacts, 'APPROVED')
+    _chk('APPROVED cycle does not raise in dev mode', True)
+
+    # FLAG cycle — no exception
+    award_graces_for_cycle(cycle_id, artifacts, 'FLAG')
+    _chk('FLAG cycle does not raise in dev mode', True)
+
+    # QUARANTINE cycle — returns immediately, no exception
+    award_graces_for_cycle(cycle_id, artifacts, 'QUARANTINE')
+    _chk('QUARANTINE cycle does not raise in dev mode', True)
+
+    # Empty artifacts — no exception
+    award_graces_for_cycle(cycle_id, [], 'APPROVED')
+    _chk('empty artifacts does not raise', True)
+
+    # All-empty outputs — no active depts, no error
+    award_graces_for_cycle(cycle_id, [{'role': 'Strategy', 'output': '  '}], 'APPROVED')
+    _chk('whitespace-only output handled gracefully', True)
+
+    # fetch_grace_leaderboard dev mode → []
+    result = fetch_grace_leaderboard()
+    _chk('fetch_grace_leaderboard returns list in dev mode', isinstance(result, list))
+    _chk('fetch_grace_leaderboard returns empty list when no DB', result == [])
+
+    # Determinism: calling award_graces_for_cycle 3× identical is idempotent on return type
+    for _ in range(3):
+        award_graces_for_cycle(cycle_id, artifacts, 'APPROVED')
+    _chk('3× identical calls do not raise (determinism)', True)
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
@@ -1380,6 +1431,7 @@ if __name__ == '__main__':
     test_retrieve_swarm_memory()
     test_constitutional_departments_last()
     test_python_ts_contract_agreement()
+    test_grace_chain()
     print(f'\n{"=" * 40}')
     print(f'PASS: {PASS}  FAIL: {FAIL}')
     if FAIL > 0:
