@@ -15,10 +15,10 @@ PLATFORM_CONTRACT_VERSION = '1.0.0'
 PLATFORM_GIT_SHA = os.environ.get('AEGIS_GIT_SHA', 'dev')
 
 # ── Swarm model configuration (env-overridable) ───────────────────────────────
-# Set AEGIS_SWARM_MODEL=claude-opus-4-8 for deeper reasoning (higher cost).
-# Set AEGIS_SWARM_THINKING=true to enable adaptive thinking on Opus/Sonnet 4.6+.
-SWARM_MODEL = os.environ.get('AEGIS_SWARM_MODEL', 'claude-sonnet-4-6')
-SWARM_THINKING = os.environ.get('AEGIS_SWARM_THINKING', '').lower() in ('1', 'true', 'yes')
+# Fable 5 has adaptive thinking always on. Set AEGIS_SWARM_THINKING=false only
+# when using an older model that does not support thinking (e.g. Haiku 4.5).
+SWARM_MODEL = os.environ.get('AEGIS_SWARM_MODEL', 'claude-fable-5')
+SWARM_THINKING = os.environ.get('AEGIS_SWARM_THINKING', 'true').lower() not in ('0', 'false', 'no')
 
 VALID_MODES = frozenset({
     'revenue', 'analysis', 'gtm', 'retention',
@@ -827,6 +827,9 @@ def swarm_collaborate_live(
             create_kwargs['thinking'] = {'type': 'adaptive'}
 
         resp = _client.messages.create(**create_kwargs)
+        # Fable 5 refusals surface as stop_reason='refusal' (HTTP 200) — fall back
+        if getattr(resp, 'stop_reason', None) == 'refusal':
+            return _swarm_fallback(objective, mode, departments)
         raw = ''.join(b.text for b in resp.content if hasattr(b, 'text'))
     except Exception:
         return _swarm_fallback(objective, mode, departments)

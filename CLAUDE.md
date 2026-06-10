@@ -443,14 +443,14 @@ Each product has an `.env` (gitignored) and `.env.example` (committed).
 | `VITE_DASHSCOPE_MODEL` | all products | Override model (default: qwen-plus) |
 | `VITE_OLLAMA_BASE_URL` | cockpit | Ollama endpoint (ECS server IP) |
 | `VITE_CLAUDE_API_KEY` | hub, packages/shared | Anthropic API key — activates Claude backend in inference-router |
-| `VITE_CLAUDE_MODEL` | hub, packages/shared | Claude model override (default: claude-sonnet-4-6) |
+| `VITE_CLAUDE_MODEL` | hub, packages/shared | Claude model override (default: claude-fable-5) |
 | `VITE_BRIDGE_URL` | hub | Public URL for Python bridge overlay (optional — graceful fallback if unset) |
 | `AEGIS_USE_VERTEX` | python bridge (Cloud Run) | `true`=force Vertex AI, `false`=force direct API, _(unset)_=auto-detect via ADC |
 | `AEGIS_VERTEX_PROJECT` | python bridge (Cloud Run) | GCP project for Vertex AI (default: `aegisomegav1`) |
 | `AEGIS_VERTEX_REGION` | python bridge (Cloud Run) | Vertex AI region (default: `eu` — EU multi-region for data residency) |
 | `ANTHROPIC_API_KEY` | python bridge (local dev) | Direct Anthropic API key — only used when Vertex AI ADC is absent |
-| `AEGIS_SWARM_MODEL` | python bridge | Override swarm model (default: claude-opus-4-8) |
-| `AEGIS_SWARM_THINKING` | python bridge | `true`=enable adaptive thinking on swarm calls (default: true) |
+| `AEGIS_SWARM_MODEL` | python bridge | Override swarm model (default: claude-fable-5) |
+| `AEGIS_SWARM_THINKING` | python bridge | `false`=disable thinking on older models; Fable 5 is always adaptive (default: true) |
 | `SUPABASE_URL` | python bridge | Supabase project URL (for api_key_store verification + revenue_cycles) |
 | `SUPABASE_SERVICE_ROLE_KEY` | python bridge | Supabase service role key (server-side only — never in frontend) |
 
