@@ -2,13 +2,27 @@
 // Tiers: Explorer (free / 10 runs) · Operator ($49 / 500 runs) · Sovereign ($499 / unlimited)
 // Payment: PayPal Smart Buttons for paid tiers; direct provision for Explorer.
 // Server captures orders + provisions API keys via supabase/functions/verify-paypal.
+// Paid tiers (Operator/Sovereign) also receive a grant token for the AI creator tools.
 import { useEffect, useRef, useState } from 'react'
+import { createGrantToken } from '@shared/lib/access.js'
 
 const SUPABASE_URL     = import.meta.env.VITE_SUPABASE_URL  as string | undefined
 // Client ID is public — embedded in the PayPal SDK URL visible to all visitors
 const PAYPAL_CLIENT_ID = (import.meta.env.VITE_PAYPAL_CLIENT_ID as string | undefined)
   || 'AcVwy62A-8ZX7SebJUthiqWQIxnYQHPIabLMLFeZbZX0nTT1PiNoULhTLVjkpv4yD8Kbx2Eae-6X6eGn'
 const PROVISION_URL    = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/verify-paypal` : ''
+
+const TOOL_URLS: Record<string, string> = {
+  'platform-picker':  (import.meta.env.VITE_URL_PLATFORM_PICKER  as string | undefined) ?? 'https://platform.aegisomega.com',
+  'hook-generator':   (import.meta.env.VITE_URL_HOOK_GENERATOR   as string | undefined) ?? 'https://hooks.aegisomega.com',
+  'content-calendar': (import.meta.env.VITE_URL_CONTENT_CALENDAR as string | undefined) ?? 'https://calendar.aegisomega.com',
+}
+
+const TOOL_LABELS: Record<string, { name: string; tagline: string }> = {
+  'platform-picker':  { name: 'Platform Picker',  tagline: 'Find the right stack for any project' },
+  'hook-generator':   { name: 'Hook Generator',   tagline: 'AI-crafted viral hooks for content' },
+  'content-calendar': { name: 'Content Calendar', tagline: 'Plan a month of content in minutes' },
+}
 
 declare global {
   interface Window {
@@ -68,6 +82,43 @@ function CopyButton({ text }: { text: string }) {
 
 const BASE = 'https://aegis-vertex.aegisomega.com'
 
+function ToolAccessSection({ tier }: { tier: Tier }) {
+  if (tier === 'explorer') return null
+  const token = createGrantToken('full')
+  const tools = ['platform-picker', 'hook-generator', 'content-calendar'] as const
+  return (
+    <div className="p-6 rounded-lg border border-indigo-500/30 bg-indigo-950/20">
+      <div className="text-xs font-bold tracking-widest uppercase text-indigo-400 mb-1">
+        AI Creator Tools — included with your {tier === 'sovereign' ? 'Sovereign' : 'Operator'} plan
+      </div>
+      <p className="text-gray-500 text-xs mb-4">
+        One-click access. Your session is pre-authenticated — no extra steps.
+      </p>
+      <div className="grid grid-cols-1 gap-3">
+        {tools.map(tool => {
+          const url  = `${TOOL_URLS[tool]}?aegis_token=${encodeURIComponent(token)}`
+          const meta = TOOL_LABELS[tool]
+          return (
+            <a
+              key={tool}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between p-3 rounded border border-gray-700 bg-gray-900 hover:border-indigo-500/60 hover:bg-gray-800 transition-all group"
+            >
+              <div>
+                <div className="text-sm text-white font-medium group-hover:text-indigo-300 transition-colors">{meta.name}</div>
+                <div className="text-xs text-gray-500">{meta.tagline}</div>
+              </div>
+              <span className="text-gray-600 group-hover:text-indigo-400 text-sm transition-colors">→</span>
+            </a>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function ApiKeyDisplay({ apiKey, tier }: { apiKey: string; tier: Tier }) {
   const curlExample = `curl -X POST ${BASE}/platform/collaborate \\
   -H "x-api-key: ${apiKey}" \\
@@ -126,6 +177,8 @@ function ApiKeyDisplay({ apiKey, tier }: { apiKey: string; tier: Tier }) {
           Questions? <a href="mailto:info@aegisomega.com" className="text-gray-400 hover:text-gray-300 underline">info@aegisomega.com</a>
         </div>
       </div>
+
+      <ToolAccessSection tier={tier} />
     </div>
   )
 }
