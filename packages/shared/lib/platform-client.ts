@@ -248,6 +248,11 @@ export class PlatformClient {
       )
     }
 
+    const envelopeError = validatePlatformEnvelope(json)
+    if (envelopeError !== undefined) {
+      throw new PlatformApiError(envelopeError, 'INTERNAL', resp.status)
+    }
+
     return json as PlatformEnvelope<T>
   }
 
@@ -291,6 +296,17 @@ export function signEventEnvelope(envelope: EventEnvelope, secretKey: string): s
   const secret = secretKeyBytes(secretKey)
   const envelopeHash = calculateEventEnvelopeHash(envelope)
   return createHmac('sha256', secret).update(envelopeHash).digest('hex')
+}
+
+function validatePlatformEnvelope(json: unknown): string | undefined {
+  if (!isPlainRecord(json)) return 'envelope is not an object'
+  const { contract_version, execution_id, timestamp, is_replay_reconstructable } = json as Record<string, unknown>
+  if (typeof contract_version !== 'string') return 'missing or non-string contract_version'
+  if (contract_version !== '1.0.0') return `contract_version mismatch: ${contract_version}`
+  if (typeof execution_id !== 'string' || execution_id.length === 0) return 'missing or empty execution_id'
+  if (typeof timestamp !== 'string' || timestamp.length === 0) return 'missing or empty timestamp'
+  if (is_replay_reconstructable !== true) return 'is_replay_reconstructable must be exactly true'
+  return undefined
 }
 
 function validateEventEnvelopeShape(envelope: EventEnvelope): string | undefined {
