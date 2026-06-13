@@ -3,7 +3,6 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 # AEGIS Monorepo — Coordination Document
-## Active branch: claude/test-coverage-analysis-keTIk
 ## Operator: Tarik Skalić · Hardware: AMD RX 570, 8 GB RAM
 
 ---
@@ -41,7 +40,7 @@ Key specs: `sovereign-omega-v2/docs/SOVEREIGN_RUNTIME_HANDOFF_v1.0.md` (constitu
 cd sovereign-omega-v2 && bash scripts/proof-demo.sh
 ```
 
-### TypeScript — sovereign-omega-v2 (4062 tests)
+### TypeScript — sovereign-omega-v2 (4076 tests)
 ```bash
 cd sovereign-omega-v2
 npm run test -- test/unit/jcs.test.ts        # Gate 1 — run first before any change
