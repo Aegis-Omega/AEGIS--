@@ -1,3 +1,6 @@
+# Operator credential drop zone — never commit
+.operator-secrets
+
 # Compiled and build artifacts
 *.o
 *.obj
@@ -59,6 +62,9 @@ nosetests.xml
 
 # Metacognitive live chain — ephemeral per-container; only seals.jsonl is durable
 .claude/metacog/chain.jsonl
+
+# Content-addressed delta hook runtime state — session-local, not committed
+.claude/session-state.json
 
 # wrangler files
 .wrangler
