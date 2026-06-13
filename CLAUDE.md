@@ -73,7 +73,10 @@ after mistakes.
 
 ## Operating Loop — use what exists, ship to main
 
-Full loop in **`WORKFLOW.md`** (repo root). The two rules that matter most:
+Full loop in **`WORKFLOW.md`** (repo root). The index of what's wired vs dormant vs
+broken vs contradictory is **`REPO_MAP.md`** (repo root) — read it instead of
+re-discovering the tree; when a doc disagrees with the code, the code wins. The two
+rules that matter most:
 
 1. **Reach for what exists before building.** Skills (`sovereign-omega-v2/.claude/skills/`),
    the `aegis` CLI + `aegis-omega` SDK (`packages/aegis-py/`), the Drive/Supabase/GitHub
